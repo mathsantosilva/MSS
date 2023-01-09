@@ -1,0 +1,55 @@
+2023-01-03 19:52:13 - INFO - Versão: 1.0.5
+2023-01-03 19:52:13 - INFO - Server: 172.22.1.30
+2023-01-03 19:52:13 - INFO - User: mssqladm
+2023-01-03 19:52:13 - INFO - Password: dimep
+2023-01-03 19:52:13 - INFO - Base Muro Update BR: qcmaint_BASE_MURO_UPDATE_BR
+2023-01-03 19:52:13 - INFO - Base Muro Update MX: qcmaint_BASE_MURO_UPDATE_MX
+2023-01-03 19:52:13 - INFO - Base Muro Update PT: qcmaint_BASE_MURO_UPDATE_PT
+2023-01-03 19:52:13 - INFO - Base Muro Update MD: qcmaint_BASE_MURO_UPDATE_MD
+2023-01-03 19:52:13 - INFO - Bases Muro: ['qcmaint_KAIROS_BASE_MURO', 'qcmaint_MDCOMUNE_BASE_MURO', 'qcmaint_KAIROS_BASE_MURO_MX', 'qcmaint_KAIROS_BASE_MURO_PT']
+2023-01-03 19:52:13 - INFO - Inicio da operação 
+2023-01-03 19:52:14 - INFO - Consulta na isntancia realizada com sucesso.
+2023-01-03 19:52:14 - INFO - Quantidade de bancos encontrados: 230
+2023-01-03 19:52:14 - INFO - Processo Finalizado
+2023-01-03 19:52:14 - INFO - Iniciando o processo no banco: qcmaint_KAIROS_BASE_MURO
+2023-01-03 19:52:23 - INFO - Consulta no banco de muro realizada com sucesso.
+2023-01-03 19:52:23 - INFO - Quantidade de registros encontrados: 28004
+2023-01-03 19:52:23 - INFO - Processo Finalizado
+2023-01-03 19:52:25 - INFO - Quantidade de bancos que deram Match: 68
+2023-01-03 19:52:26 - INFO - Banco qcmaint_BASE_MURO_UPDATE_BR zerado com sucesso
+2023-01-03 19:52:26 - INFO - Processo Finalizado
+2023-01-03 19:52:47 - INFO - Registros inseridos com sucesso no banco: qcmaint_BASE_MURO_UPDATE_BR
+2023-01-03 19:52:47 - 1 - (2, 'Data Source=172.22.1.30;Initial Catalog=KAIROS_B-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 2 - (4, 'Data Source=172.22.1.30;Initial Catalog=KAIROS_D-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 3 - (2587, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-03036750000101-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 4 - (3089, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-05446411000200-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 5 - (6878, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-03983431000103-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 6 - (8156, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-51617801000131-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 7 - (8218, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-05120923000109-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 8 - (10470, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-60613478000119-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 9 - (104259, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-15154354000168-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 10 - (112595, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-41857780000178-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 11 - (119598, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-31925548000176-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 12 - (276741, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-73734709000194-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 13 - (306751, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-13084349000109-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 14 - (318765, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-46612032000149-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 15 - (324763, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-04148921000157-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 16 - (351762, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-07654824000124-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=1500;')
+2023-01-03 19:52:47 - 17 - (361189, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-06636994000113-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 18 - (362992, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-10809041000187-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 19 - (368656, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-28059980000117-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 20 - (369682, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-07704914000182-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 21 - (372259, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-49692718000185-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 22 - (373652, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-26743102000190-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 23 - (373773, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-18923945000140-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 24 - (373795, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-46724182867-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 25 - (374008, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-93911147000114-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 26 - (374196, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-18105959000157-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 27 - (374431, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-07063925000120-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 28 - (374677, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-07591645000195-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 29 - (375082, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-01312003000123-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 30 - (472310, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-11357003000101-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 31 - (473985, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-27295964000160-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 32 - (474656, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-36279930000173-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 33 - (477322, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-01116583000183-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
+2023-01-03 19:52:47 - 34 - (478841, 'Data Source=172.22.1.30;Initial Catalog=KAIROS-BASE-39168985827-qcmaint;Persist Security Info=True;User ID=newPoint;Password=homologacao;Max Pool Size=500;')
