@@ -1,0 +1,13 @@
+{
+        "database_update_BR": "",
+        "database_update_MX": "",
+        "database_update_PT": "",
+        "database_update_MD": "",
+        "bases_Muro": [],
+        "conexao": {
+            "server": "192.168.173.52",
+            "username": "sa",
+            "password": "123"
+        }
+    }
+    
