@@ -1,3 +1,8 @@
 *.json
 !important.json
 config1.json
+config2.json
+testeconfig.json
+/Log/Log-basemuro.txt
+/Log/Log-manipularbancomuro.txt
+/Log/log-replicarversion.txt
