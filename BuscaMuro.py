@@ -66,22 +66,14 @@ def manipularbancomuro(server, username, password, database_update_BR, database_
         guardarstringcs = []
         guardaridcs = []
         guardabancoinstancia = []
-        guardastring = []
         guardarstringbm = []
-        conexaorealizada = []
-        stringcorreta = []
         tamnomebanco = 0
+        indexbancos = []
         separarstrings = []
         stringsLimpas = []
-        limparstring = []
-        guardarmatchstrings = []
         connection_string = []
         database_id = []
         databaseupdate = ''
-        basesmadis = ["qcmaint_MDCOMUNE_BASE_MURO",
-                      "qcdev_MDCOMUNE_BASE_MURO",
-                      "qcdev2_MDCOMUNE_BASE_MURO",
-                      "MDCOMUNE_BASE_MURO"]
 
         # Pega a lista de connections strings
         print("- Iniciando a Busca no banco de muro")
@@ -145,20 +137,21 @@ def manipularbancomuro(server, username, password, database_update_BR, database_
             listaBancosInstancia.append(separarstrings[ins])
             continue
 
+
         # Comparar bancos "strings"
         print("- Iniciando a comparação dos bancos")
         arquivo.write(datetime.datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Iniciando a comparação dos bancos" + "\n")
-        for com in range(len(listaNomesBancos)):
-            for l in range(len(listaBancosInstancia)):
-                if listaNomesBancos[com] == listaBancosInstancia[l]:
-                    connection_string.append(listaConnectionString[com])
-                    database_id.append(listaIdsBancos[com])
-
-                    guardarmatchstrings.append(
-                        'são iguais: ' + str(listaBancosInstancia[l]) + ' ' + str(listaNomesBancos[com]))
-                continue
+        for comparar in range(len(listaBancosInstancia)):
+            if listaBancosInstancia[comparar] in listaNomesBancos:
+                indexbancos.append(listaNomesBancos.index(listaBancosInstancia[comparar]))
+                indexbancos.sort()
             continue
+
+        for nums in range(len(indexbancos)):
+            connection_string.append(listaConnectionString[indexbancos[nums]])
+            database_id.append(listaIdsBancos[nums])
+
         if len(connection_string) > 0:
             print("- Quantidade de bancos que deram Match: " + str(len(connection_string)))
             arquivo.write(datetime.datetime.now().strftime(
@@ -727,7 +720,7 @@ def main():
     arquivoprincipal.write(datetime.datetime.now().strftime(
         "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Programa iniciado" + "\n")
 
-    version = "1.2.1"
+    version = "1.2.2"
 
     print("- Versão: " + version)
     arquivoprincipal.write(datetime.datetime.now().strftime(
