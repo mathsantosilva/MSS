@@ -1,9 +1,11 @@
 # coding: utf-8
+from tkinter import ttk
 import datetime
 import json
 import os
 import pyodbc
-
+from tkinter import *
+from tkinter.ttk import *
 
 def manipularbancomuro(server, username, password, database_update_BR, database_update_MX, database_update_PT, database_update_MD, bases_Muro):
 
@@ -51,6 +53,7 @@ def manipularbancomuro(server, username, password, database_update_BR, database_
 
     # Iniciando o processo no banco de muro.
     for num in range(len(bases_Muro)):
+
         print("\n" + 'Iniciando o processo no banco: ' + bases_Muro[num])
         arquivo.write(datetime.datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Iniciando o processo no banco: ' + bases_Muro[num] + "\n")
@@ -176,7 +179,7 @@ def manipularbancomuro(server, username, password, database_update_BR, database_
             stringsLimpas.append(string)
             continue
 
-        if bases_Muro[num] == ("qcmaint_KAIROS_BASE_MURO" or "qcdev_MDCOMUNE_BASE_MURO_BR"):
+        if bases_Muro[num] == ('qcmaint_KAIROS_BASE_MURO') or bases_Muro[num] == ('qcdev_KAIROS_BASE_MURO'):
             if database_update_BR != '':
                 databaseupdate = database_update_BR
             else:
@@ -189,7 +192,7 @@ def manipularbancomuro(server, username, password, database_update_BR, database_
                     "%Y-%m-%d %H:%M:%S") + " - INFO - "
                               + "Inserido manualmente a base: " + databaseupdate + "\n")
 
-        elif bases_Muro[num] == ("qcmaint_KAIROS_BASE_MURO_MX" or "qcdev_MDCOMUNE_BASE_MURO_MX"):
+        elif bases_Muro[num] == ("qcmaint_KAIROS_BASE_MURO_MX") or bases_Muro[num] == ("qcdev_KAIROS_BASE_MURO_MX"):
             if database_update_MX != '':
                 databaseupdate = database_update_MX
             else:
@@ -202,7 +205,7 @@ def manipularbancomuro(server, username, password, database_update_BR, database_
                     "%Y-%m-%d %H:%M:%S") + " - INFO - "
                               + "Inserido manualmente a base: " + databaseupdate + "\n")
 
-        elif bases_Muro[num] == ("qcmaint_KAIROS_BASE_MURO_PT" or "qcdev_MDCOMUNE_BASE_MURO_PT"):
+        elif bases_Muro[num] == ("qcmaint_KAIROS_BASE_MURO_PT") or bases_Muro[num] == ("qcdev_KAIROS_BASE_MURO_PT"):
             if database_update_PT != '':
                 databaseupdate = database_update_PT
             else:
@@ -215,7 +218,7 @@ def manipularbancomuro(server, username, password, database_update_BR, database_
                     "%Y-%m-%d %H:%M:%S") + " - INFO - "
                               + "Inserido manualmente a base: " + databaseupdate + "\n")
 
-        elif bases_Muro[num] == ("qcmaint_MDCOMUNE_BASE_MURO" or "qcdev_MDCOMUNE_BASE_MURO_MD"):
+        elif bases_Muro[num] == ("qcmaint_MDCOMUNE_BASE_MURO") or bases_Muro[num] == ("qcdev_MDCOMUNE_BASE_MURO"):
             if database_update_MD != '':
                 databaseupdate = database_update_MD
             else:
@@ -230,9 +233,9 @@ def manipularbancomuro(server, username, password, database_update_BR, database_
 
 
         # Limpeza base muro UPDATE
-        print("- Iniciando a limpeza no banco de muro update")
+        print("- Iniciando a limpeza no banco de muro update: " + databaseupdate)
         arquivo.write(datetime.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Iniciando a limpeza no banco de muro update" + "\n")
+            "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Iniciando a limpeza no banco de muro update: " + databaseupdate + "\n")
         try:
             cnxn1 = pyodbc.connect(
                 'DRIVER=SQL Server;SERVER=' + server
@@ -257,9 +260,9 @@ def manipularbancomuro(server, username, password, database_update_BR, database_
                 "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Processo Finalizado' + "\n")
 
         # Inserindo as connections strings no banco muro temporario
-        print("- Iniciando a inserção das connection strings no banco muro update")
+        print("- Iniciando a inserção das connection strings no banco muro update: " + databaseupdate)
         arquivo.write(datetime.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Iniciando a inserção das connection strings no banco muro update" + "\n")
+            "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Iniciando a inserção das connection strings no banco muro update: " + databaseupdate + "\n")
         if len(stringsLimpas) > 0:
             try:
                 cnxn5 = pyodbc.connect(
@@ -624,6 +627,15 @@ def menu(arquivoprincipal):
         arquivoprincipal.write(datetime.datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente' + str(N) + "\n")
 
+    # Limpando strings vazias na base muro
+    limpamurotam = len(bases_Muro)
+    for num in range(0, limpamurotam, +1):
+        if '' in bases_Muro:
+            bases_Muro.remove('')
+            continue
+        else:
+            break
+
     print("- Server: " + server)
     arquivoprincipal.write(datetime.datetime.now().strftime(
         "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Server: ' + server + "\n")
@@ -715,7 +727,7 @@ def main():
     arquivoprincipal.write(datetime.datetime.now().strftime(
         "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Programa iniciado" + "\n")
 
-    version = "1.2.0"
+    version = "1.2.1"
 
     print("- Versão: " + version)
     arquivoprincipal.write(datetime.datetime.now().strftime(
