@@ -1,11 +1,11 @@
 {
-    "database_update_BR": "qcmaint_BASE_MURO_UPDATE_BR",
-    "database_update_MX": "qcmaint_BASE_MURO_UPDATE_MX",
-    "database_update_PT": "qcmaint_BASE_MURO_UPDATE_PT",
-    "database_update_MD": "qcmaint_BASE_MURO_UPDATE_MD",
-    "bases_Muro": ["qcmaint_KAIROS_BASE_MURO","qcmaint_KAIROS_BASE_MURO_MX","qcmaint_KAIROS_BASE_MURO_PT","qcmaint_MDCOMUNE_BASE_MURO"],
+    "database_update_br": "qcmaint_BASE_MURO_UPDATE_BR",
+    "database_update_mx": "qcmaint_BASE_MURO_UPDATE_MX",
+    "database_update_pt": "qcmaint_BASE_MURO_UPDATE_PT",
+    "database_update_md": "qcmaint_BASE_MURO_UPDATE_MD",
+    "bases_muro": ["qcmaint_KAIROS_BASE_MURO_PT","qcmaint_MDCOMUNE_BASE_MURO"],
     "conexao": {
-        "server": "DESKTOP-JFU00CN\\SQLDEV2019",
+        "server": "tcp:DESKTOP-JFU00CN\\SQLDEV2019,12708",
         "username": "sa",
         "password": "dimep"
     }

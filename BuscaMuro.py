@@ -7,59 +7,53 @@ import pyodbc
 from tkinter import *
 from tkinter.ttk import *
 
-def manipularbancomuro(server, username, password, database_update_BR, database_update_MX, database_update_PT, database_update_MD, bases_Muro):
+def data_atual():
+   data_hora =  datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+   return data_hora
+
+
+def manipular_bancomuro(server, username, password, database_update_br, database_update_mx, database_update_pt, database_update_md, bases_muro):
 
     arquivo = open("Log\Log-manipularbancomuro.txt", "a")
 
-    print("\n" + '- Inicio da operação Busca muro ' + str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-    arquivo.write(datetime.datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Inicio da operação Busca muro ' + "\n")
+    print(f"\n - Inicio da operação Busca muro {data_atual()}")
+    arquivo.write(f"{data_atual()} - INFO - Inicio da operação Busca muro \n")
 
     versaodatabases = input("- Especifique para qual versão quer fazer o downgrade: ")
 
-    print("- Version para downgrade: " + versaodatabases)
-    arquivo.write(datetime.datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Version para downgrade: ' + versaodatabases + "\n")
+    print(f"- Version para downgrade: {versaodatabases}")
+    arquivo.write(f"{data_atual()} - INFO - Version para downgrade: {versaodatabases} \n")
 
     # Pegar a lista de bancos da instancia
-    print("\n" + "- Iniciando a busca dos bancos na instância " + server + "\n")
-    arquivo.write(datetime.datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Iniciando a busca dos bancos na instância" + "\n")
+    print(f"\n - Iniciando a busca dos bancos na instância {server} \n")
+    arquivo.write(f"{data_atual()} - INFO - Iniciando a busca dos bancos na instância \n")
     try:
-        cnxn3 = pyodbc.connect(
-            'DRIVER=SQL Server;SERVER=' + server + ';ENCRYPT=not;UID=' + username + ';PWD=' + password)
-        cursor3 = cnxn3.cursor()
-        cursor3.execute("SELECT name FROM sys.databases;")
-        listasStringInstancia = cursor3.fetchall()
+        cnxn1 = pyodbc.connect(f"DRIVER=SQL Server;SERVER={server};ENCRYPT=not;UID={username};PWD={password}")
+        cursor1 = cnxn1.cursor()
+        cursor1.execute("SELECT name FROM sys.databases;")
+        listasstringinstancia = cursor1.fetchall()
     except pyodbc.DatabaseError as err:
-        print("- Falha ao tentar buscar os bancos da instancia " + str(err))
-        arquivo.write(datetime.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S") + " - ERRO - " + "Falha ao tentar buscar os bancos da instancia " + str(err) + "\n")
+        print(f"- Falha ao tentar buscar os bancos da instancia {err}")
+        arquivo.write(f"{data_atual()} - ERRO - Falha ao tentar buscar os bancos da instancia {err} \n")
     else:
-        cursor3.commit()
+        cursor1.commit()
         print("- Consulta na instância realizada com sucesso.")
-        arquivo.write(datetime.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Consulta na instância realizada com sucesso." + "\n")
+        arquivo.write(f"{data_atual()} - INFO - Consulta na instância realizada com sucesso. \n")
 
-        print("- Quantidade de bancos encontrados: " + str(len(listasStringInstancia)))
-        arquivo.write(datetime.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Quantidade de bancos encontrados: " + str(
-            len(listasStringInstancia)) + "\n")
-        cursor3.close()
+        print(f"- Quantidade de bancos encontrados: {len(listasstringinstancia)}")
+        arquivo.write(f"{data_atual()} - INFO - Quantidade de bancos encontrados: {len(listasstringinstancia)} \n")
     finally:
         print("- Processo Finalizado")
-        arquivo.write(datetime.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Processo Finalizado' + "\n")
+        arquivo.write(f"{data_atual()} - INFO - Processo Finalizado \n")
 
     # Iniciando o processo no banco de muro.
-    for num in range(len(bases_Muro)):
+    for num in range(len(bases_muro)):
 
-        print("\n" + 'Iniciando o processo no banco: ' + bases_Muro[num])
-        arquivo.write(datetime.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Iniciando o processo no banco: ' + bases_Muro[num] + "\n")
+        print(f"\n Iniciando o processo no banco: {bases_muro[num]}")
+        arquivo.write(f"{data_atual()} - INFO - Iniciando o processo no banco: {bases_muro[num]} \n")
 
         # Configurando as Variaveis
-        listaConnectionString = []
+        lista_connection_string  = []
         listaBancosInstancia = []
         listaNomesBancos = []
         listaIdsBancos = []
@@ -77,40 +71,28 @@ def manipularbancomuro(server, username, password, database_update_BR, database_
 
         # Pega a lista de connections strings
         print("- Iniciando a Busca no banco de muro")
-        arquivo.write(datetime.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Iniciando a Busca no banco de muro" + "\n")
+        arquivo.write(f"{data_atual()} - INFO - Iniciando a Busca no banco de muro \n")
         try:
-            cnxn4 = pyodbc.connect(
-                'DRIVER=SQL Server;SERVER=' + server + ';DATABASE=' + bases_Muro[
-                    num] + ';ENCRYPT=not;UID=' + username + ';PWD=' + password)
-            cursor4 = cnxn4.cursor()
-            cursor4.execute("SELECT [DATABASE_ID],[CONNECTION_STRING] FROM "
-                            + bases_Muro[num] + ".[dbo].[KAIROS_DATABASES]")
-            listaConnectionString = cursor4.fetchall()
+            cursor1.execute(f"SELECT [DATABASE_ID],[CONNECTION_STRING] FROM {bases_muro[num]}.[dbo].[KAIROS_DATABASES]")
+            lista_connection_string  = cursor1.fetchall()
 
         except pyodbc.DatabaseError as err:
-            print("- Falha ao tentar consultar banco de muro: " + str(err))
-            arquivo.write(datetime.datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S") + " - ERRO - " + "Falha ao tentar consultar banco de muro " + str(err) + "\n")
+            print(f"- Falha ao tentar consultar banco de muro: {err}")
+            arquivo.write(f"{data_atual()}  - ERRO - Falha ao tentar consultar banco de muro {err} \n")
         else:
-            cursor4.commit()
+            cursor1.commit()
             print("- Consulta no banco de muro realizada com sucesso")
-            arquivo.write(datetime.datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Consulta no banco de muro realizada com sucesso." + "\n")
+            arquivo.write(f"{data_atual()} - INFO - Consulta no banco de muro realizada com sucesso \n")
 
-            print("- Quantidade de registros encontrados: " + str(len(listaConnectionString)))
-            arquivo.write(datetime.datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Quantidade de registros encontrados: " + str(
-                len(listaConnectionString)) + "\n")
-            cursor4.close()
+            print(f"- Quantidade de registros encontrados: {len(lista_connection_string)}")
+            arquivo.write(f"{data_atual()} - INFO - Quantidade de registros encontrados: {len(lista_connection_string)} \n")
         finally:
             print("- Processo Finalizado")
-            arquivo.write(datetime.datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Processo Finalizado' + "\n")
+            arquivo.write(f"{data_atual()} - INFO - Processo Finalizado \n")
 
         # separar o nome do banco nas connection strings
-        for i in range(len(listaConnectionString)):
-            guardarstringcs.append(listaConnectionString[i].CONNECTION_STRING)
+        for i in range(len(lista_connection_string )):
+            guardarstringcs.append(lista_connection_string [i].CONNECTION_STRING)
             stringsseparadas = guardarstringcs[i].split(";")
             nomebanco = stringsseparadas[1]
             tamnomebanco = len(nomebanco)
@@ -118,18 +100,14 @@ def manipularbancomuro(server, username, password, database_update_BR, database_
             continue
 
         # separar o id do banco nas connection strings
-        for cs in range(len(listaConnectionString)):
-            guardaridcs.append(str(listaConnectionString[cs]))
-            stringsidseparadas = guardaridcs[cs].split(",")
-            stringsid1separadas = stringsidseparadas[0].split(",")
-            numid = stringsid1separadas[0]
-            tamnumid = len(numid)
-            listaIdsBancos.append(numid[1:tamnumid])
+        for cs in range(len(lista_connection_string)):
+            guardaridcs.append(str(lista_connection_string[cs].DATABASE_ID))
+            listaIdsBancos.append(guardaridcs[cs])
             continue
 
         # separar o nome do banco nas instancias
-        for ins in range(len(listasStringInstancia)):
-            guardabancoinstancia.append(str(listasStringInstancia[ins]))
+        for ins in range(len(listasstringinstancia)):
+            guardabancoinstancia.append(str(listasstringinstancia[ins]))
             nomebancoinstancia = guardabancoinstancia[ins]
             tamnomebancoinstancia = len(nomebancoinstancia)
             tamnomebancoinstancia -= 4
@@ -140,8 +118,7 @@ def manipularbancomuro(server, username, password, database_update_BR, database_
 
         # Comparar bancos "strings"
         print("- Iniciando a comparação dos bancos")
-        arquivo.write(datetime.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Iniciando a comparação dos bancos" + "\n")
+        arquivo.write(f"{data_atual()} - INFO - Iniciando a comparação dos bancos \n")
         for comparar in range(len(listaBancosInstancia)):
             if listaBancosInstancia[comparar] in listaNomesBancos:
                 indexbancos.append(listaNomesBancos.index(listaBancosInstancia[comparar]))
@@ -149,21 +126,17 @@ def manipularbancomuro(server, username, password, database_update_BR, database_
             continue
 
         for nums in range(len(indexbancos)):
-            connection_string.append(listaConnectionString[indexbancos[nums]])
-            database_id.append(listaIdsBancos[nums])
+            connection_string.append(lista_connection_string[indexbancos[nums]])
+            database_id.append(listaIdsBancos[indexbancos[nums]])
 
         if len(connection_string) > 0:
             print("- Quantidade de bancos que deram Match: " + str(len(connection_string)))
-            arquivo.write(datetime.datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S") + " - INFO - "
-                          + "Quantidade de bancos que deram Match: " + str(len(connection_string)) + "\n")
+            arquivo.write(f"{data_atual()} - INFO - Quantidade de bancos que deram Match: {len(connection_string)} \n")
         else:
             print("- Não foram encontrados Match na comparação de bancos")
-            arquivo.write(datetime.datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Não foram encontrados Match na comparação de bancos" + "\n")
+            arquivo.write(f"{data_atual()} - INFO - Não foram encontrados Match na comparação de bancos \n")
         print("- Processo Finalizado")
-        arquivo.write(datetime.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Processo Finalizado' + "\n")
+        arquivo.write(f"{data_atual()} - INFO - Processo Finalizado \n")
 
         # Limpar as strings para inserir no banco
         for lim in range(len(connection_string)):
@@ -171,317 +144,272 @@ def manipularbancomuro(server, username, password, database_update_BR, database_
             string = guardarstringbm[lim]
             stringsLimpas.append(string)
             continue
+        while True:
+            if bases_muro[num] == ('qcmaint_KAIROS_BASE_MURO') or bases_muro[num] == ('qcdev_KAIROS_BASE_MURO'):
+                if database_update_br != '':
+                    databaseupdate = database_update_br
+                    break
+                else:
+                    print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update BR")
+                    arquivo.write(f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update BR \n")
+                    databaseupdate = input("Insira o nome da base que será usada: ")
+                    arquivo.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
 
-        if bases_Muro[num] == ('qcmaint_KAIROS_BASE_MURO') or bases_Muro[num] == ('qcdev_KAIROS_BASE_MURO'):
-            if database_update_BR != '':
-                databaseupdate = database_update_BR
-            else:
-                print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update BR")
-                arquivo.write(datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - ERRO - "
-                              + "Não foi inserido no arquivo de config o apontamento para o banco Muro update BR" + "\n")
-                databaseupdate = input("Insira o nome da base que será usada: ")
-                arquivo.write(datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - INFO - "
-                              + "Inserido manualmente a base: " + databaseupdate + "\n")
 
-        elif bases_Muro[num] == ("qcmaint_KAIROS_BASE_MURO_MX") or bases_Muro[num] == ("qcdev_KAIROS_BASE_MURO_MX"):
-            if database_update_MX != '':
-                databaseupdate = database_update_MX
+            elif bases_muro[num] == ("qcmaint_KAIROS_BASE_MURO_MX") or bases_muro[num] == ("qcdev_KAIROS_BASE_MURO_MX"):
+                if database_update_mx != '':
+                    databaseupdate = database_update_mx
+                else:
+                    print("-  Não foi inserido no arquivo de config o apontamento para o banco Muro update MX")
+                    arquivo.write(f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update MX \n")
+                    databaseupdate = input("Insira o nome da base que será utilizada: ")
+                    arquivo.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
+
+            elif bases_muro[num] == ("qcmaint_KAIROS_BASE_MURO_PT") or bases_muro[num] == ("qcdev_KAIROS_BASE_MURO_PT"):
+                if database_update_pt != '':
+                    databaseupdate = database_update_pt
+                else:
+                    print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update PT")
+                    arquivo.write(f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update PT \n")
+                    databaseupdate = input("Insira o nome da base que será utilizada: ")
+                    arquivo.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
+
+            elif bases_muro[num] == ("qcmaint_MDCOMUNE_BASE_MURO") or bases_muro[num] == ("qcdev_MDCOMUNE_BASE_MURO"):
+                if database_update_md != '':
+                    databaseupdate = database_update_md
+                else:
+                    print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update MD")
+                    arquivo.write(f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update MD \n")
+                    databaseupdate = input("Insira o nome da base que será utilizada: ")
+                    arquivo.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
             else:
-                print("-  Não foi inserido no arquivo de config o apontamento para o banco Muro update MX")
-                arquivo.write(datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - ERRO - "
-                              + "Não foi inserido no arquivo de config o apontamento para o banco Muro update MX" + "\n")
+                print("- Não foi possivel achar uma opção compativel com o banco de muro")
+                print("- Insira o banco de Update manualmente")
+                arquivo.write(
+                    f"{data_atual()} - ERRO - Não foi possivel achar uma opção compativel com o banco de muro \n")
+                arquivo.write(
+                    f"{data_atual()} - ERRO - Insira o banco de Update manualmente \n")
                 databaseupdate = input("Insira o nome da base que será utilizada: ")
-                arquivo.write(datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - INFO - "
-                              + "Inserido manualmente a base: " + databaseupdate + "\n")
-
-        elif bases_Muro[num] == ("qcmaint_KAIROS_BASE_MURO_PT") or bases_Muro[num] == ("qcdev_KAIROS_BASE_MURO_PT"):
-            if database_update_PT != '':
-                databaseupdate = database_update_PT
+                arquivo.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
+            if databaseupdate == "":
+                continue
             else:
-                print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update PT")
-                arquivo.write(datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - ERRO - "
-                              + "Não foi inserido no arquivo de config o apontamento para o banco Muro update PT" + "\n")
-                databaseupdate = input("Insira o nome da base que será utilizada: ")
-                arquivo.write(datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - INFO - "
-                              + "Inserido manualmente a base: " + databaseupdate + "\n")
-
-        elif bases_Muro[num] == ("qcmaint_MDCOMUNE_BASE_MURO") or bases_Muro[num] == ("qcdev_MDCOMUNE_BASE_MURO"):
-            if database_update_MD != '':
-                databaseupdate = database_update_MD
-            else:
-                print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update MD")
-                arquivo.write(datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - ERRO - "
-                              + "Não foi inserido no arquivo de config o apontamento para o banco Muro update MD" + "\n")
-                databaseupdate = input("Insira o nome da base que será utilizada: ")
-                arquivo.write(datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - INFO - "
-                              + "Inserido manualmente a base: " + databaseupdate + "\n")
-
+                break
 
         # Limpeza base muro UPDATE
-        print("- Iniciando a limpeza no banco de muro update: " + databaseupdate)
-        arquivo.write(datetime.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Iniciando a limpeza no banco de muro update: " + databaseupdate + "\n")
+        print(f"- Iniciando a limpeza no banco de muro update: {databaseupdate}")
+        arquivo.write(f"{data_atual()} - INFO - Iniciando a limpeza no banco de muro update: {databaseupdate} \n")
         try:
-            cnxn1 = pyodbc.connect(
-                'DRIVER=SQL Server;SERVER=' + server
-                + ';DATABASE=' + databaseupdate + ';ENCRYPT=not;UID=' + username + ';PWD=' + password)
-            cursor1 = cnxn1.cursor()
-            cursor1.execute('DELETE FROM ' + databaseupdate + '.[dbo].[KAIROS_DATABASES]')
+            cursor1.execute(f'DELETE FROM {databaseupdate}.[dbo].[KAIROS_DATABASES]')
 
         except pyodbc.DatabaseError as err:
-            print("- Falha ao tentar zerar o banco de muro temporário " + str(err))
-            arquivo.write(datetime.datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S") + " - ERRO - " + "Falha ao tentar zerar o banco de muro temporario " + str(
-                err) + "\n")
+            print(f"- Falha ao tentar zerar o banco de muro temporário {err}")
+            arquivo.write(f"{data_atual()}  - ERRO - Falha ao tentar zerar o banco de muro temporario {err} \n")
         else:
             cursor1.commit()
-            print("- banco " + databaseupdate + " zerado com sucesso")
-            arquivo.write(datetime.datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Banco " + databaseupdate + " zerado com sucesso" + "\n")
-            cursor1.close()
+            print(f"- banco {databaseupdate} zerado com sucesso")
+            arquivo.write(f"{data_atual()} - INFO - Banco {databaseupdate} zerado com sucesso \n")
         finally:
             print("- Processo Finalizado")
-            arquivo.write(datetime.datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Processo Finalizado' + "\n")
+            arquivo.write(f"{data_atual()} - INFO - Processo Finalizado \n")
 
         # Inserindo as connections strings no banco muro temporario
-        print("- Iniciando a inserção das connection strings no banco muro update: " + databaseupdate)
-        arquivo.write(datetime.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Iniciando a inserção das connection strings no banco muro update: " + databaseupdate + "\n")
+        print(f"- Iniciando a inserção das connection strings no banco muro update: {databaseupdate}")
+        arquivo.write(f"{data_atual()} - INFO - Iniciando a inserção das connection strings no banco muro update: {databaseupdate} \n")
         if len(stringsLimpas) > 0:
             try:
-                cnxn5 = pyodbc.connect(
-                    'DRIVER=SQL Server;SERVER=' + server + ';DATABASE=' + databaseupdate + ';ENCRYPT=not;UID=' + username + ';PWD=' + password)
-                cursor5 = cnxn5.cursor()
+                cnxn2 = pyodbc.connect(f"DRIVER=SQL Server;SERVER={server};DATABASE={databaseupdate};ENCRYPT=not;UID={username};PWD={password}")
+                cursor2 = cnxn2.cursor()
 
-                cursor5.execute("set identity_insert [dbo].[KAIROS_DATABASES]  on")
+                cursor2.execute("set identity_insert [dbo].[KAIROS_DATABASES]  on")
                 for incs in range(len(stringsLimpas)):
-                    cursor5.execute("INSERT INTO [dbo].[KAIROS_DATABASES] ([DATABASE_ID],[CONNECTION_STRING] ,[DATABASE_VERSION] ,[FL_MAQUINA_CALCULO] ,[FL_ATIVO]) VALUES(?,?,?,0, 1)", database_id[incs], stringsLimpas[incs], versaodatabases)
+                    cursor2.execute(f"INSERT INTO [{databaseupdate}].[dbo].[KAIROS_DATABASES] ([DATABASE_ID],[CONNECTION_STRING] ,[DATABASE_VERSION] ,[FL_MAQUINA_CALCULO] ,[FL_ATIVO]) VALUES(?,?,?,0, 1)", database_id[incs], stringsLimpas[incs], versaodatabases)
                     continue
-                cursor5.execute("set identity_insert [dbo].[KAIROS_DATABASES]  off")
+                cursor2.execute("set identity_insert [dbo].[KAIROS_DATABASES]  off")
 
             except pyodbc.DatabaseError as err:
-                print("- Falha ao tentar inserir registros no banco de muro temporário " + str(err))
-                arquivo.write("\n" + datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S ") + " - ERRO - "
-                              + "Falha ao tentar inserir registros no banco de muro temporário " + str(
-                    err) + "\n")
+                print(f"- Falha ao tentar inserir registros no banco de muro temporário {err}")
+                arquivo.write(f"{data_atual()} - ERRO - Falha ao tentar inserir registros no banco de muro temporário {err} \n")
             else:
-                cursor5.commit()
-                cursor5.close()
+                cursor2.commit()
                 print("- Sucesso ao inserir connection Strings no Banco de muro Update  ")
-                arquivo.write(datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - INFO - "
-                              + "Sucesso ao inserir connection Strings no Banco de muro Update  " + "\n")
+                arquivo.write(f"{data_atual()} - INFO - Sucesso ao inserir connection Strings no Banco de muro Update \n")
+
+                print(f"- Registros inseridos com sucesso no banco: {databaseupdate}")
+                arquivo.write(f"{data_atual()} - INFO - " + f"Registros inseridos com sucesso no banco: {databaseupdate} \n")
             finally:
-                print("- Registros inseridos com sucesso no banco: " + databaseupdate)
-                arquivo.write(datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Registros inseridos com sucesso no banco: "
-                              + databaseupdate + "\n")
+                print("- Processo Finalizado")
+                arquivo.write(f"{data_atual()} - INFO - Processo Finalizado \n")
 
         else:
             print("- Não a registros para serem inseridos no banco: " + databaseupdate)
-            arquivo.write(datetime.datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S") + " - INFO - "
-                          + "Não a registros para serem inseridos no banco: " + databaseupdate + "\n")
-
-        print("- Processo Finalizado")
-        arquivo.write(datetime.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Processo Finalizado' + "\n")
+            arquivo.write(f"{data_atual()} - INFO - Não a registros para serem inseridos no banco: {databaseupdate} \n")
+            print("- Processo Finalizado")
+            arquivo.write(f"{data_atual()} - INFO - Processo Finalizado \n")
 
         # Logando as connection string
-        arquivo.write(datetime.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Listando as connection strings utilizadas' + "\n")
+        arquivo.write(f"{data_atual()} - INFO - Listando as connection strings utilizadas \n")
         quant = 1
         for log in range(len(connection_string)):
-            arquivo.writelines(datetime.datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S") + " - INFO - " + str(quant) + " - " + str(
-                connection_string[log]) + "\n")
+            arquivo.writelines(f"{data_atual()} - INFO - {quant} - {connection_string[log]} \n")
             quant += 1
             continue
 
         if num < 4:
             num += 1
-        print("- Concluido a parte " + str(num) + " do processo, de um total de " + str(len(bases_Muro)) + " partes.")
-        arquivo.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " - INFO - " + "Concluido a parte " + str(
-                num) + " do processo, de um total de " + str(len(bases_Muro)) + " partes." + "\n")
+        print(f"- Concluido a parte {num}  do processo, de um total de {len(bases_muro)} partes.")
+        arquivo.write(f"{data_atual()} - INFO - Concluido a parte {num} do processo, de um total de {len(bases_muro)} partes. \n")
         continue
 
-    print("- Fim da operação Busca muro " + str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
-    arquivo.write(datetime.datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Fim da operação Busca muro" + "\n")
+    print(f"- Fim da operação Busca muro {data_atual()}")
+    arquivo.write(f"{data_atual()} - INFO - Fim da operação Busca muro \n")
+    cursor1.close()
+    cursor2.close()
     arquivo.close()
 
 
-def replicarversion(server, username, password, database_update_BR, database_update_MX, database_update_PT, database_update_MD, bases_Muro):
+def replicar_version(server, username, password, database_update_br, database_update_mx, database_update_pt, database_update_md, bases_muro):
 
     num = 0
-    tambasesmuro = len(bases_Muro)
+    tambasesmuro = len(bases_muro)
 
     arquivologreplicar = open("Log\log-replicarversion.txt", "a")
 
-    print("\n" + '- Inicio da operação replicar version '
-          + str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + "\n")
-    arquivologreplicar.write(datetime.datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Inicio da operação replicar version")
+    print(f" \n - Inicio da operação replicar version {data_atual()} \n")
+    arquivologreplicar.write(f"{data_atual()} - INFO - Inicio da operação replicar version")
 
-    for num in range(len(bases_Muro)):
+    for num in range(len(bases_muro)):
         listaregistrosdb = []
         listaids = []
         listaversions = []
         listaconnectionstring = []
 
-        print("- Iniciando o processo no banco: " + bases_Muro[num])
-        arquivologreplicar.write("\n" + datetime.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Iniciando o processo no banco: ' + bases_Muro[num])
+        print(f"- Iniciando o processo no banco: {bases_muro[num]}")
+        arquivologreplicar.write(f"\n{data_atual()} - INFO - Iniciando o processo no banco: {bases_muro[num]}")
 
-        if bases_Muro[num] == ("qcmaint_KAIROS_BASE_MURO" or "qcdev_MDCOMUNE_BASE_MURO_BR"):
-            if database_update_BR != '':
-                databaseupdate = database_update_BR
-            else:
-                print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update BR")
-                arquivologreplicar.write(datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - ERRO - "
-                              + "Não foi inserido no arquivo de config o apontamento para o banco Muro update BR" + "\n")
-                databaseupdate = input("Insira o nome da base que será usada: ")
-                arquivologreplicar.write(datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - INFO - "
-                              + "Inserido manualmente a base: " + databaseupdate + "\n")
+        while True:
+            if bases_muro[num] == ('qcmaint_KAIROS_BASE_MURO') or bases_muro[num] == ('qcdev_KAIROS_BASE_MURO'):
+                if database_update_br != '':
+                    databaseupdate = database_update_br
+                    break
+                else:
+                    print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update BR")
+                    arquivologreplicar.write(f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update BR \n")
+                    databaseupdate = input("Insira o nome da base que será usada: ")
+                    arquivologreplicar.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
 
-        elif bases_Muro[num] == ("qcmaint_KAIROS_BASE_MURO_MX" or "qcdev_MDCOMUNE_BASE_MURO_MX"):
-            if database_update_MX != '':
-                databaseupdate = database_update_MX
+
+            elif bases_muro[num] == ("qcmaint_KAIROS_BASE_MURO_MX") or bases_muro[num] == ("qcdev_KAIROS_BASE_MURO_MX"):
+                if database_update_mx != '':
+                    databaseupdate = database_update_mx
+                else:
+                    print("-  Não foi inserido no arquivo de config o apontamento para o banco Muro update MX")
+                    arquivologreplicar.write(f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update MX \n")
+                    databaseupdate = input("Insira o nome da base que será utilizada: ")
+                    arquivologreplicar.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
+
+            elif bases_muro[num] == ("qcmaint_KAIROS_BASE_MURO_PT") or bases_muro[num] == ("qcdev_KAIROS_BASE_MURO_PT"):
+                if database_update_pt != '':
+                    databaseupdate = database_update_pt
+                else:
+                    print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update PT")
+                    arquivologreplicar.write(f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update PT \n")
+                    databaseupdate = input("Insira o nome da base que será utilizada: ")
+                    arquivologreplicar.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
+
+            elif bases_muro[num] == ("qcmaint_MDCOMUNE_BASE_MURO") or bases_muro[num] == ("qcdev_MDCOMUNE_BASE_MURO"):
+                if database_update_md != '':
+                    databaseupdate = database_update_md
+                else:
+                    print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update MD")
+                    arquivologreplicar.write(f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update MD \n")
+                    databaseupdate = input("Insira o nome da base que será utilizada: ")
+                    arquivologreplicar.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
             else:
-                print("-  Não foi inserido no arquivo de config o apontamento para o banco Muro update MX")
-                arquivologreplicar.write(datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - ERRO - "
-                              + "Não foi inserido no arquivo de config o apontamento para o banco Muro update MX" + "\n")
+                print("- Não foi possivel achar uma opção compativel com o banco de muro")
+                print("- Insira o banco de Update manualmente")
+                arquivologreplicar.write(
+                    f"{data_atual()} - ERRO - Não foi possivel achar uma opção compativel com o banco de muro \n")
+                arquivologreplicar.write(
+                    f"{data_atual()} - ERRO - Insira o banco de Update manualmente \n")
                 databaseupdate = input("Insira o nome da base que será utilizada: ")
-                arquivologreplicar.write(datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - INFO - "
-                              + "Inserido manualmente a base: " + databaseupdate + "\n")
-
-        elif bases_Muro[num] == ("qcmaint_KAIROS_BASE_MURO_PT" or "qcdev_MDCOMUNE_BASE_MURO_PT"):
-            if database_update_PT != '':
-                databaseupdate = database_update_PT
+                arquivologreplicar.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
+            if databaseupdate == "":
+                continue
             else:
-                print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update PT")
-                arquivologreplicar.write(datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - ERRO - "
-                              + "Não foi inserido no arquivo de config o apontamento para o banco Muro update PT" + "\n")
-                databaseupdate = input("Insira o nome da base que será utilizada: ")
-                arquivologreplicar.write(datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - INFO - "
-                              + "Inserido manualmente a base: " + databaseupdate + "\n")
-
-        elif bases_Muro[num] == ("qcmaint_MDCOMUNE_BASE_MURO" or "qcdev_MDCOMUNE_BASE_MURO_MD"):
-            if database_update_MD != '':
-                databaseupdate = database_update_MD
-            else:
-                print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update MD")
-                arquivologreplicar.write(datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - ERRO - "
-                              + "Não foi inserido no arquivo de config o apontamento para o banco Muro update MD" + "\n")
-                databaseupdate = input("Insira o nome da base que será utilizada: ")
-                arquivologreplicar.write(datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - INFO - "
-                              + "Inserido manualmente a base: " + databaseupdate + "\n")
+                break
 
         try:
-            cnxnrp1 = pyodbc.connect(
-                'DRIVER=SQL Server;SERVER=' + server
-                                            + ';DATABASE=' + databaseupdate
-                + ';ENCRYPT=not;UID=' + username + ';PWD=' + password)
+            cnxnrp1 = pyodbc.connect(f"DRIVER=SQL Server;SERVER={server};DATABASE={databaseupdate};ENCRYPT=not;UID={username};PWD={password}")
             cursorrp1 = cnxnrp1.cursor()
-            cursorrp1.execute("SELECT * FROM " + databaseupdate + ".[dbo].[KAIROS_DATABASES]")
+            cursorrp1.execute(f"SELECT * FROM {databaseupdate}.[dbo].[KAIROS_DATABASES]")
             listaregistrosdb = cursorrp1.fetchall()
         except pyodbc.DatabaseError as err:
             print("- Falha ao tentar consultar banco de muro update: " + str(err))
-            arquivologreplicar.write("\n" + datetime.datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S") + " - ERRO - " + "Falha ao tentar consultar banco de muro update: " + str(err))
+            arquivologreplicar.write(f"\n{data_atual()} - ERRO - Falha ao tentar consultar banco de muro update: {err}")
         else:
             cursorrp1.commit()
             cursorrp1.close()
 
-            print("- Sucesso na consulta no banco de muro update: " + databaseupdate)
-            arquivologreplicar.write("\n" + datetime.datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Sucesso na consulta no banco de muro update: " + databaseupdate)
+            print(f"- Sucesso na consulta no banco de muro update: {databaseupdate}")
+            arquivologreplicar.write(f"\n{data_atual()} - INFO - Sucesso na consulta no banco de muro update: {databaseupdate}")
 
-            print("- Quantidade de registros encontrados: " + str(len(listaregistrosdb)))
-            arquivologreplicar.write("\n" + datetime.datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S") + " - INFO - "
-                                     + "Quantidade de registros encontrados: " + str(len(listaregistrosdb)))
+            print(f"- Quantidade de registros encontrados: {len(listaregistrosdb)}")
+            arquivologreplicar.write(f"\n{data_atual()} - INFO - Quantidade de registros encontrados: {len(listaregistrosdb)}")
         finally:
             print("- Processo finalizado")
 
         tambuscarealizada = len(listaregistrosdb)
         if tambuscarealizada > 0:
-            for teste in range(tambuscarealizada):
-                listaids.append(listaregistrosdb[teste].DATABASE_ID)
-                listaversions.append(listaregistrosdb[teste].DATABASE_VERSION)
-                listaconnectionstring.append(listaregistrosdb[teste].CONNECTION_STRING)
+            for nums in range(tambuscarealizada):
+                listaids.append(listaregistrosdb[nums].DATABASE_ID)
+                listaversions.append(listaregistrosdb[nums].DATABASE_VERSION)
+                listaconnectionstring.append(listaregistrosdb[nums].CONNECTION_STRING)
                 continue
 
             try:
-                cnxnrp2 = pyodbc.connect(
-                    'DRIVER=SQL Server;SERVER=' + server + ';DATABASE=' + bases_Muro[num] + ';ENCRYPT=not;UID=' + username + ';PWD=' + password)
+                cnxnrp2 = pyodbc.connect(f"DRIVER=SQL Server;SERVER={server};DATABASE={bases_muro[num]};ENCRYPT=not;UID={username};PWD={password}")
                 cursorrp2 = cnxnrp2.cursor()
                 for teste2 in range(tambuscarealizada):
                     cursorrp2.execute("update [dbo].[KAIROS_DATABASES] set [DATABASE_VERSION] = ? where [DATABASE_ID] = ? and [CONNECTION_STRING] = ? ", listaversions[teste2], listaids[teste2], listaconnectionstring[teste2])
                     continue
             except pyodbc.DatabaseError as err:
-                print("- Falha ao tentar consultar banco de muro update: " + str(err))
-                arquivologreplicar.write("\n" + datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - ERRO - " + "Falha ao tentar consultar banco de muro update: " + str(err))
+                print(f"- Falha ao tentar consultar banco de muro update: {err}")
+                arquivologreplicar.write(f"\n{data_atual()} - ERRO - Falha ao tentar consultar banco de muro update: {err}")
             else:
                 cursorrp2.commit()
                 cursorrp2.close()
-                print("- Sucesso ao inserir version no banco de muro: " + bases_Muro[num])
-                arquivologreplicar.write("\n" + datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - INFO - "
-                                         + "Sucesso ao inserir version no banco de muro: " + bases_Muro[num])
+                print(f"- Sucesso ao inserir version no banco de muro: {bases_muro[num]}")
+                arquivologreplicar.write(f"\n{data_atual()} - INFO - Sucesso ao inserir version no banco de muro: {bases_muro[num]}")
             finally:
                 print("- Processo finalizado")
         else:
             print("- Não existem registros para alterar o version")
-            arquivologreplicar.write("\n" + datetime.datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S") + " - ERRO - " + "Não existem registros para alterar o version")
+            arquivologreplicar.write(f"\n{data_atual()} - ERRO - Não existem registros para alterar o version")
 
         # Logando as connection string
         quant = 1
         for log in range(tambuscarealizada):
-            arquivologreplicar.writelines("\n" + datetime.datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S") + " - INFO - " + str(quant) + " - " + "ID: " + str(listaids[log]) + " - " + "Version: " + str(listaversions[log]))
+            arquivologreplicar.writelines(f"\n{data_atual()} - INFO - {quant} - ID: {listaids[log]} - Version: {listaversions[log]}")
             quant += 1
             continue
 
         if num < 4:
             num += 1
 
-        print("- Concluido a parte " + str(num)
-              + " do processo, de um total de " + str(len(bases_Muro)) + " partes." + "\n")
-        arquivologreplicar.write(
-            "\n" + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " - INFO - " + "Concluido a parte " + str(
-                num) + " do processo, de um total de " + str(len(bases_Muro)) + " partes.")
+        print(f"- Concluido a parte {num} do processo, de um total de {len(bases_muro)} partes. \n")
+        arquivologreplicar.write(f"\n{data_atual()} - INFO - Concluido a parte {num} do processo, de um total de {len(bases_muro)} partes.")
         continue
 
-    print("- Fim da operação replicar version " + str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
-    arquivologreplicar.write("\n" + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " - INFO - " + "Fim da operação replicar version")
+    print(f"- Fim da operação replicar version {data_atual()}")
+    arquivologreplicar.write(f"\n{data_atual()} - INFO - Fim da operação replicar version\n")
     arquivologreplicar.close()
 
 
-def criarconfig(arquivoprincipal):
+def criar_config(arquivoprincipal):
 
     while True:
-        nomeescolhido = input("- Insira o nome que deseja para o arquivo de config: (Sem o .json)\nEscolha: ")
+        nomeescolhido = input("- Insira o nome que deseja para o arquivo de config: (Sem o .json) \nEscolha: ")
         nomeconfig = nomeescolhido + ".json"
         try:
             if os.path.exists("Config"):
@@ -490,7 +418,7 @@ def criarconfig(arquivoprincipal):
                 os.makedirs("Config")
                 print("- Pasta Config criada com sucesso")
         except OSError as error:
-            print("- Erro ao criar/validar a pasta Config: " + str(error))
+            print(f"- Erro ao criar/validar a pasta Config: {error}")
 
         if os.path.exists("Config\\" + nomeconfig):
             print("- Já existe um arquivo .json com o mesmo nome")
@@ -502,33 +430,41 @@ def criarconfig(arquivoprincipal):
 
             arquivoconfig.write(
 """{
-    "database_update_BR": "",
-    "database_update_MX": "",
-    "database_update_PT": "",
-    "database_update_MD": "",
-    "bases_Muro": [],
+    "database_update_br": "",
+    "database_update_mx": "",
+    "database_update_pt": "",
+    "database_update_md": "",
+    "bases_muro": [],
     "conexao": {
         "server": "",
         "username": "",
         "password": ""
-    }
+        }
 }
     """)
-            print("- Novo config criado com sucesso, configure e selecione ele para ser utilizado")
-            arquivoprincipal.write(datetime.datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S") + " - INFO - "
-                                   + "Novo config criado com sucesso, configure e selecione ele para ser utilizado" + "\n")
+            print("- Novo config criado com sucesso, configure e selecione para ser utilizado")
+            arquivoprincipal.write(f"{data_atual()} - INFO - Novo config criado com sucesso, configure e selecione para ser utilizado \n")
             break
 
 
 def menu(arquivoprincipal):
+    server = ''
+    username = ''
+    password = ''
+    database_update_br = ''
+    database_update_mx = ''
+    database_update_pt = ''
+    database_update_md = ''
+    bases_muro = []
+    arquivo_config = ''
+    params_dict = ''
 
     certo = True
 
     while certo:
         while certo:
-            print("\n" + "- Deseja usar um config existente ou criar um novo")
-            escolhaconfig = input("|1 - Utilizar um config existente\n|2 - Criar um config em branco\n|Escolha: ")
+            print("\n- Deseja usar um config existente ou criar um novo")
+            escolhaconfig = input("|1 - Utilizar um config existente\n|2 - Criar um config em branco\n|3 - Sair\n|Escolha: ")
 
             if escolhaconfig == "1":
                 while certo:
@@ -549,154 +485,121 @@ def menu(arquivoprincipal):
                             break
                         else:
                             print("- Não foi possível encontrar um .JSON com esse nome, tente novamente!")
-                            arquivoprincipal.write(datetime.datetime.now().strftime(
-                                "%Y-%m-%d %H:%M:%S") + " - INFO - "
-                                                   + "Não foi possível encontrar um .JSON com esse nome, tente novamente!" + "\n")
+                            arquivoprincipal.write(f"{data_atual()} - INFO - Não foi possível encontrar um .JSON com esse nome, tente novamente! \n")
                             certo = True
                             continue
-                    except ValueError as N:
-                        print("-  Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: " + str(N))
-                        arquivoprincipal.write(datetime.datetime.now().strftime(
-                            "%Y-%m-%d %H:%M:%S") + " - INFO - "
-                                               + "Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: " + str(N) + "\n")
+                    except ValueError as name_error:
+                        print(f"- Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error}")
+                        arquivoprincipal.write(f"{data_atual()} - INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} \n")
                         certo = True
                         continue
-
             elif escolhaconfig == "2":
-                criarconfig(arquivoprincipal)
+                criar_config(arquivoprincipal)
                 certo = True
                 continue
+            elif escolhaconfig == "3":
+                return
             else:
-                print("- Opção invalida, insira novamente\n")
+                print("- Opção invalida, insira novamente \n")
                 certo = True
                 continue
+
+
             if params_dict["conexao"]["server"] == '':
-                print("-  O valor do server não foi especificado no config, informe e tente novamente ")
-                arquivoprincipal.write(datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - INFO - "
-                                       + 'O valor do server não foi especificado no config, informe e tente novamente ' + "\n")
+                print("- O valor do server não foi especificado no config, informe e tente novamente ")
+                arquivoprincipal.write(f"{data_atual()} - INFO - O valor do server não foi especificado no config, informe e tente novamente \n")
                 certo = True
                 continue
             elif params_dict["conexao"]["username"] == '':
                 print("-  O valor do Username não foi especificado no config, informe e tente novamente ")
-                arquivoprincipal.write(datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - INFO - "
-                                       + 'O valor do Username não foi especificado no config, informe e tente novamente ' + "\n")
+                arquivoprincipal.write(f"{data_atual()} - INFO - O valor do Username não foi especificado no config, informe e tente novamente \n")
                 certo = True
                 continue
             elif params_dict["conexao"]["password"] == '':
                 print("-  O valor do Password não foi especificado no config, informe e tente novamente ")
-                arquivoprincipal.write(datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - INFO - "
-                                       + 'O valor do Password não foi especificado no config, informe e tente novamente ' + "\n")
+                arquivoprincipal.write(f"{data_atual()} - INFO - O valor do Password não foi especificado no config, informe e tente novamente \n")
                 certo = True
                 continue
-            elif params_dict["bases_Muro"] == []:
+            elif params_dict["bases_muro"] == []:
                 print("-  O valor do Base_Muro não foi especificado no config, informe e tente novamente ")
-                arquivoprincipal.write(datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S") + " - INFO - "
-                                       + 'O valor do Base_Muro não foi especificado no config, informe e tente novamente ' + "\n")
+                arquivoprincipal.write(f"{data_atual()} - INFO - O valor do Base_Muro não foi especificado no config, informe e tente novamente \n")
                 certo = True
                 continue
             break
         break
 
-    print("- Config escolhido: " + arquivo_config)
-    arquivoprincipal.write(datetime.datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Config escolhido: " + arquivo_config + "\n")
+    print(f"- Config escolhido: {arquivo_config}")
+    arquivoprincipal.write(f"{data_atual()} - INFO - Config escolhido: {arquivo_config} \n")
 
     try:
         # Carregar config
         server = params_dict["conexao"]["server"]
         username = params_dict["conexao"]["username"]
         password = params_dict["conexao"]["password"]
-        database_update_BR = params_dict["database_update_BR"]
-        database_update_MX = params_dict["database_update_MX"]
-        database_update_PT = params_dict["database_update_PT"]
-        database_update_MD = params_dict["database_update_MD"]
-        bases_Muro = params_dict["bases_Muro"]
-    except ValueError as N:
-        print("-  Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: " + str(N))
-        arquivoprincipal.write(datetime.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente' + str(N) + "\n")
+        database_update_br = params_dict["database_update_br"]
+        database_update_mx = params_dict["database_update_mx"]
+        database_update_pt = params_dict["database_update_pt"]
+        database_update_md = params_dict["database_update_md"]
+        bases_muro = params_dict["bases_muro"]
+    except ValueError as name_error:
+        print(f"-  Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error}")
+        arquivoprincipal.write(f"{data_atual()} - INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} \n")
 
     # Limpando strings vazias na base muro
-    limpamurotam = len(bases_Muro)
+    limpamurotam = len(bases_muro)
     for num in range(0, limpamurotam, +1):
-        if '' in bases_Muro:
-            bases_Muro.remove('')
+        if '' in bases_muro:
+            bases_muro.remove('')
             continue
         else:
             break
 
-    print("- Server: " + server)
-    arquivoprincipal.write(datetime.datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Server: ' + server + "\n")
+    arquivoprincipal.write(f"{data_atual()} - INFO - Server: {server} \n")
 
-    print("- User: " + username)
-    arquivoprincipal.write(datetime.datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'User: ' + username + "\n")
+    arquivoprincipal.write(f"{data_atual()} - INFO - User: {username} \n")
 
-    print("- Password: " + password)
-    arquivoprincipal.write(datetime.datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Password: ' + password + "\n")
+    arquivoprincipal.write(f"{data_atual()} - INFO - Password: {password} \n")
 
-    print("- Base Muro Update BR: " + database_update_BR)
-    arquivoprincipal.write(datetime.datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Base Muro Update BR: ' + database_update_BR + "\n")
+    arquivoprincipal.write(f"{data_atual()} - INFO - Base Muro Update BR: {database_update_br} \n")
 
-    print("- Base Muro Update MX: " + database_update_MX)
-    arquivoprincipal.write(datetime.datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Base Muro Update MX: ' + database_update_MX + "\n")
+    arquivoprincipal.write(f"{data_atual()} - INFO - Base Muro Update MX: {database_update_mx} \n")
 
-    print("- Base Muro Update PT: " + database_update_PT)
-    arquivoprincipal.write(datetime.datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Base Muro Update PT: ' + database_update_PT + "\n")
+    arquivoprincipal.write(f"{data_atual()} - INFO - Base Muro Update PT: {database_update_pt} \n")
 
-    print("- Base Muro Update MD: " + database_update_MD)
-    arquivoprincipal.write(datetime.datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Base Muro Update MD: ' + database_update_MD + "\n")
+    arquivoprincipal.write(f"{data_atual()} - INFO - Base Muro Update MD: {database_update_md} \n")
 
-    print("- Bases Muro: " + str(bases_Muro))
-    arquivoprincipal.write(datetime.datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Bases Muro: ' + str(bases_Muro) + "\n")
+    arquivoprincipal.write(f"{data_atual()} - INFO - Bases Muro: {bases_muro} \n")
 
     while True:
-        print("\n" + "- Qual operação deseja realizar: ")
+        print("\n- Qual operação deseja realizar: ")
         escolha = input("|1 - Buscar Bancos\n|2 - Replicar version\n|3 - Trocar o config\n|4 - Sair\n|Escolha: ")
         if str(escolha) == "4":
             print("- Opção 4 selecionada - Sair")
-            arquivoprincipal.write(datetime.datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Opção 4 selecionada - Sair" + "\n")
+            arquivoprincipal.write(f"{data_atual()} - INFO - Opção 4 selecionada - Sair \n")
             arquivoprincipal.close()
             exit()
         if str(escolha) == "1" or str(escolha) == "2" or str(escolha) == "3":
             match escolha:
                 case "1":
                     print("- Opção 1 selecionada - Buscar Bancos")
-                    arquivoprincipal.write(datetime.datetime.now().strftime(
-                        "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Opção 1 selecionada - Buscar Bancos' + "\n")
-                    manipularbancomuro(server, username, password, database_update_BR, database_update_MX, database_update_PT, database_update_MD, bases_Muro)
+                    arquivoprincipal.write(f"{data_atual()} - INFO - Opção 1 selecionada - Buscar Bancos \n")
+                    manipular_bancomuro(server, username, password, database_update_br, database_update_mx, database_update_pt, database_update_md, bases_muro)
                 case "2":
                     print("- Opção 2 selecionada - Replicar version")
-                    arquivoprincipal.write(datetime.datetime.now().strftime(
-                        "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Opção 2 selecionada - Replicar version' + "\n")
-                    replicarversion(server, username, password, database_update_BR, database_update_MX, database_update_PT, database_update_MD, bases_Muro)
+                    arquivoprincipal.write(f"{data_atual()} - INFO - Opção 2 selecionada - Replicar version \n")
+                    replicar_version(server, username, password, database_update_br, database_update_mx, database_update_pt, database_update_md, bases_muro)
                 case "3":
                     print("- Opção 3 selecionada - Trocar o config")
-                    arquivoprincipal.write(datetime.datetime.now().strftime(
-                        "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Opção 3 selecionada - Trocar o config' + "\n")
+                    arquivoprincipal.write(f"{data_atual()} - INFO - Opção 3 selecionada - Trocar o config \n")
                     menu(arquivoprincipal)
                 case "4":
                     return
                 case _:
                     print("-  Opção invalida, insira novamente!")
-                    arquivoprincipal.write(datetime.datetime.now().strftime(
-                        "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Opção invalida, insira novamente!' + "\n")
+                    arquivoprincipal.write(f"{data_atual()} - INFO - Opção invalida, insira novamente! \n")
         else:
             print("-  Opção invalida, insira novamente!")
-            arquivoprincipal.write(datetime.datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Opção invalida, insira novamente!' + "\n")
+            arquivoprincipal.write(f"{data_atual()} - INFO - Opção invalida, insira novamente! \n")
             continue
         continue
 
@@ -711,20 +614,17 @@ def main():
             os.makedirs("Log")
             print("- Pasta log criada com sucesso")
     except OSError as error:
-        print("- Erro ao criar/validar a pasta Log: " + str(error))
+        print(f"- Erro ao criar/validar a pasta Log: {error}")
 
     arquivoprincipal = open("Log\Log-basemuro.txt", "a")
 
-    print("- Programa iniciado " + datetime.datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S"))
-    arquivoprincipal.write(datetime.datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S") + " - INFO - " + "Programa iniciado" + "\n")
+    print(f"- Programa iniciado {data_atual()}")
+    arquivoprincipal.write(f"{data_atual()} - INFO - Programa iniciado \n" )
 
-    version = "1.2.2"
+    version = "1.2.3"
 
-    print("- Versão: " + version)
-    arquivoprincipal.write(datetime.datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S") + " - INFO - " + 'Versão: ' + version + "\n")
+    print(f"- Versão: {version}")
+    arquivoprincipal.write(f"{data_atual()} - INFO - Versão:  {version} \n")
     menu(arquivoprincipal)
 
 
