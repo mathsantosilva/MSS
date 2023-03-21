@@ -12,6 +12,66 @@ def data_atual():
    return data_hora
 
 
+def conferebancoupdate(bases_muro,num,arquivo,database_update_br,database_update_mx,database_update_pt,database_update_md):
+
+    while True:
+        if bases_muro[num] == ('qcmaint_kairos_base_muro') or bases_muro[num] == ('qcdev_kairos_base_muro'):
+            if database_update_br != '':
+                databaseupdate = database_update_br
+                break
+            else:
+                print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update BR")
+                arquivo.write(
+                    f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update BR \n")
+                databaseupdate = input("Insira o nome da base que será usada: ").lower()
+                arquivo.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
+
+
+        elif bases_muro[num] == ("qcmaint_kairos_base_muro_mx") or bases_muro[num] == ("qcdev_kairos_base_muro_mx"):
+            if database_update_mx != '':
+                databaseupdate = database_update_mx
+            else:
+                print("-  Não foi inserido no arquivo de config o apontamento para o banco Muro update MX")
+                arquivo.write(
+                    f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update MX \n")
+                databaseupdate = input("Insira o nome da base que será utilizada: ").lower()
+                arquivo.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
+
+        elif bases_muro[num] == ("qcmaint_kairos_base_muro_pt") or bases_muro[num] == ("qcdev_kairos_base_muro_pt"):
+            if database_update_pt != '':
+                databaseupdate = database_update_pt
+            else:
+                print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update PT")
+                arquivo.write(
+                    f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update PT \n")
+                databaseupdate = input("Insira o nome da base que será utilizada: ").lower()
+                arquivo.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
+
+        elif bases_muro[num] == ("qcmaint_mdcomune_base_muro") or bases_muro[num] == ("qcdev_mdcomune_base_muro"):
+            if database_update_md != '':
+                databaseupdate = database_update_md
+            else:
+                print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update MD")
+                arquivo.write(
+                    f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update MD \n")
+                databaseupdate = input("Insira o nome da base que será utilizada: ").lower()
+                arquivo.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
+        else:
+            print("- Não foi possivel achar uma opção compativel com o banco de muro")
+            print("- Insira o banco de Update manualmente")
+            arquivo.write(
+                f"{data_atual()} - ERRO - Não foi possivel achar uma opção compativel com o banco de muro \n")
+            arquivo.write(
+                f"{data_atual()} - ERRO - Insira o banco de Update manualmente \n")
+            databaseupdate = input("Insira o nome da base que será utilizada: ").lower()
+            arquivo.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
+        if databaseupdate == "":
+            continue
+        else:
+            break
+    return databaseupdate
+
+
 def manipular_bancomuro(server, username, password, database_update_br, database_update_mx, database_update_pt, database_update_md, bases_muro):
 
     arquivo = open("Log\Log-manipularbancomuro.txt", "a")
@@ -144,74 +204,32 @@ def manipular_bancomuro(server, username, password, database_update_br, database
             string = guardarstringbm[lim]
             stringsLimpas.append(string)
             continue
-        while True:
-            if bases_muro[num] == ('qcmaint_KAIROS_BASE_MURO') or bases_muro[num] == ('qcdev_KAIROS_BASE_MURO'):
-                if database_update_br != '':
-                    databaseupdate = database_update_br
-                    break
-                else:
-                    print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update BR")
-                    arquivo.write(f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update BR \n")
-                    databaseupdate = input("Insira o nome da base que será usada: ")
-                    arquivo.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
 
+        databaseupdate = conferebancoupdate(bases_muro, num, arquivo, database_update_br, database_update_mx,
+                                            database_update_pt, database_update_md)
+        if len(stringsLimpas) > 0:
+            # Limpeza base muro UPDATE
+            print(f"- Iniciando a limpeza no banco de muro update: {databaseupdate}")
+            arquivo.write(f"{data_atual()} - INFO - Iniciando a limpeza no banco de muro update: {databaseupdate} \n")
+            try:
+                cursor1.execute(f'DELETE FROM {databaseupdate}.[dbo].[KAIROS_DATABASES]')
 
-            elif bases_muro[num] == ("qcmaint_KAIROS_BASE_MURO_MX") or bases_muro[num] == ("qcdev_KAIROS_BASE_MURO_MX"):
-                if database_update_mx != '':
-                    databaseupdate = database_update_mx
-                else:
-                    print("-  Não foi inserido no arquivo de config o apontamento para o banco Muro update MX")
-                    arquivo.write(f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update MX \n")
-                    databaseupdate = input("Insira o nome da base que será utilizada: ")
-                    arquivo.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
-
-            elif bases_muro[num] == ("qcmaint_KAIROS_BASE_MURO_PT") or bases_muro[num] == ("qcdev_KAIROS_BASE_MURO_PT"):
-                if database_update_pt != '':
-                    databaseupdate = database_update_pt
-                else:
-                    print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update PT")
-                    arquivo.write(f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update PT \n")
-                    databaseupdate = input("Insira o nome da base que será utilizada: ")
-                    arquivo.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
-
-            elif bases_muro[num] == ("qcmaint_MDCOMUNE_BASE_MURO") or bases_muro[num] == ("qcdev_MDCOMUNE_BASE_MURO"):
-                if database_update_md != '':
-                    databaseupdate = database_update_md
-                else:
-                    print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update MD")
-                    arquivo.write(f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update MD \n")
-                    databaseupdate = input("Insira o nome da base que será utilizada: ")
-                    arquivo.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
+            except pyodbc.DatabaseError as err:
+                print(f"- Falha ao tentar zerar o banco de muro temporário {err}")
+                arquivo.write(f"{data_atual()}  - ERRO - Falha ao tentar zerar o banco de muro temporario {err} \n")
             else:
-                print("- Não foi possivel achar uma opção compativel com o banco de muro")
-                print("- Insira o banco de Update manualmente")
-                arquivo.write(
-                    f"{data_atual()} - ERRO - Não foi possivel achar uma opção compativel com o banco de muro \n")
-                arquivo.write(
-                    f"{data_atual()} - ERRO - Insira o banco de Update manualmente \n")
-                databaseupdate = input("Insira o nome da base que será utilizada: ")
-                arquivo.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
-            if databaseupdate == "":
-                continue
-            else:
-                break
-
-        # Limpeza base muro UPDATE
-        print(f"- Iniciando a limpeza no banco de muro update: {databaseupdate}")
-        arquivo.write(f"{data_atual()} - INFO - Iniciando a limpeza no banco de muro update: {databaseupdate} \n")
-        try:
-            cursor1.execute(f'DELETE FROM {databaseupdate}.[dbo].[KAIROS_DATABASES]')
-
-        except pyodbc.DatabaseError as err:
-            print(f"- Falha ao tentar zerar o banco de muro temporário {err}")
-            arquivo.write(f"{data_atual()}  - ERRO - Falha ao tentar zerar o banco de muro temporario {err} \n")
+                cursor1.commit()
+                print(f"- banco {databaseupdate} zerado com sucesso")
+                arquivo.write(f"{data_atual()} - INFO - Banco {databaseupdate} zerado com sucesso \n")
+            finally:
+                print("- Processo Finalizado")
+                arquivo.write(f"{data_atual()} - INFO - Processo Finalizado \n")
         else:
-            cursor1.commit()
-            print(f"- banco {databaseupdate} zerado com sucesso")
-            arquivo.write(f"{data_atual()} - INFO - Banco {databaseupdate} zerado com sucesso \n")
-        finally:
+            print("- Não foi realizada a limpeza no banco: " + databaseupdate)
+            arquivo.write(f"{data_atual()} - INFO - Não foi realizada a limpeza no banco: {databaseupdate} \n")
             print("- Processo Finalizado")
             arquivo.write(f"{data_atual()} - INFO - Processo Finalizado \n")
+
 
         # Inserindo as connections strings no banco muro temporario
         print(f"- Iniciando a inserção das connection strings no banco muro update: {databaseupdate}")
@@ -287,57 +305,8 @@ def replicar_version(server, username, password, database_update_br, database_up
         print(f"- Iniciando o processo no banco: {bases_muro[num]}")
         arquivologreplicar.write(f"\n{data_atual()} - INFO - Iniciando o processo no banco: {bases_muro[num]}")
 
-        while True:
-            if bases_muro[num] == ('qcmaint_KAIROS_BASE_MURO') or bases_muro[num] == ('qcdev_KAIROS_BASE_MURO'):
-                if database_update_br != '':
-                    databaseupdate = database_update_br
-                    break
-                else:
-                    print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update BR")
-                    arquivologreplicar.write(f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update BR \n")
-                    databaseupdate = input("Insira o nome da base que será usada: ")
-                    arquivologreplicar.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
-
-
-            elif bases_muro[num] == ("qcmaint_KAIROS_BASE_MURO_MX") or bases_muro[num] == ("qcdev_KAIROS_BASE_MURO_MX"):
-                if database_update_mx != '':
-                    databaseupdate = database_update_mx
-                else:
-                    print("-  Não foi inserido no arquivo de config o apontamento para o banco Muro update MX")
-                    arquivologreplicar.write(f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update MX \n")
-                    databaseupdate = input("Insira o nome da base que será utilizada: ")
-                    arquivologreplicar.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
-
-            elif bases_muro[num] == ("qcmaint_KAIROS_BASE_MURO_PT") or bases_muro[num] == ("qcdev_KAIROS_BASE_MURO_PT"):
-                if database_update_pt != '':
-                    databaseupdate = database_update_pt
-                else:
-                    print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update PT")
-                    arquivologreplicar.write(f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update PT \n")
-                    databaseupdate = input("Insira o nome da base que será utilizada: ")
-                    arquivologreplicar.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
-
-            elif bases_muro[num] == ("qcmaint_MDCOMUNE_BASE_MURO") or bases_muro[num] == ("qcdev_MDCOMUNE_BASE_MURO"):
-                if database_update_md != '':
-                    databaseupdate = database_update_md
-                else:
-                    print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update MD")
-                    arquivologreplicar.write(f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update MD \n")
-                    databaseupdate = input("Insira o nome da base que será utilizada: ")
-                    arquivologreplicar.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
-            else:
-                print("- Não foi possivel achar uma opção compativel com o banco de muro")
-                print("- Insira o banco de Update manualmente")
-                arquivologreplicar.write(
-                    f"{data_atual()} - ERRO - Não foi possivel achar uma opção compativel com o banco de muro \n")
-                arquivologreplicar.write(
-                    f"{data_atual()} - ERRO - Insira o banco de Update manualmente \n")
-                databaseupdate = input("Insira o nome da base que será utilizada: ")
-                arquivologreplicar.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
-            if databaseupdate == "":
-                continue
-            else:
-                break
+        databaseupdate = conferebancoupdate(bases_muro, num, arquivologreplicar, database_update_br, database_update_mx,
+                                            database_update_pt, database_update_md)
 
         try:
             cnxnrp1 = pyodbc.connect(f"DRIVER=SQL Server;SERVER={server};DATABASE={databaseupdate};ENCRYPT=not;UID={username};PWD={password}")
@@ -405,6 +374,61 @@ def replicar_version(server, username, password, database_update_br, database_up
     arquivologreplicar.write(f"\n{data_atual()} - INFO - Fim da operação replicar version\n")
     arquivologreplicar.close()
 
+def downalodbackup():
+
+    server = '172.22.1.30'
+    username = 'mssqladm'
+    password = 'dimep'
+
+    arquivobackup = open("Log\Log-downalodbackup.txt", "a")
+
+    print(f"\n - Inicio da operação Downalod Backup {data_atual()}")
+    arquivobackup.write(f"{data_atual()} - INFO - Inicio da operação Downalod Backup \n")
+
+    urldownload = input("Insira a URL de backup gerada no discord: ")
+    arquivobackup.write(f"{data_atual()} - INFO - Inserida a URL de Download: {urldownload} \n")
+
+    comando = f"""xp_cmdshell 'powershell.exe -file C:\wget\download.ps1 bkp "{urldownload}"'"""
+
+    try:
+        cnxnrp1 = pyodbc.connect(
+            f"DRIVER=SQL Server;SERVER={server};ENCRYPT=not;UID={username};PWD={password}")
+        cursorrp1 = cnxnrp1.cursor()
+        cursorrp1.execute(comando)
+        result = cursorrp1.fetchall()
+    except pyodbc.DatabaseError as err:
+        print("- Falha ao tentar executar o comando " + str(err))
+        arquivobackup.write(f"\n{data_atual()} - ERRO - Falha ao tentar executar o comando: {err}")
+    else:
+        cursorrp1.commit()
+
+        print(f"\n- Sucesso ao realizar Download do backup ")
+        arquivobackup.write(f"{data_atual()} - INFO - Sucesso ao realizar Download do backup \n")
+
+        print(f"- Resultado:")
+        arquivobackup.write(f"{data_atual()} - INFO - Resultado:\n")
+
+        for incs in range(len(result)):
+
+            semiseparado = (str(result[incs])).split("'")
+            if len(semiseparado) > 1:
+                separado = semiseparado[1].split("(")
+                limpo = separado[0]
+                print('- ' + str(limpo))
+                arquivobackup.write(f"{data_atual()} - INFO - {limpo}\n")
+
+            else:
+                limpo = semiseparado[0]
+                print("- " + str(limpo))
+                arquivobackup.write(f"{data_atual()} - INFO - {limpo}\n")
+
+        cursorrp1.close()
+    finally:
+        print("- Processo finalizado")
+        arquivobackup.write(f"{data_atual()} - INFO - Processo finalizado\n")
+
+    arquivobackup.close()
+
 
 def criar_config(arquivoprincipal):
 
@@ -417,7 +441,7 @@ def criar_config(arquivoprincipal):
             else:
                 os.makedirs("Config")
                 print("- Pasta Config criada com sucesso")
-        except OSError as error:
+        except Exception as error:
             print(f"- Erro ao criar/validar a pasta Config: {error}")
 
         if os.path.exists("Config\\" + nomeconfig):
@@ -452,6 +476,7 @@ def menu(arquivoprincipal):
     username = ''
     password = ''
     database_update_br = ''
+    database_update_br
     database_update_mx = ''
     database_update_pt = ''
     database_update_md = ''
@@ -464,7 +489,7 @@ def menu(arquivoprincipal):
     while certo:
         while certo:
             print("\n- Deseja usar um config existente ou criar um novo")
-            escolhaconfig = input("|1 - Utilizar um config existente\n|2 - Criar um config em branco\n|3 - Sair\n|Escolha: ")
+            escolhaconfig = input("|1 - Utilizar um config existente\n|2 - Criar um config em branco\n|3 - Download Backup\n|4 - Sair\n|Escolha: ")
 
             if escolhaconfig == "1":
                 while certo:
@@ -473,7 +498,7 @@ def menu(arquivoprincipal):
                     try:
                         if os.path.isfile(arquivo_config):
                             config_bjt = open(arquivo_config, "r")
-                            config_JSON = config_bjt.read()
+                            config_JSON = config_bjt.read().lower()
                             params_dict = json.loads(config_JSON)
                             certo = False
                             break
@@ -488,7 +513,7 @@ def menu(arquivoprincipal):
                             arquivoprincipal.write(f"{data_atual()} - INFO - Não foi possível encontrar um .JSON com esse nome, tente novamente! \n")
                             certo = True
                             continue
-                    except ValueError as name_error:
+                    except Exception as name_error:
                         print(f"- Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error}")
                         arquivoprincipal.write(f"{data_atual()} - INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} \n")
                         certo = True
@@ -498,34 +523,45 @@ def menu(arquivoprincipal):
                 certo = True
                 continue
             elif escolhaconfig == "3":
+                downalodbackup()
+                certo = True
+                continue
+            elif escolhaconfig == "4":
                 return
             else:
                 print("- Opção invalida, insira novamente \n")
                 certo = True
                 continue
 
-
-            if params_dict["conexao"]["server"] == '':
-                print("- O valor do server não foi especificado no config, informe e tente novamente ")
-                arquivoprincipal.write(f"{data_atual()} - INFO - O valor do server não foi especificado no config, informe e tente novamente \n")
+            try:
+                if params_dict["conexao"]["server"] == '':
+                    print("- O valor do server não foi especificado no config, informe e tente novamente ")
+                    arquivoprincipal.write(f"{data_atual()} - INFO - O valor do server não foi especificado no config, informe e tente novamente \n")
+                    certo = True
+                    continue
+                elif params_dict["conexao"]["username"] == '':
+                    print("-  O valor do Username não foi especificado no config, informe e tente novamente ")
+                    arquivoprincipal.write(f"{data_atual()} - INFO - O valor do Username não foi especificado no config, informe e tente novamente \n")
+                    certo = True
+                    continue
+                elif params_dict["conexao"]["password"] == '':
+                    print("-  O valor do Password não foi especificado no config, informe e tente novamente ")
+                    arquivoprincipal.write(f"{data_atual()} - INFO - O valor do Password não foi especificado no config, informe e tente novamente \n")
+                    certo = True
+                    continue
+                elif params_dict["bases_muro"] == []:
+                    print("-  O valor do Base_Muro não foi especificado no config, informe e tente novamente ")
+                    arquivoprincipal.write(f"{data_atual()} - INFO - O valor do Base_Muro não foi especificado no config, informe e tente novamente \n")
+                    certo = True
+                    continue
+                break
+            except Exception as name_error:
+                print(
+                    f"-  Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error}")
+                arquivoprincipal.write(
+                    f"{data_atual()} - INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} \n")
                 certo = True
                 continue
-            elif params_dict["conexao"]["username"] == '':
-                print("-  O valor do Username não foi especificado no config, informe e tente novamente ")
-                arquivoprincipal.write(f"{data_atual()} - INFO - O valor do Username não foi especificado no config, informe e tente novamente \n")
-                certo = True
-                continue
-            elif params_dict["conexao"]["password"] == '':
-                print("-  O valor do Password não foi especificado no config, informe e tente novamente ")
-                arquivoprincipal.write(f"{data_atual()} - INFO - O valor do Password não foi especificado no config, informe e tente novamente \n")
-                certo = True
-                continue
-            elif params_dict["bases_muro"] == []:
-                print("-  O valor do Base_Muro não foi especificado no config, informe e tente novamente ")
-                arquivoprincipal.write(f"{data_atual()} - INFO - O valor do Base_Muro não foi especificado no config, informe e tente novamente \n")
-                certo = True
-                continue
-            break
         break
 
     print(f"- Config escolhido: {arquivo_config}")
@@ -541,7 +577,7 @@ def menu(arquivoprincipal):
         database_update_pt = params_dict["database_update_pt"]
         database_update_md = params_dict["database_update_md"]
         bases_muro = params_dict["bases_muro"]
-    except ValueError as name_error:
+    except Exception as name_error:
         print(f"-  Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error}")
         arquivoprincipal.write(f"{data_atual()} - INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} \n")
 
@@ -613,7 +649,7 @@ def main():
         else:
             os.makedirs("Log")
             print("- Pasta log criada com sucesso")
-    except OSError as error:
+    except Exception as error:
         print(f"- Erro ao criar/validar a pasta Log: {error}")
 
     arquivoprincipal = open("Log\Log-basemuro.txt", "a")
@@ -621,7 +657,7 @@ def main():
     print(f"- Programa iniciado {data_atual()}")
     arquivoprincipal.write(f"{data_atual()} - INFO - Programa iniciado \n" )
 
-    version = "1.2.3"
+    version = "1.2.4"
 
     print(f"- Versão: {version}")
     arquivoprincipal.write(f"{data_atual()} - INFO - Versão:  {version} \n")
