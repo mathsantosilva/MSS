@@ -6,6 +6,16 @@ import os
 import pyodbc
 from tkinter import *
 from tkinter.ttk import *
+import re
+
+pasta_config = 'Config/'
+nome_diretorio_log = 'Log'
+nome_diretorio_config = 'Config'
+nome_log_principal = 'base_muro'
+nome_log_buscabancos = 'busca_bancos'
+nome_log_replicarversion = 'replicar_version'
+nome_log_downloadbackup = 'downloadbackup'
+version = "1.2.5"
 
 def data_atual():
    data_hora =  datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -74,7 +84,7 @@ def conferebancoupdate(bases_muro,num,arquivo,database_update_br,database_update
 
 def manipular_bancomuro(server, username, password, database_update_br, database_update_mx, database_update_pt, database_update_md, bases_muro):
 
-    arquivo = open("Log\Log-manipularbancomuro.txt", "a")
+    arquivo = open(f"Log\{nome_log_buscabancos}.txt", "a")
 
     print(f"\n - Inicio da operação Busca muro {data_atual()}")
     arquivo.write(f"{data_atual()} - INFO - Inicio da operação Busca muro \n")
@@ -236,20 +246,20 @@ def manipular_bancomuro(server, username, password, database_update_br, database
         arquivo.write(f"{data_atual()} - INFO - Iniciando a inserção das connection strings no banco muro update: {databaseupdate} \n")
         if len(stringsLimpas) > 0:
             try:
-                cnxn2 = pyodbc.connect(f"DRIVER=SQL Server;SERVER={server};DATABASE={databaseupdate};ENCRYPT=not;UID={username};PWD={password}")
-                cursor2 = cnxn2.cursor()
+                cnxn1 = pyodbc.connect(f"DRIVER=SQL Server;SERVER={server};DATABASE={databaseupdate};ENCRYPT=not;UID={username};PWD={password}")
+                cursor1 = cnxn1.cursor()
 
-                cursor2.execute("set identity_insert [dbo].[KAIROS_DATABASES]  on")
+                cursor1.execute("set identity_insert [dbo].[KAIROS_DATABASES]  on")
                 for incs in range(len(stringsLimpas)):
-                    cursor2.execute(f"INSERT INTO [{databaseupdate}].[dbo].[KAIROS_DATABASES] ([DATABASE_ID],[CONNECTION_STRING] ,[DATABASE_VERSION] ,[FL_MAQUINA_CALCULO] ,[FL_ATIVO]) VALUES(?,?,?,0, 1)", database_id[incs], stringsLimpas[incs], versaodatabases)
+                    cursor1.execute(f"INSERT INTO [{databaseupdate}].[dbo].[KAIROS_DATABASES] ([DATABASE_ID],[CONNECTION_STRING] ,[DATABASE_VERSION] ,[FL_MAQUINA_CALCULO] ,[FL_ATIVO]) VALUES(?,?,?,0, 1)", database_id[incs], stringsLimpas[incs], versaodatabases)
                     continue
-                cursor2.execute("set identity_insert [dbo].[KAIROS_DATABASES]  off")
+                cursor1.execute("set identity_insert [dbo].[KAIROS_DATABASES]  off")
 
             except pyodbc.DatabaseError as err:
                 print(f"- Falha ao tentar inserir registros no banco de muro temporário {err}")
                 arquivo.write(f"{data_atual()} - ERRO - Falha ao tentar inserir registros no banco de muro temporário {err} \n")
             else:
-                cursor2.commit()
+                cursor1.commit()
                 print("- Sucesso ao inserir connection Strings no Banco de muro Update  ")
                 arquivo.write(f"{data_atual()} - INFO - Sucesso ao inserir connection Strings no Banco de muro Update \n")
 
@@ -282,7 +292,6 @@ def manipular_bancomuro(server, username, password, database_update_br, database
     print(f"- Fim da operação Busca muro {data_atual()}")
     arquivo.write(f"{data_atual()} - INFO - Fim da operação Busca muro \n")
     cursor1.close()
-    cursor2.close()
     arquivo.close()
 
 
@@ -291,7 +300,7 @@ def replicar_version(server, username, password, database_update_br, database_up
     num = 0
     tambasesmuro = len(bases_muro)
 
-    arquivologreplicar = open("Log\log-replicarversion.txt", "a")
+    arquivologreplicar = open(f"Log\{nome_log_replicarversion}.txt", "a")
 
     print(f" \n - Inicio da operação replicar version {data_atual()} \n")
     arquivologreplicar.write(f"{data_atual()} - INFO - Inicio da operação replicar version")
@@ -374,13 +383,14 @@ def replicar_version(server, username, password, database_update_br, database_up
     arquivologreplicar.write(f"\n{data_atual()} - INFO - Fim da operação replicar version\n")
     arquivologreplicar.close()
 
-def downalodbackup():
+
+def downlodbackup():
 
     server = '172.22.1.30'
     username = 'mssqladm'
     password = 'dimep'
 
-    arquivobackup = open("Log\Log-downalodbackup.txt", "a")
+    arquivobackup = open(f"Log\{nome_log_downloadbackup}.txt", "a")
 
     print(f"\n - Inicio da operação Downalod Backup {data_atual()}")
     arquivobackup.write(f"{data_atual()} - INFO - Inicio da operação Downalod Backup \n")
@@ -435,14 +445,6 @@ def criar_config(arquivoprincipal):
     while True:
         nomeescolhido = input("- Insira o nome que deseja para o arquivo de config: (Sem o .json) \nEscolha: ")
         nomeconfig = nomeescolhido + ".json"
-        try:
-            if os.path.exists("Config"):
-                print("- Pasta Config encontrada")
-            else:
-                os.makedirs("Config")
-                print("- Pasta Config criada com sucesso")
-        except Exception as error:
-            print(f"- Erro ao criar/validar a pasta Config: {error}")
 
         if os.path.exists("Config\\" + nomeconfig):
             print("- Já existe um arquivo .json com o mesmo nome")
@@ -476,13 +478,15 @@ def menu(arquivoprincipal):
     username = ''
     password = ''
     database_update_br = ''
-    database_update_br
     database_update_mx = ''
     database_update_pt = ''
     database_update_md = ''
     bases_muro = []
     arquivo_config = ''
     params_dict = ''
+    dir_arquivos_configs = []
+    dir_arquivo_index = []
+    cont_arquivos = 1
 
     certo = True
 
@@ -493,24 +497,43 @@ def menu(arquivoprincipal):
 
             if escolhaconfig == "1":
                 while certo:
+                    print("Arquivos Json dentro da pasta config: ")
+                    arquivos_diretorio = os.listdir(pasta_config)
+                    for arquivo_dir in arquivos_diretorio:
+                        match_arquivo = re.search("\.json$", arquivo_dir)
+                        if match_arquivo != None:
+                            dir_arquivos_configs.append(arquivo_dir)
+                            dir_arquivo_index.append(arquivos_diretorio.index(arquivo_dir))
+                    for itens_arquivos in dir_arquivos_configs:
+                        print(f"{cont_arquivos} - {itens_arquivos}")
+                        cont_arquivos += 1
+
+                    while True:
+                        tamanho_configs = len(dir_arquivo_index) + 1
+                        escolha_arquivo = input("- Insira o numero correspondente ao config desejado. (Ele deverá estar na pasta config)\n|Escolha: ")
+
+                        if escolha_arquivo.isdigit():
+                            if int(escolha_arquivo) in range(1,tamanho_configs):
+                                arquivo_config = arquivos_diretorio[dir_arquivo_index[int(escolha_arquivo) - 1]]
+                                break
+                            else:
+                                print(f'Opção errada, insera novamente')
+                                continue
+                        else:
+                            print(f'Opção errada, insera novamente')
+                            continue
+
                     # Validando o arquivo de config
-                    arquivo_config = input("- Insira o nome do config que será utilizado. (Sem colocar o .json, somente o nome)\n|Escolha: ") + '.json'
                     try:
-                        if os.path.isfile(arquivo_config):
-                            config_bjt = open(arquivo_config, "r")
+                        if os.path.isfile("Config\\" + arquivo_config):
+                            config_bjt = open("Config\\" + arquivo_config, "r")
                             config_JSON = config_bjt.read().lower()
                             params_dict = json.loads(config_JSON)
                             certo = False
                             break
-                        elif os.path.isfile("Config\\" + arquivo_config):
-                            config_bjt = open("Config\\" + arquivo_config, "r")
-                            config_JSON = config_bjt.read()
-                            params_dict = json.loads(config_JSON)
-                            certo = False
-                            break
                         else:
-                            print("- Não foi possível encontrar um .JSON com esse nome, tente novamente!")
-                            arquivoprincipal.write(f"{data_atual()} - INFO - Não foi possível encontrar um .JSON com esse nome, tente novamente! \n")
+                            print(f"- Não foi possível encontrar um .JSON com esse nome na pasta {nome_diretorio_config}, tente novamente!")
+                            arquivoprincipal.write(f"{data_atual()} - INFO - Não foi possível encontrar um .JSON com esse nome na pasta {nome_diretorio_config}, tente novamente! \n")
                             certo = True
                             continue
                     except Exception as name_error:
@@ -523,7 +546,7 @@ def menu(arquivoprincipal):
                 certo = True
                 continue
             elif escolhaconfig == "3":
-                downalodbackup()
+                downlodbackup()
                 certo = True
                 continue
             elif escolhaconfig == "4":
@@ -643,21 +666,30 @@ def menu(arquivoprincipal):
 
 
 def main():
+    #Criar diretorio log
     try:
-        if os.path.exists("Log"):
-            print("- Pasta log já existente")
+        if os.path.exists(nome_diretorio_log):
+            print(f"- Pasta {nome_diretorio_log} já existente")
         else:
-            os.makedirs("Log")
-            print("- Pasta log criada com sucesso")
+            os.makedirs(nome_diretorio_log)
+            print(f"- Pasta {nome_diretorio_log} criada com sucesso")
     except Exception as error:
-        print(f"- Erro ao criar/validar a pasta Log: {error}")
+        print(f"- Erro ao criar/validar a pasta {nome_diretorio_log}: {error}")
 
-    arquivoprincipal = open("Log\Log-basemuro.txt", "a")
+    #Criar diretorio config
+    try:
+        if os.path.exists(nome_diretorio_config):
+            print(f"- Pasta {nome_diretorio_config} já existente")
+        else:
+            os.makedirs(nome_diretorio_config)
+            print(f"- Pasta {nome_diretorio_config} criada com sucesso")
+    except Exception as error:
+        print(f"- Erro ao criar/validar a pasta {nome_diretorio_config}: {error}")
+
+    arquivoprincipal = open(f"{nome_diretorio_log}\{nome_log_principal}.txt", "a")
 
     print(f"- Programa iniciado {data_atual()}")
     arquivoprincipal.write(f"{data_atual()} - INFO - Programa iniciado \n" )
-
-    version = "1.2.4"
 
     print(f"- Versão: {version}")
     arquivoprincipal.write(f"{data_atual()} - INFO - Versão:  {version} \n")
