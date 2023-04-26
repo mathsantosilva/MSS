@@ -1,12 +1,10 @@
 # coding: utf-8
-from tkinter import ttk
 import datetime
 import json
 import os
-import pyodbc
-from tkinter import *
-from tkinter.ttk import *
 import re
+import sys
+import pyodbc
 
 pasta_config = 'Config/'
 nome_diretorio_log = 'Log'
@@ -16,7 +14,7 @@ nome_log_buscabancos = 'busca_bancos'
 nome_log_replicarversion = 'replicar_version'
 nome_log_downloadbackup = 'downloadbackup'
 nome_log_restaurarbanco = 'restaurarbanco'
-version = "1.3.6"
+version = "1.3.7"
 
 def data_atual():
    data_hora =  datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -84,6 +82,8 @@ def conferebancoupdate(bases_muro,num,arquivo,database_update_br,database_update
 
 
 def manipular_bancomuro(arquivoprincipal,server, username, password, database_update_br, database_update_mx, database_update_pt, database_update_md, bases_muro):
+    listasstringinstancia = ''
+    cursor1 = ''
 
     status_consulta = False
 
@@ -466,8 +466,11 @@ def restaurarbanco(arquivoprincipal):
 
     server1 = '172.22.1.30'
     server2 = '172.22.1.30\\PT2019'
+    server = ''
     username = 'mssqladm'
     password = 'dimep'
+    cnxnrs = ''
+    cursorrs = ''
 
     arquivorestaura = open(f"Log\{nome_log_restaurarbanco}.txt", "a")
 
@@ -723,7 +726,7 @@ def ferramentas_muro(arquivoprincipal,server, username, password, database_updat
             print("- Opção 5 selecionada - Sair")
             arquivoprincipal.write(f"{data_atual()} - INFO - Opção 5 selecionada - Sair \n")
             arquivoprincipal.close()
-            exit()
+            sair()
         if str(escolha) != "5":
             match escolha:
                 case "1":
@@ -962,7 +965,7 @@ def menu(arquivoprincipal):
                 print("- Opção 4 selecionada - Sair")
                 arquivoprincipal.write(f"{data_atual()} - INFO - Opção 4 selecionada - Sair \n")
                 arquivoprincipal.close()
-                exit()
+                sair()
             else:
                 print("- Opção invalida, insira novamente \n")
                 certo = True
@@ -999,5 +1002,7 @@ def main():
     arquivoprincipal.write(f"{data_atual()} - INFO - Versão:  {version} \n")
     menu(arquivoprincipal)
 
+def sair():
+    sys.exit(200)
 
 main()
