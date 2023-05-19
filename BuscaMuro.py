@@ -16,8 +16,56 @@ nomes['arquivo_replicar_version'] = 'replicar_version'
 nomes['arquivo_downloadbackup'] = 'downloadbackup'
 nomes['arquivo_restaurarbanco'] = 'restaurarbanco'
 nomes['arquivo_connection_strings'] = 'connection_strings'
-version = "1.4.7"
+nomes['arquivo_validar'] = 'validar_atualizacao'
+version = "1.5.1"
 
+def validar_atualizacao(arquivoprincipal,infos_config):
+
+    num = 0
+    tambasesmuro = len(infos_config['bases_muro'])
+
+    arquivovalidar = open(f"Log\{nomes['arquivo_validar']}.txt", "a")
+
+    print("\n- Tela - Validar atualização")
+    arquivoprincipal.write(f"\n{data_atual()} - INFO - Tela - Validar atualização")
+
+    print(f"- Inicio da validação do banco update {data_atual()}")
+    arquivovalidar.write(f"{data_atual()} - INFO - Inicio da validação do banco update ")
+
+    for num in range(tambasesmuro):
+        databaseupdate = conferebancoupdate(arquivovalidar, infos_config, num)
+
+        try:
+            cnxnrp = pyodbc.connect(
+                f"DRIVER=SQL Server;SERVER={infos_config['server']};DATABASE={databaseupdate};ENCRYPT=not;UID={infos_config['username']};PWD={infos_config['password']}")
+            cursorrp = cnxnrp.cursor()
+            comando = f"select [database_version],  count(database_version) Quantidade from [dbo].[KAIROS_DATABASES] group by [database_version]"
+            cursorrp.execute(comando)
+            result = cursorrp.fetchall()
+        except (Exception or pyodbc.DatabaseError) as err:
+            print(f"- Falha ao tentar consultar banco de update: {err}")
+            arquivovalidar.write(f"\n{data_atual()} - ERRO - Falha ao tentar consultar banco de muro update: {err}")
+        else:
+            print(f"- Sucesso na consultar no banco de update: {databaseupdate}")
+            arquivovalidar.write(f"\n{data_atual()} - INFO - Sucesso na consultar no banco de update")
+
+            if len(result) > 0:
+                for n in range(len(result)):
+                    print(f"- Version: {result[n][0]} - Quantidade: {result[n][1]}")
+                    arquivovalidar.write(f"\n{data_atual()} - INFO - Version: {result[n][0]} - Quantidade: {result[n][1]}")
+            else:
+                print(f"- Não foram retornados registros no banco: {databaseupdate}")
+                arquivovalidar.write(f"\n{data_atual()} - INFO - Não foram retornados registros no banco:")
+
+        if num < 4:
+            num += 1
+        print(f"- Concluído a parte {num} do processo, de um total de {tambasesmuro} partes. ")
+        arquivovalidar.write(f"\n{data_atual()} - INFO - Concluído a parte {num} do processo, de um total de {len(infos_config['bases_muro'])} partes. ")
+        continue
+
+    print(f"- Fim da operação Validar atualização {data_atual()}")
+    arquivovalidar.write(f"\n{data_atual()} - INFO - Fim da operação Validar atualização \n")
+    arquivovalidar.close()
 def escolher_config(arquivoprincipal):
 
     arquivo_config = ''
@@ -29,7 +77,7 @@ def escolher_config(arquivoprincipal):
         while certo:
 
             print("\n- Tela - Configs")
-            arquivoprincipal.write(f"{data_atual()} - INFO - Tela - Configs \n")
+            arquivoprincipal.write(f"\n{data_atual()} - INFO - Tela - Configs ")
             print("- Escolha qual função deseja utilizar: ")
             escolhamenu = input("""|1 - Utilizar config existente
 |2 - Criar um config em branco
@@ -38,9 +86,9 @@ def escolher_config(arquivoprincipal):
 
             if escolhamenu == "1":
                 print("- Opção 1 selecionada - Utilizar config existente")
-                arquivoprincipal.write(f"{data_atual()} - INFO - Opção 1 selecionada - Utilizar config existente \n")
+                arquivoprincipal.write(f"\n{data_atual()} - INFO - Opção 1 selecionada - Utilizar config existente ")
                 print("\n- Tela - Config existente")
-                arquivoprincipal.write(f"{data_atual()} - INFO - Tela - Config existente \n")
+                arquivoprincipal.write(f"\n{data_atual()} - INFO - Tela - Config existente ")
                 while certo:
                     cont_arquivos = 1
                     dir_arquivos_configs = []
@@ -81,14 +129,14 @@ def escolher_config(arquivoprincipal):
                                 print(
                                     f"- Não foi possível encontrar um .JSON com esse nome na pasta {nomes['diretorio_config']}, tente novamente!")
                                 arquivoprincipal.write(
-                                    f"{data_atual()} - INFO - Não foi possível encontrar um .JSON com esse nome na pasta {nomes['diretorio_config']}, tente novamente! \n")
+                                    f"{data_atual()} - INFO - Não foi possível encontrar um .JSON com esse nome na pasta {nomes['diretorio_config']}, tente novamente! ")
                                 certo = True
                                 continue
                         except Exception as name_error:
                             print(
                                 f"- Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error}")
                             arquivoprincipal.write(
-                                f"{data_atual()} - INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} \n")
+                                f"{data_atual()} - INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
                             certo = True
                             continue
 
@@ -96,35 +144,35 @@ def escolher_config(arquivoprincipal):
                             if params_dict["conexao"]["server"] == '':
                                 print("- O valor do server não foi especificado no config, Informe e tente novamente ")
                                 arquivoprincipal.write(
-                                    f"{data_atual()} - INFO - O valor do server não foi especificado no config, Informe e tente novamente \n")
+                                    f"{data_atual()} - INFO - O valor do server não foi especificado no config, Informe e tente novamente ")
                                 certo = True
                                 continue
                             elif params_dict["conexao"]["username"] == '':
                                 print(
                                     "-  O valor do Username não foi especificado no config, Informe e tente novamente ")
                                 arquivoprincipal.write(
-                                    f"{data_atual()} - INFO - O valor do Username não foi especificado no config, Informe e tente novamente \n")
+                                    f"{data_atual()} - INFO - O valor do Username não foi especificado no config, Informe e tente novamente ")
                                 certo = True
                                 continue
                             elif params_dict["conexao"]["password"] == '':
                                 print(
                                     "-  O valor do Password não foi especificado no config, Informe e tente novamente ")
                                 arquivoprincipal.write(
-                                    f"{data_atual()} - INFO - O valor do Password não foi especificado no config, Informe e tente novamente \n")
+                                    f"{data_atual()} - INFO - O valor do Password não foi especificado no config, Informe e tente novamente ")
                                 certo = True
                                 continue
                             elif params_dict["bases_muro"] == []:
                                 print(
                                     "-  O valor do Base_Muro não foi especificado no config, Informe e tente novamente ")
                                 arquivoprincipal.write(
-                                    f"{data_atual()} - INFO - O valor do Base_Muro não foi especificado no config, Informe e tente novamente \n")
+                                    f"{data_atual()} - INFO - O valor do Base_Muro não foi especificado no config, Informe e tente novamente ")
                                 certo = True
                                 continue
                         except Exception as name_error:
                             print(
                                 f"-  Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error}")
                             arquivoprincipal.write(
-                                f"{data_atual()} - INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} \n")
+                                f"{data_atual()} - INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
                             certo = True
                             continue
 
@@ -142,7 +190,7 @@ def escolher_config(arquivoprincipal):
                             print(
                                 f"-  Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error}")
                             arquivoprincipal.write(
-                                f"{data_atual()} - INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} \n")
+                                f"{data_atual()} - INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
                         else:
                             infos_config['status'] = True
                             # Limpando strings vazias na base muro
@@ -173,9 +221,9 @@ def escolher_config(arquivoprincipal):
                                     server_utilizado = server_utilizado.replace('\\', '\\\\')
                                 config_atualizado = f"""{{
     "database_update_br": "{infos_config['database_update_br']}",
-    "database_update_mx": "{infos_config['database_update_br']}",
-    "database_update_pt": "{infos_config['database_update_br']}",
-    "database_update_md": "{infos_config['database_update_br']}",
+    "database_update_mx": "{infos_config['database_update_mx']}",
+    "database_update_pt": "{infos_config['database_update_pt']}",
+    "database_update_md": "{infos_config['database_update_md']}",
     "bases_muro": {bases_utilizadas},
     "conexao": {{
         "server": "{server_utilizado}",
@@ -196,38 +244,33 @@ def escolher_config(arquivoprincipal):
                 continue
             elif escolhamenu == "2":
                 print("- Opção 2 selecionada - Criar Config")
-                arquivoprincipal.write(f"{data_atual()} - INFO - Opção 2 selecionada - Criar Config \n")
+                arquivoprincipal.write(f"\n{data_atual()} - INFO - Opção 2 selecionada - Criar Config ")
                 criar_config(arquivoprincipal)
                 certo = True
                 continue
             elif escolhamenu == "3":
                 print("- Opção 3 selecionada - Voltar")
-                arquivoprincipal.write(f"{data_atual()} - INFO - Opção 3 selecionada - Voltar \n")
+                arquivoprincipal.write(f"\n{data_atual()} - INFO - Opção 3 selecionada - Voltar ")
                 infos_config['status'] = False
                 return infos_config
 
             else:
                 print("- Opção invalida, insira novamente \n")
-                arquivoprincipal.write(f"{data_atual()} - INFO - Opção invalida, insira novamente \n")
+                arquivoprincipal.write(f"\n{data_atual()} - INFO - Opção invalida, insira novamente ")
                 certo = True
                 continue
         continue
 
     print(f"- Config escolhido: {arquivo_config}")
-    arquivoprincipal.write(f"{data_atual()} - INFO - Config escolhido: {arquivo_config} \n")
-    arquivoprincipal.write(f"{data_atual()} - INFO - Server: {infos_config['server']} \n")
-    arquivoprincipal.write(f"{data_atual()} - INFO - Base Muro Update BR: {infos_config['database_update_br']} \n")
-    arquivoprincipal.write(f"{data_atual()} - INFO - Base Muro Update MX: {infos_config['database_update_mx']} \n")
-    arquivoprincipal.write(f"{data_atual()} - INFO - Base Muro Update PT: {infos_config['database_update_pt']} \n")
-    arquivoprincipal.write(f"{data_atual()} - INFO - Base Muro Update MD: {infos_config['database_update_md']} \n")
-    arquivoprincipal.write(f"{data_atual()} - INFO - Bases Muro: {infos_config['bases_muro']} \n")
+    arquivoprincipal.write(f"\n{data_atual()} - INFO - Config escolhido: {arquivo_config} ")
+    arquivoprincipal.write(f"\n{data_atual()} - INFO - Server: {infos_config['server']} ")
+    arquivoprincipal.write(f"\n{data_atual()} - INFO - Base Muro Update BR: {infos_config['database_update_br']} ")
+    arquivoprincipal.write(f"\n{data_atual()} - INFO - Base Muro Update MX: {infos_config['database_update_mx']} ")
+    arquivoprincipal.write(f"\n{data_atual()} - INFO - Base Muro Update PT: {infos_config['database_update_pt']} ")
+    arquivoprincipal.write(f"\n{data_atual()} - INFO - Base Muro Update MD: {infos_config['database_update_md']} ")
+    arquivoprincipal.write(f"\n{data_atual()} - INFO - Bases Muro: {infos_config['bases_muro']} ")
 
     return infos_config
-
-
-def data_atual():
-   data_hora =  datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-   return data_hora
 
 
 def conferebancoupdate(arquivo,infos_config,num):
@@ -240,9 +283,9 @@ def conferebancoupdate(arquivo,infos_config,num):
             else:
                 print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update BR")
                 arquivo.write(
-                    f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update BR \n")
+                    f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update BR ")
                 databaseupdate = input("Insira o nome da base que será usada: ").lower()
-                arquivo.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
+                arquivo.write(f"\n{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} ")
 
 
         elif infos_config['bases_muro'][num] == ("qcmaint_kairos_base_muro_mx") or infos_config['bases_muro'][num] == ("qcdev_kairos_base_muro_mx"):
@@ -251,9 +294,9 @@ def conferebancoupdate(arquivo,infos_config,num):
             else:
                 print("-  Não foi inserido no arquivo de config o apontamento para o banco Muro update MX")
                 arquivo.write(
-                    f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update MX \n")
+                    f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update MX ")
                 databaseupdate = input("Insira o nome da base que será utilizada: ").lower()
-                arquivo.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
+                arquivo.write(f"\n{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} ")
 
         elif infos_config['bases_muro'][num] == ("qcmaint_kairos_base_muro_pt") or infos_config['bases_muro'][num] == ("qcdev_kairos_base_muro_pt"):
             if infos_config['database_update_pt'] != '':
@@ -261,9 +304,9 @@ def conferebancoupdate(arquivo,infos_config,num):
             else:
                 print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update PT")
                 arquivo.write(
-                    f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update PT \n")
+                    f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update PT ")
                 databaseupdate = input("Insira o nome da base que será utilizada: ").lower()
-                arquivo.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
+                arquivo.write(f"\n{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} ")
 
         elif infos_config['bases_muro'][num] == ("qcmaint_mdcomune_base_muro") or infos_config['bases_muro'][num] == ("qcdev_mdcomune_base_muro"):
             if infos_config['database_update_md'] != '':
@@ -271,18 +314,18 @@ def conferebancoupdate(arquivo,infos_config,num):
             else:
                 print("- Não foi inserido no arquivo de config o apontamento para o banco Muro update MD")
                 arquivo.write(
-                    f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update MD \n")
+                    f"{data_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update MD ")
                 databaseupdate = input("Insira o nome da base que será utilizada: ").lower()
-                arquivo.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
+                arquivo.write(f"\n{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} ")
         else:
             print("- Não foi possivel achar uma opção compativel com o banco de muro")
             print("- Insira o banco de Update manualmente")
             arquivo.write(
-                f"{data_atual()} - ERRO - Não foi possivel achar uma opção compativel com o banco de muro \n")
+                f"{data_atual()} - ERRO - Não foi possivel achar uma opção compativel com o banco de muro ")
             arquivo.write(
-                f"{data_atual()} - ERRO - Insira o banco de Update manualmente \n")
+                f"{data_atual()} - ERRO - Insira o banco de Update manualmente ")
             databaseupdate = input("Insira o nome da base que será utilizada: ").lower()
-            arquivo.write(f"{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} \n")
+            arquivo.write(f"\n{data_atual()} - INFO - Inserido manualmente a base: {databaseupdate} ")
         if databaseupdate == "":
             continue
         else:
@@ -299,19 +342,19 @@ def manipular_bancomuro(arquivoprincipal,infos_config):
     arquivo = open(f"Log\{nomes['arquivo_busca_bancos']}.txt", "a")
 
     print("\n- Tela - Busca muro")
-    arquivoprincipal.write(f"{data_atual()} - INFO - Tela - Busca muro \n")
+    arquivoprincipal.write(f"\n{data_atual()} - INFO - Tela - Busca muro ")
 
     print(f"- Inicio da operação Busca muro {data_atual()}")
-    arquivo.write(f"{data_atual()} - INFO - Inicio da operação Busca muro \n")
+    arquivo.write(f"{data_atual()} - INFO - Inicio da operação Busca muro ")
 
     versaodatabases = input("- Especifique para qual versão quer fazer o downgrade: ")
 
     print(f"- Version para downgrade: {versaodatabases}")
-    arquivo.write(f"{data_atual()} - INFO - Version para downgrade: {versaodatabases} \n")
+    arquivo.write(f"\n{data_atual()} - INFO - Version para downgrade: {versaodatabases} ")
 
     # Pegar a lista de bancos da instancia
     print(f"\n- Iniciando a busca dos bancos na instância: {infos_config['server']} ")
-    arquivo.write(f"{data_atual()} - INFO - Iniciando a busca dos bancos na instância: {infos_config['server']} \n")
+    arquivo.write(f"\n{data_atual()} - INFO - Iniciando a busca dos bancos na instância: {infos_config['server']} ")
 
     try:
         cnxn1 = pyodbc.connect(f"DRIVER=SQL Server;SERVER={infos_config['server']};ENCRYPT=not;UID={infos_config['username']};PWD={infos_config['password']}")
@@ -320,18 +363,18 @@ def manipular_bancomuro(arquivoprincipal,infos_config):
         listasstringinstancia = cursor1.fetchall()
     except (Exception or pyodbc.DatabaseError) as err:
         print(f"- Falha ao tentar buscar os bancos da instancia {err}")
-        arquivo.write(f"{data_atual()} - ERRO - Falha ao tentar buscar os bancos da instancia {err} \n")
+        arquivo.write(f"\n{data_atual()} - ERRO - Falha ao tentar buscar os bancos da instancia {err} ")
     else:
         cursor1.commit()
         print("- Consulta na instância realizada com sucesso.")
-        arquivo.write(f"{data_atual()} - INFO - Consulta na instância realizada com sucesso. \n")
+        arquivo.write(f"\n{data_atual()} - INFO - Consulta na instância realizada com sucesso. ")
 
         print(f"- Quantidade de bancos encontrados: {len(listasstringinstancia)}")
-        arquivo.write(f"{data_atual()} - INFO - Quantidade de bancos encontrados: {len(listasstringinstancia)} \n")
+        arquivo.write(f"\n{data_atual()} - INFO - Quantidade de bancos encontrados: {len(listasstringinstancia)} ")
         status_consulta = True
     finally:
         print("- Processo Finalizado\n")
-        arquivo.write(f"{data_atual()} - INFO - Processo Finalizado \n")
+        arquivo.write(f"\n{data_atual()} - INFO - Processo Finalizado ")
 
     if status_consulta:
 
@@ -339,7 +382,7 @@ def manipular_bancomuro(arquivoprincipal,infos_config):
         for num in range(len(infos_config['bases_muro'])):
 
             print(f"- Iniciando o processo no banco: {infos_config['bases_muro'][num]}")
-            arquivo.write(f"{data_atual()} - INFO - Iniciando o processo no banco: {infos_config['bases_muro'][num]} \n")
+            arquivo.write(f"\n{data_atual()} - INFO - Iniciando o processo no banco: {infos_config['bases_muro'][num]} ")
 
             # Configurando as Variaveis
             lista_connection_string  = []
@@ -360,24 +403,24 @@ def manipular_bancomuro(arquivoprincipal,infos_config):
 
             # Pega a lista de connections strings
             print("- Iniciando a Busca no banco de muro")
-            arquivo.write(f"{data_atual()} - INFO - Iniciando a Busca no banco de muro \n")
+            arquivo.write(f"\n{data_atual()} - INFO - Iniciando a Busca no banco de muro ")
             try:
                 cursor1.execute(f"SELECT [DATABASE_ID],[CONNECTION_STRING] FROM {infos_config['bases_muro'][num]}.[dbo].[KAIROS_DATABASES]")
                 lista_connection_string = cursor1.fetchall()
 
             except (Exception or pyodbc.DatabaseError) as err:
                 print(f"- Falha ao tentar consultar banco de muro: {err}")
-                arquivo.write(f"{data_atual()} - ERRO - Falha ao tentar consultar banco de muro {err} \n")
+                arquivo.write(f"\n{data_atual()} - ERRO - Falha ao tentar consultar banco de muro {err} ")
             else:
                 cursor1.commit()
                 print("- Consulta no banco de muro realizada com sucesso")
-                arquivo.write(f"{data_atual()} - INFO - Consulta no banco de muro realizada com sucesso \n")
+                arquivo.write(f"\n{data_atual()} - INFO - Consulta no banco de muro realizada com sucesso ")
 
                 print(f"- Quantidade de registros encontrados: {len(lista_connection_string)}")
-                arquivo.write(f"{data_atual()} - INFO - Quantidade de registros encontrados: {len(lista_connection_string)} \n")
+                arquivo.write(f"\n{data_atual()} - INFO - Quantidade de registros encontrados: {len(lista_connection_string)} ")
             finally:
                 print("- Processo Finalizado\n")
-                arquivo.write(f"{data_atual()} - INFO - Processo Finalizado \n")
+                arquivo.write(f"\n{data_atual()} - INFO - Processo Finalizado ")
 
             # separar o nome do banco nas connection strings
             for i in range(len(lista_connection_string )):
@@ -407,7 +450,7 @@ def manipular_bancomuro(arquivoprincipal,infos_config):
 
             # Comparar bancos "strings"
             print("- Iniciando a comparação dos bancos")
-            arquivo.write(f"{data_atual()} - INFO - Iniciando a comparação dos bancos \n")
+            arquivo.write(f"\n{data_atual()} - INFO - Iniciando a comparação dos bancos ")
             for comparar in range(len(listaBancosInstancia)):
                 if listaBancosInstancia[comparar] in listaNomesBancos:
                     indexbancos.append(listaNomesBancos.index(listaBancosInstancia[comparar]))
@@ -420,12 +463,12 @@ def manipular_bancomuro(arquivoprincipal,infos_config):
 
             if len(connection_string) > 0:
                 print("- Quantidade de bancos que deram Match: " + str(len(connection_string)))
-                arquivo.write(f"{data_atual()} - INFO - Quantidade de bancos que deram Match: {len(connection_string)} \n")
+                arquivo.write(f"\n{data_atual()} - INFO - Quantidade de bancos que deram Match: {len(connection_string)} ")
             else:
                 print("- Não foram encontrados Match na comparação de bancos")
-                arquivo.write(f"{data_atual()} - INFO - Não foram encontrados Match na comparação de bancos \n")
+                arquivo.write(f"\n{data_atual()} - INFO - Não foram encontrados Match na comparação de bancos ")
             print("- Processo Finalizado\n")
-            arquivo.write(f"{data_atual()} - INFO - Processo Finalizado \n")
+            arquivo.write(f"\n{data_atual()} - INFO - Processo Finalizado ")
 
             # Limpar as strings para inserir no banco
             for lim in range(len(connection_string)):
@@ -438,30 +481,30 @@ def manipular_bancomuro(arquivoprincipal,infos_config):
             if len(stringsLimpas) > 0:
                 # Limpeza base muro UPDATE
                 print(f"- Iniciando a limpeza no banco de muro update: {databaseupdate}")
-                arquivo.write(f"{data_atual()} - INFO - Iniciando a limpeza no banco de muro update: {databaseupdate} \n")
+                arquivo.write(f"\n{data_atual()} - INFO - Iniciando a limpeza no banco de muro update: {databaseupdate} ")
                 try:
                     cursor1.execute(f'DELETE FROM {databaseupdate}.[dbo].[KAIROS_DATABASES]')
 
                 except (Exception or pyodbc.DatabaseError) as err:
-                    print(f"- Falha ao tentar zerar o banco de muro temporário {err}")
-                    arquivo.write(f"{data_atual()}  - ERRO - Falha ao tentar zerar o banco de muro temporario {err} \n")
+                    print(f"- Falha ao tentar zerar o banco update {err}")
+                    arquivo.write(f"\n{data_atual()}  - ERRO - Falha ao tentar zerar o banco de muro temporario {err} ")
                 else:
                     cursor1.commit()
                     print(f"- banco {databaseupdate} zerado com sucesso")
-                    arquivo.write(f"{data_atual()} - INFO - Banco {databaseupdate} zerado com sucesso \n")
+                    arquivo.write(f"\n{data_atual()} - INFO - Banco {databaseupdate} zerado com sucesso ")
                 finally:
                     print("- Processo Finalizado\n")
-                    arquivo.write(f"{data_atual()} - INFO - Processo Finalizado \n")
+                    arquivo.write(f"\n{data_atual()} - INFO - Processo Finalizado ")
             else:
                 print("- Não foi realizada a limpeza no banco: " + databaseupdate)
-                arquivo.write(f"{data_atual()} - INFO - Não foi realizada a limpeza no banco: {databaseupdate} \n")
+                arquivo.write(f"\n{data_atual()} - INFO - Não foi realizada a limpeza no banco: {databaseupdate} ")
                 print("- Processo Finalizado\n")
-                arquivo.write(f"{data_atual()} - INFO - Processo Finalizado \n")
+                arquivo.write(f"\n{data_atual()} - INFO - Processo Finalizado ")
 
 
             # Inserindo as connections strings no banco muro temporario
             print(f"- Iniciando a inserção das connection strings no banco muro update: {databaseupdate}")
-            arquivo.write(f"{data_atual()} - INFO - Iniciando a inserção das connection strings no banco muro update: {databaseupdate} \n")
+            arquivo.write(f"\n{data_atual()} - INFO - Iniciando a inserção das connection strings no banco muro update: {databaseupdate} ")
             if len(stringsLimpas) > 0:
                 try:
                     cnxn1 = pyodbc.connect(f"DRIVER=SQL Server;SERVER={infos_config['server']};DATABASE={databaseupdate};ENCRYPT=not;UID={infos_config['username']};PWD={infos_config['password']}")
@@ -475,50 +518,53 @@ def manipular_bancomuro(arquivoprincipal,infos_config):
                     cursor1.execute("set identity_insert [dbo].[KAIROS_DATABASES]  off")
 
                 except (Exception or pyodbc.DatabaseError) as err:
-                    print(f"- Falha ao tentar inserir registros no banco de muro temporário {err}")
-                    arquivo.write(f"{data_atual()} - ERRO - Falha ao tentar inserir registros no banco de muro temporário {err} \n")
+                    print(f"- Falha ao tentar inserir registros no banco update {err}")
+                    arquivo.write(f"\n{data_atual()} - ERRO - Falha ao tentar inserir registros no banco update {err} ")
                 else:
                     cursor1.commit()
                     print("- Sucesso ao inserir connection Strings no Banco de muro Update  ")
-                    arquivo.write(f"{data_atual()} - INFO - Sucesso ao inserir connection Strings no Banco de muro Update \n")
+                    arquivo.write(f"\n{data_atual()} - INFO - Sucesso ao inserir connection Strings no Banco de muro Update ")
 
                     # Logando as connection string
                     quant = 1
                     arquivo_strings = open(f"Log\{nomes['arquivo_connection_strings']}.txt", "a")
                     arquivo_strings.write(
-                        f"{data_atual()} - INFO - Buscar Bancos - Listando as connection strings utilizadas \n")
-                    arquivo_strings.write(f"{data_atual()} - INFO - Buscar Bancos - Ambiente: {infos_config['bases_muro'][num]} \n")
+                        f"{data_atual()} - INFO - Buscar Bancos - Listando as connection strings utilizadas ")
+                    arquivo_strings.write(f"\n{data_atual()} - INFO - Buscar Bancos - Ambiente: {infos_config['bases_muro'][num]} ")
                     for log in range(len(connection_string)):
-                        arquivo_strings.writelines(f"{data_atual()} - INFO - {quant} - {connection_string[log]} \n")
+                        arquivo_strings.writelines(f"\n{data_atual()} - INFO - {quant} - {connection_string[log]} ")
                         quant += 1
                         continue
+
+
+                    arquivo_strings.write(f"\n{data_atual()} - INFO - Processo Finalizado \n")
                     arquivo_strings.close()
                     arquivo.write(
-                        f"{data_atual()} - INFO - Listado as Connection Strings no arquivo: {nomes['arquivo_connection_strings']} \n")
+                        f"\n{data_atual()} - INFO - Listado as Connection Strings no arquivo: {nomes['arquivo_connection_strings']} ")
 
                 finally:
                     print("- Processo Finalizado\n")
-                    arquivo.write(f"{data_atual()} - INFO - Processo Finalizado \n")
+                    arquivo.write(f"\n{data_atual()} - INFO - Processo Finalizado ")
 
             else:
                 print("- Não a registros para serem inseridos no banco: " + databaseupdate)
-                arquivo.write(f"{data_atual()} - INFO - Não a registros para serem inseridos no banco: {databaseupdate} \n")
+                arquivo.write(f"\n{data_atual()} - INFO - Não a registros para serem inseridos no banco: {databaseupdate} ")
                 print("- Processo Finalizado\n")
-                arquivo.write(f"{data_atual()} - INFO - Processo Finalizado \n")
+                arquivo.write(f"\n{data_atual()} - INFO - Processo Finalizado ")
 
             if num < 4:
                 num += 1
-            print(f"- Concluído a parte {num}  do processo, de um total de {len(infos_config['bases_muro'])} partes.")
-            arquivo.write(f"{data_atual()} - INFO - Concluído a parte {num} do processo, de um total de {len(infos_config['bases_muro'])} partes. \n")
+            print(f"- Concluído a parte {num} do processo, de um total de {len(infos_config['bases_muro'])} partes.")
+            arquivo.write(f"\n{data_atual()} - INFO - Concluído a parte {num} do processo, de um total de {len(infos_config['bases_muro'])} partes. ")
             continue
         cursor1.close()
     else:
         print(f"- Erro na primeira etapa das buscas, o processo foi interrompido.")
         arquivo.write(
-            f"{data_atual()} - INFO - Erro na primeira etapa das buscas, o processo foi interrompido. \n")
+            f"\n{data_atual()} - INFO - Erro na primeira etapa das buscas, o processo foi interrompido. ")
 
     print(f"- Fim da operação Busca muro {data_atual()}")
-    arquivo.write(f"{data_atual()} - INFO - Fim da operação Busca muro \n")
+    arquivo.write(f"\n{data_atual()} - INFO - Fim da operação Busca muro \n")
     arquivo.close()
 
 
@@ -529,10 +575,10 @@ def replicar_version(arquivoprincipal,infos_config):
 
     arquivologreplicar = open(f"Log\{nomes['arquivo_replicar_version']}.txt", "a")
 
-    print("- Tela - replicar version")
-    arquivoprincipal.write(f"{data_atual()} - INFO - Tela - replicar version \n")
+    print("\n- Tela - replicar version")
+    arquivoprincipal.write(f"\n{data_atual()} - INFO - Tela - replicar version ")
 
-    print(f" \n- Inicio da operação replicar version {data_atual()}")
+    print(f"- Inicio da operação replicar version {data_atual()}")
     arquivologreplicar.write(f"{data_atual()} - INFO - Inicio da operação replicar version")
 
     for num in range(len(infos_config['bases_muro'])):
@@ -541,7 +587,7 @@ def replicar_version(arquivoprincipal,infos_config):
         listaversions = []
         listaconnectionstring = []
 
-        print(f"\n- Iniciando o processo no banco: {infos_config['bases_muro'][num]}")
+        print(f"- Iniciando o processo no banco: {infos_config['bases_muro'][num]}")
         arquivologreplicar.write(f"\n{data_atual()} - INFO - Iniciando o processo no banco: {infos_config['bases_muro'][num]}")
 
         databaseupdate = conferebancoupdate(arquivologreplicar,infos_config,num)
@@ -564,7 +610,7 @@ def replicar_version(arquivoprincipal,infos_config):
             print(f"- Quantidade de registros encontrados: {len(listaregistrosdb)}")
             arquivologreplicar.write(f"\n{data_atual()} - INFO - Quantidade de registros encontrados: {len(listaregistrosdb)}")
         finally:
-            print("- Processo finalizado\n")
+            print("- Processo finalizado")
 
         tambuscarealizada = len(listaregistrosdb)
         if tambuscarealizada > 0:
@@ -592,45 +638,46 @@ def replicar_version(arquivoprincipal,infos_config):
 
                 # Logando as connection string
                 arquivologreplicar_strings = open(f"Log\{nomes['arquivo_connection_strings']}.txt", "a")
-                arquivologreplicar_strings.write(
-                    f"{data_atual()} - INFO - Replicar Version - Listando as connection strings utilizadas \n")
-                arquivologreplicar_strings.write(f"{data_atual()} - INFO - Replicar Version - Ambiente: {infos_config['bases_muro'][num]} \n")
+                arquivologreplicar_strings.write(f"{data_atual()} - INFO - Replicar Version - Listando as connection strings utilizadas ")
+                arquivologreplicar_strings.write(f"\n{data_atual()} - INFO - Replicar Version - Ambiente: {infos_config['bases_muro'][num]} ")
                 quant = 1
                 for log in range(tambuscarealizada):
                     arquivologreplicar_strings.writelines(
-                        f"{data_atual()} - INFO - {quant} - ID: {listaids[log]} - Version: {listaversions[log]} \n")
+                        f"\n{data_atual()} - INFO - {quant} - ID: {listaids[log]} - Version: {listaversions[log]} ")
                     quant += 1
                     continue
+
+                arquivologreplicar_strings.write(f"\n{data_atual()} - INFO - Processo finalizado \n")
                 arquivologreplicar_strings.close()
                 arquivologreplicar.write(
                 f"\n{data_atual()} - INFO - Listado os version no arquivo: {nomes['arquivo_connection_strings']}")
             finally:
-                print("- Processo finalizado\n")
+                print("- Processo finalizado")
         else:
             print("- Não existem registros para alterar o version")
-            arquivologreplicar.write(f"\n{data_atual()} - ERRO - Não existem registros para alterar o version")
+            arquivologreplicar.write(f"\n{data_atual()} - INFO - Não existem registros para alterar o version")
 
         print(f"- Concluído a parte {num} do processo, de um total de {len(infos_config['bases_muro'])} partes.")
         arquivologreplicar.write(f"\n{data_atual()} - INFO - Concluído a parte {num} do processo, de um total de {len(infos_config['bases_muro'])} partes.")
         continue
 
-    if num < 4:
-        num += 1
+        if num < 4:
+            num += 1
     print(f"- Fim da operação replicar version {data_atual()}")
-    arquivologreplicar.write(f"\n{data_atual()} - INFO - Fim da operação replicar version\n")
+    arquivologreplicar.write(f"\n{data_atual()} - INFO - Fim da operação replicar version \n")
     arquivologreplicar.close()
 
 
 def downlodbackup(arquivoprincipal,arquivobackup,infos_config):
 
     print("\n- Tela - Download Backup")
-    arquivoprincipal.write(f"{data_atual()} - INFO - Tela - Download Backup \n")
+    arquivoprincipal.write(f"\n{data_atual()} - INFO - Tela - Download Backup ")
 
-    print(f" - Inicio da operação Download Backup {data_atual()}")
-    arquivobackup.write(f"{data_atual()} - INFO - Inicio da operação Download Backup \n")
+    print(f"- Inicio da operação Download Backup {data_atual()}")
+    arquivobackup.write(f"{data_atual()} - INFO - Inicio da operação Download Backup ")
 
-    urldownload = input("Insira a URL de backup gerada no discord: ")
-    arquivobackup.write(f"{data_atual()} - INFO - Inserida a URL de Download: {urldownload} \n")
+    urldownload = input("|Insira a URL de backup gerada no discord: ")
+    arquivobackup.write(f"\n{data_atual()} - INFO - Inserida a URL de Download: {urldownload} ")
 
     comando = f"""xp_cmdshell 'powershell.exe -file C:\wget\download.ps1 bkp "{urldownload}"'"""
 
@@ -642,15 +689,15 @@ def downlodbackup(arquivoprincipal,arquivobackup,infos_config):
         result = cursorrp1.fetchall()
     except (Exception or pyodbc.DatabaseError) as err:
         print("- Falha ao tentar executar o comando " + str(err))
-        arquivobackup.write(f"{data_atual()} - ERRO - Falha ao tentar executar o comando: {err} \n")
+        arquivobackup.write(f"\n{data_atual()} - ERRO - Falha ao tentar executar o comando: {err} ")
     else:
         cursorrp1.commit()
 
         print(f"\n- Sucesso ao realizar Download do backup ")
-        arquivobackup.write(f"{data_atual()} - INFO - Sucesso ao realizar Download do backup \n")
+        arquivobackup.write(f"\n{data_atual()} - INFO - Sucesso ao realizar Download do backup ")
 
         print(f"- Resultado:")
-        arquivobackup.write(f"{data_atual()} - INFO - Resultado:\n")
+        arquivobackup.write(f"\n{data_atual()} - INFO - Resultado:")
 
         for incs in range(len(result)):
 
@@ -659,17 +706,17 @@ def downlodbackup(arquivoprincipal,arquivobackup,infos_config):
                 separado = semiseparado[1].split("(")
                 limpo = separado[0]
                 print('- ' + str(limpo))
-                arquivobackup.write(f"{data_atual()} - INFO - {limpo}\n")
+                arquivobackup.write(f"\n{data_atual()} - INFO - {limpo}")
 
             else:
                 limpo = semiseparado[0]
                 print("- " + str(limpo))
-                arquivobackup.write(f"{data_atual()} - INFO - {limpo}\n")
+                arquivobackup.write(f"\n{data_atual()} - INFO - {limpo}")
 
         cursorrp1.close()
     finally:
-        print("- Processo finalizado\n")
-        arquivobackup.write(f"{data_atual()} - INFO - Processo finalizado\n")
+        print("- Processo finalizado")
+        arquivobackup.write(f"\n{data_atual()} - INFO - Processo finalizado \n")
 
     arquivobackup.close()
 
@@ -680,15 +727,15 @@ def restaurarbanco(arquivoprincipal,arquivorestaura,infos_config):
     cursorrs = ''
 
     print("\n- Tela - Restauração de banco")
-    arquivoprincipal.write(f"{data_atual()} - INFO - Tela - Restauração de banco \n")
+    arquivoprincipal.write(f"\n{data_atual()} - INFO - Tela - Restauração de banco ")
 
     print(f"- Inicio da operação Restauração de banco {data_atual()}")
-    arquivorestaura.write(f"{data_atual()} - INFO - Inicio da operação Restauração de banco \n")
+    arquivorestaura.write(f"{data_atual()} - INFO - Inicio da operação Restauração de banco ")
 
-    nome_banco_restaurado = input("Insira o nome do banco apresentado no discord(Sem o .bak): ")
-    arquivorestaura.write(f"{data_atual()} - INFO - Inserido o nome do banco apresentado no discord: {nome_banco_restaurado} \n")
+    nome_banco_restaurado = input("|Insira o nome do banco apresentado no discord(Sem o .bak): ")
+    arquivorestaura.write(f"\n{data_atual()} - INFO - Inserido o nome do banco apresentado no discord: {nome_banco_restaurado} ")
 
-    arquivorestaura.write(f"{data_atual()} - INFO - Escolhido o servidor: {infos_config['server']} \n")
+    arquivorestaura.write(f"\n{data_atual()} - INFO - Escolhido o servidor: {infos_config['server']} ")
 
     comandocriardevice = f"""USE [master];
 EXEC Sp_addumpdevice'disk','{nome_banco_restaurado}','G:\Backup\Eventual\{nome_banco_restaurado}.bak';"""
@@ -740,17 +787,17 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         resultcriardevice = cursorrs.messages
     except (Exception or pyodbc.DatabaseError) as err:
         print("- Falha ao tentar executar o comando de criação de device de backup " + str(err))
-        arquivorestaura.write(f"{data_atual()} - ERRO - Falha ao tentar executar o comando de criação de device de backup: {err} \n")
+        arquivorestaura.write(f"\n{data_atual()} - ERRO - Falha ao tentar executar o comando de criação de device de backup: {err} ")
     else:
         cursorrs.commit()
         print(f"\n- Sucesso ao realizar Criar Device de Backup")
-        arquivorestaura.write(f"{data_atual()} - INFO - Sucesso ao realizar Criar Device de Backup \n")
+        arquivorestaura.write(f"\n{data_atual()} - INFO - Sucesso ao realizar Criar Device de Backup ")
         status_etapa1 = True
         for incs in range(len(resultcriardevice)):
             separados = resultcriardevice[0][1].split("]")
             mensagem = separados[3]
             print(f"- Comando(Criação Device) -  Mensagem SQL: {mensagem}  ")
-            arquivorestaura.write(f"{data_atual()} - INFO - Comando(Criação Device) -  Mensagem SQL: {mensagem} \n")
+            arquivorestaura.write(f"\n{data_atual()} - INFO - Comando(Criação Device) -  Mensagem SQL: {mensagem} ")
 
     if status_etapa1:
         try:
@@ -759,7 +806,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         except (Exception or pyodbc.DatabaseError) as err:
             print("- Falha ao tentar executar o comando de restauração de banco: " + str(err))
             arquivorestaura.write(
-                f"{data_atual()} - ERRO - Falha ao tentar executar o comando de restauração de banco: {err} \n")
+                f"\n{data_atual()} - ERRO - Falha ao tentar executar o comando de restauração de banco: {err} ")
         else:
             mensagens = []
             mensagem = ''
@@ -775,12 +822,12 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                     break
             cursorrs.commit()
             print(f"- Sucesso ao realizar a restauração do banco")
-            arquivorestaura.write(f"{data_atual()} - INFO - Sucesso ao realizar a restauração do banco \n")
+            arquivorestaura.write(f"\n{data_atual()} - INFO - Sucesso ao realizar a restauração do banco ")
 
             tam = len(mensagens) -3
             for incs in range(posicao):
                 print(f"- Comando(Restauração DB) -  Mensagem SQL: {mensagens[tam]}  ")
-                arquivorestaura.write(f"{data_atual()} - INFO - Comando(Restauração DB) -  Mensagem SQL: {mensagens[tam]} \n")
+                arquivorestaura.write(f"\n{data_atual()} - INFO - Comando(Restauração DB) -  Mensagem SQL: {mensagens[tam]} ")
                 tam += 1
 
             try:
@@ -788,15 +835,14 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                 resultativarbanco = cursorrs.messages
             except (Exception or pyodbc.DatabaseError) as err:
                 print("- Falha ao tentar executar o comando de Ativação do banco: " + str(err))
-                arquivorestaura.write(f"{data_atual()} - ERRO - Falha ao tentar executar o comando de Ativação do banco: {err} \n")
+                arquivorestaura.write(f"\n{data_atual()} - ERRO - Falha ao tentar executar o comando de Ativação do banco: {err} ")
             else:
                 tamresulti = len(resultativarbanco) -1
                 while tamresulti < len(resultativarbanco):
                     separados = resultativarbanco[tamresulti][1].split("]")
                     mensagem = separados[3]
                     print(f"- Comando(Ativação DB) -  Mensagem SQL: {mensagem}  ")
-                    arquivorestaura.write(
-                        f"{data_atual()} - INFO - Comando(Ativação DB) -  Mensagem SQL: {mensagem} \n")
+                    arquivorestaura.write(f"\n{data_atual()} - INFO - Comando(Ativação DB) -  Mensagem SQL: {mensagem} ")
                     tamresulti += 1
 
                 try:
@@ -804,7 +850,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                     resultcheck = cursorrs.messages
                 except (Exception or pyodbc.DatabaseError) as err:
                     print("- Falha ao tentar executar o comando de checagem do banco: " + str(err))
-                    arquivorestaura.write(f"{data_atual()} - ERRO - Falha ao tentar executar o comando de checagem do banco: {err} \n")
+                    arquivorestaura.write(f"\n{data_atual()} - ERRO - Falha ao tentar executar o comando de checagem do banco: {err} ")
                 else:
                     looping = True
                     tamresult = len(resultcheck) - 2
@@ -814,7 +860,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                             separados = resultcheck[tamresult][1].split("]")
                             mensagem = separados[3]
                             print(f"- Comando(Checagem DB) - Mensagem SQL: {mensagem}")
-                            arquivorestaura.write(f"{data_atual()} - INFO - Comando(Checagem DB) - Mensagem SQL: {mensagem} \n")
+                            arquivorestaura.write(f"\n{data_atual()} - INFO - Comando(Checagem DB) - Mensagem SQL: {mensagem} ")
                             tamresult += 1
                         else:
                             looping = False
@@ -823,50 +869,48 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                         resultexcluirdevice= cursorrs.messages
                     except (Exception or pyodbc.DatabaseError) as err:
                         print("- Falha ao tentar executar o comando de checagem do banco: " + str(err))
-                        arquivorestaura.write(
-                            f"{data_atual()} - ERRO - Falha ao tentar executar o comando de checagem do banco: {err} \n")
+                        arquivorestaura.write(f"\n{data_atual()} - ERRO - Falha ao tentar executar o comando de checagem do banco: {err} ")
                     else:
                         for incs in range(len(resultexcluirdevice)):
                             separados = resultexcluirdevice[0][1].split("]")
                             mensagem = separados[3]
                             print(f"- Comando(Exclusão Device) -  Mensagem SQL: {mensagem}  ")
-                            arquivorestaura.write(
-                                f"{data_atual()} - INFO - Comando(Exclusão Device) -  Mensagem SQL: {mensagem} \n")
+                            arquivorestaura.write(f"\n{data_atual()} - INFO - Comando(Exclusão Device) -  Mensagem SQL: {mensagem} ")
 
                         try:
                             cursorrs.execute(comandoscript1)
                             associarowner = cursorrs.messages
                         except (Exception or pyodbc.DatabaseError) as err:
                             print("- Falha ao tentar executar o comando de associação do Owner: " + str(err))
-                            arquivorestaura.write(f"{data_atual()} - ERRO - Falha ao tentar executar o comando de associação do Owner:  {err} \n")
+                            arquivorestaura.write(f"\n{data_atual()} - ERRO - Falha ao tentar executar o comando de associação do Owner:  {err} ")
                         else:
                             separados = associarowner[0][1].split("]")
                             mensagem = separados[3]
                             print(f"- Comando(Associar Owner) - Mensagem SQL: {mensagem}")
-                            arquivorestaura.write(f"{data_atual()} - INFO - Comando(Script Associar Owner) - Mensagem SQL: {mensagem} \n")
+                            arquivorestaura.write(f"\n{data_atual()} - INFO - Comando(Script Associar Owner) - Mensagem SQL: {mensagem} ")
 
                             try:
                                 cursorrs.execute(comandoscript2)
                                 compatibilidade = cursorrs.messages
                             except (Exception or pyodbc.DatabaseError) as err:
                                 print("- Falha ao tentar executar o comando " + str(err))
-                                arquivorestaura.write(f"{data_atual()} - ERRO - Falha ao tentar executar o comando: {err} \n")
+                                arquivorestaura.write(f"\n{data_atual()} - ERRO - Falha ao tentar executar o comando: {err} ")
                             else:
                                 separados = compatibilidade[0][1].split("]")
                                 mensagem = separados[3]
                                 print(f"- Comando(Compatibilidade) - Mensagem SQL: {mensagem}")
-                                arquivorestaura.write(f"{data_atual()} - INFO - Comando(Script Compatibilidade) - Mensagem SQL: {mensagem} \n")
+                                arquivorestaura.write(f"\n{data_atual()} - INFO - Comando(Script Compatibilidade) - Mensagem SQL: {mensagem} ")
         cursorrs.close()
 
-    print("- Processo finalizado\n")
-    arquivorestaura.write(f"{data_atual()} - INFO - Processo finalizado\n")
+    print("- Processo finalizado")
+    arquivorestaura.write(f"\n{data_atual()} - INFO - Processo finalizado")
     arquivorestaura.close()
 
 def criar_config(arquivoprincipal):
 
     while True:
         print("\n- Tela - Criação de config")
-        arquivoprincipal.write(f"{data_atual()} - INFO - Tela - Criação de config \n")
+        arquivoprincipal.write(f"\n{data_atual()} - INFO - Tela - Criação de config ")
         nomeescolhido = input("- Insira o nome que deseja para o arquivo de config: (Sem o .json) \nEscolha: ")
         nomeconfig = nomeescolhido + ".json"
 
@@ -898,52 +942,57 @@ def criar_config(arquivoprincipal):
 }
     """)
             print("- Novo config criado com sucesso, configure e selecione para ser utilizado")
-            arquivoprincipal.write(f"{data_atual()} - INFO - Novo config criado com sucesso, configure e selecione para ser utilizado \n")
+            arquivoprincipal.write(f"\n{data_atual()} - INFO - Novo config criado com sucesso, configure e selecione para ser utilizado ")
             break
 
 
 def ferramentas_muro(arquivoprincipal,infos_config):
     while True:
         print("\n- Tela - Ferramentas do Banco de muro")
-        arquivoprincipal.write(f"{data_atual()} - INFO - Tela - Ferramentas do Banco de muro \n")
+        arquivoprincipal.write(f"\n{data_atual()} - INFO - Tela - Ferramentas do Banco de muro ")
         print("- Qual operação deseja realizar: ")
         escolha = input("""|1 - Buscar Bancos
-|2 - Replicar version
-|3 - Trocar o config
-|4 - Voltar ao Menu Principal
-|5 - Sair
+|2 - Validar Atualização
+|3 - Replicar version
+|4 - Trocar o config
+|5 - Voltar ao Menu Principal
+|6 - Sair
 |Escolha: """)
-        if str(escolha) == "5":
-            print("- Opção 5 selecionada - Sair")
-            arquivoprincipal.write(f"{data_atual()} - INFO - Opção 5 selecionada - Sair \n")
+        if str(escolha) == "6":
+            print("- Opção 6 selecionada - Sair")
+            arquivoprincipal.write(f"\n{data_atual()} - INFO - Opção 6 selecionada - Sair ")
             arquivoprincipal.close()
             sair()
-        if str(escolha) != "5":
+        if str(escolha) != "6":
             match escolha:
                 case "1":
                     print("- Opção 1 selecionada - Buscar Bancos")
-                    arquivoprincipal.write(f"{data_atual()} - INFO - Opção 1 selecionada - Buscar Bancos \n")
+                    arquivoprincipal.write(f"\n{data_atual()} - INFO - Opção 1 selecionada - Buscar Bancos ")
                     manipular_bancomuro(arquivoprincipal,infos_config)
                 case "2":
-                    print("- Opção 2 selecionada - Replicar version")
-                    arquivoprincipal.write(f"{data_atual()} - INFO - Opção 2 selecionada - Replicar version \n")
-                    replicar_version(arquivoprincipal,infos_config)
+                    print("- Opção 2 selecionada - Validar Atualização")
+                    arquivoprincipal.write(f"\n{data_atual()} - INFO - Opção 2 selecionada - Replicar version ")
+                    validar_atualizacao(arquivoprincipal,infos_config)
                 case "3":
-                    print("- Opção 3 selecionada - Trocar o config")
-                    arquivoprincipal.write(f"{data_atual()} - INFO - Opção 3 selecionada - Trocar o config \n")
-                    menubancosdemuro(arquivoprincipal)
+                    print("- Opção 3 selecionada - Replicar version")
+                    arquivoprincipal.write(f"\n{data_atual()} - INFO - Opção 2 selecionada - Replicar version ")
+                    replicar_version(arquivoprincipal,infos_config)
                 case "4":
-                    print("- Opção 4 selecionada - Voltar ao Menu Principal")
-                    arquivoprincipal.write(f"{data_atual()} - INFO - Opção 4 selecionada - Voltar ao Menu Principal \n")
-                    menu(arquivoprincipal)
+                    print("- Opção 4 selecionada - Trocar o config")
+                    arquivoprincipal.write(f"\n{data_atual()} - INFO - Opção 3 selecionada - Trocar o config ")
+                    menubancosdemuro(arquivoprincipal)
                 case "5":
+                    print("- Opção 5 selecionada - Voltar ao Menu Principal")
+                    arquivoprincipal.write(f"\n{data_atual()} - INFO - Opção 4 selecionada - Voltar ao Menu Principal ")
+                    menu(arquivoprincipal)
+                case "6":
                     return
                 case _:
                     print("-  Opção invalida, insira novamente!")
-                    arquivoprincipal.write(f"{data_atual()} - INFO - Opção invalida, insira novamente! \n")
+                    arquivoprincipal.write(f"\n{data_atual()} - INFO - Opção invalida, insira novamente! ")
         else:
             print("-  Opção invalida, insira novamente!")
-            arquivoprincipal.write(f"{data_atual()} - INFO - Opção invalida, insira novamente! \n")
+            arquivoprincipal.write(f"\n{data_atual()} - INFO - Opção invalida, insira novamente! ")
             continue
         continue
 
@@ -960,11 +1009,11 @@ def menurestaurarbanco(arquivoprincipal):
                         break
                     else:
                         print(f"- A tag de server_principal parece estar vazia, preencha e tente novamente")
-                        arquivorestaura.write(f"{data_atual()} - INFO - A tag de server_principal parece estar vazia, preencha e tente novamente \n")
+                        arquivorestaura.write(f"{data_atual()} - INFO - A tag de server_principal parece estar vazia, preencha e tente novamente ")
                         infos_config['status'] = False
                 except (Exception or pyodbc.DatabaseError) as err:
                     print(f"- Falha ao tentar ler o arquivo, corrija e tente novamente: {err}")
-                    arquivorestaura.write(f"{data_atual()} - ERRO - Falha ao tentar ler o arquivo, corrija e tente novamente: {err} \n")
+                    arquivorestaura.write(f"{data_atual()} - ERRO - Falha ao tentar ler o arquivo, corrija e tente novamente: {err} ")
                     infos_config['status'] = False
             else:
                 break
@@ -972,6 +1021,7 @@ def menurestaurarbanco(arquivoprincipal):
             break
         else:
             continue
+
 
 def menudownlodbackup(arquivoprincipal):
     arquivodownload = open(f"Log\{nomes['arquivo_downloadbackup']}.txt", "a")
@@ -985,11 +1035,11 @@ def menudownlodbackup(arquivoprincipal):
                         break
                     else:
                         print(f"- A tag de server_principal parece estar vazia, preencha e tente novamente")
-                        arquivodownload.write(f"{data_atual()} - INFO - A tag de server_principal parece estar vazia, preencha e tente novamente \n")
+                        arquivodownload.write(f"{data_atual()} - INFO - A tag de server_principal parece estar vazia, preencha e tente novamente ")
                         infos_config['status'] = False
                 except (Exception or pyodbc.DatabaseError) as err:
                     print(f"- Falha ao tentar ler o arquivo, corrija e tente novamente: {err}")
-                    arquivodownload.write(f"{data_atual()} - ERRO - Falha ao tentar ler o arquivo, corrija e tente novamente: {err} \n")
+                    arquivodownload.write(f"{data_atual()} - ERRO - Falha ao tentar ler o arquivo, corrija e tente novamente: {err} ")
                     infos_config['status'] = False
             else:
                 break
@@ -1004,13 +1054,18 @@ def menubancosdemuro(arquivoprincipal):
     ferramentas_muro(arquivoprincipal,infos_config)
 
 
+def data_atual():
+   data_hora =  datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+   return data_hora
+
+
 def menu(arquivoprincipal):
     certo = True
 
     while certo:
         while certo:
             print("\n- Tela - Menu Principal")
-            arquivoprincipal.write(f"{data_atual()} - INFO - Tela - Menu Principal \n")
+            arquivoprincipal.write(f"\n{data_atual()} - INFO - Tela - Menu Principal ")
             print("- Escolha qual função deseja utilizar: ")
             escolhamenu = input("""|1 - Banco de Muro
 |2 - Download Backup
@@ -1020,25 +1075,25 @@ def menu(arquivoprincipal):
 
             if escolhamenu == "1":
                 print("- Opção 1 selecionada - Banco de Muro")
-                arquivoprincipal.write(f"{data_atual()} - INFO - Opção 1 selecionada - Banco de Muro \n")
+                arquivoprincipal.write(f"\n{data_atual()} - INFO - Opção 1 selecionada - Banco de Muro ")
                 menubancosdemuro(arquivoprincipal)
                 certo = True
                 continue
             elif escolhamenu == "2":
                 print("- Opção 2 selecionada - Download Backup")
-                arquivoprincipal.write(f"{data_atual()} - INFO - Opção 2 selecionada - Download Backup \n")
+                arquivoprincipal.write(f"\n{data_atual()} - INFO - Opção 2 selecionada - Download Backup ")
                 menudownlodbackup(arquivoprincipal)
                 certo = True
                 continue
             elif escolhamenu == "3":
                 print("- Opção 3 selecionada - Restaurar Backup")
-                arquivoprincipal.write(f"{data_atual()} - INFO - Opção 3 selecionada - Restaurar Backup \n")
+                arquivoprincipal.write(f"\n{data_atual()} - INFO - Opção 3 selecionada - Restaurar Backup ")
                 menurestaurarbanco(arquivoprincipal)
                 certo = True
                 continue
             elif escolhamenu == "4":
                 print("- Opção 4 selecionada - Sair")
-                arquivoprincipal.write(f"{data_atual()} - INFO - Opção 4 selecionada - Sair \n")
+                arquivoprincipal.write(f"\n{data_atual()} - INFO - Opção 4 selecionada - Sair \n")
                 arquivoprincipal.close()
                 sair()
             else:
@@ -1074,7 +1129,7 @@ def main():
     arquivoprincipal.write(f"{data_atual()} - INFO - Programa iniciado \n" )
 
     print(f"- Versão: {version}")
-    arquivoprincipal.write(f"{data_atual()} - INFO - Versão:  {version} \n")
+    arquivoprincipal.write(f"{data_atual()} - INFO - Versão:  {version} ")
     menu(arquivoprincipal)
 
 
