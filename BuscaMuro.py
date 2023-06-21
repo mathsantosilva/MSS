@@ -5,10 +5,80 @@ import os
 import re
 import sys
 import pyodbc
+from git import Repo
+from github import Github
+import requests
+import shutil
+import subprocess
+
 
 def data_atual():
    data_hora = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
    return data_hora
+
+
+def comparar_tags(tag1, tag2):
+    # Função para comparar duas tags no formato 'x.y.z' e retornar 1 se a primeira for maior, -1 se for menor e 0 se forem iguais
+    version_regex = r"(\d+)\.(\d+)\.(\d+)"
+    match1 = re.match(version_regex, tag1)
+    match2 = re.match(version_regex, tag2)
+
+    if match1 and match2:
+        version1 = tuple(map(int, match1.groups()))
+        version2 = tuple(map(int, match2.groups()))
+
+        if version1 > version2:
+            return 1
+        elif version1 < version2:
+            return -1
+
+    return 0
+
+
+def pesquisar_maior_tag(username, repository, tag_atual):
+    github = Github()
+    repo = github.get_repo(f"{username}/{repository}")
+    tags = repo.get_tags()
+
+    maior_tag = None
+    for tag in tags:
+        if comparar_tags(tag.name, tag_atual) > 0:
+            if maior_tag is None or comparar_tags(tag.name, maior_tag) > 0:
+                maior_tag = tag.name
+
+    return maior_tag
+
+
+def realizar_download(maior_tag):
+    caminho = f"https://github.com/mathsantosilva/MSS/releases/download/{maior_tag}/BuscaMuro.exe"
+    response = requests.get(caminho)
+    try:
+        if os.path.exists("C:/MSS_temp"):
+            return
+        else:
+            os.makedirs("C:/MSS_temp")
+    except Exception as error:
+        print(f"INFO - Erro ao criar/validar a pasta C:/MSS_temp: {error} ")
+    with open("C:/MSS_temp/BuscaMuro.exe", "wb") as arquivo:
+        arquivo.write(response.content)
+        arquivo.close
+
+
+def executar_comando_batch(dir_atual):
+    comando = f"""@echo off
+timeout /t 10 /nobreak
+xcopy "C:\MSS_temp\BuscaMuro.exe" "{dir_atual}\BuscaMuro.exe" /w/E/Y/H
+echo.
+echo Atualização realizada com sucesso 
+echo.
+start {dir_atual}\BuscaMuro.exe
+pause
+exit
+"""
+    arquivo = open("C:/MSS_temp/script_temp.bat", "a")
+    arquivo.write(comando)
+    arquivo.close()
+    resultado = subprocess.Popen(['start', 'cmd', '/k', 'C:/MSS_temp/script_temp.bat'], shell=True, text=True)
 
 
 def criar_config(arquivo_principal):
@@ -352,7 +422,29 @@ class Mss:
     nomes['arquivo_restaurar_banco'] = 'restaurar_banco'
     nomes['arquivo_connection_strings'] = 'connection_strings'
     nomes['arquivo_validar'] = 'validar_atualizacao'
-    version = "1.6.0"
+    version = "1.7.0"
+
+    def atualizador(self):
+        username = "mathsantosilva"
+        repository = "MSS"
+        tag_atual = self.version
+
+        maior_tag = pesquisar_maior_tag(username, repository, tag_atual)
+
+        if maior_tag != None:
+            realizar_download(maior_tag)
+            dir_atual = os.getcwd()
+            executar_comando_batch(dir_atual)
+            sair()
+        else:
+            try:
+                if os.path.exists("C:/MSS_temp"):
+                    shutil.rmtree("C:/MSS_temp")
+                else:
+                    return
+            except Exception as error:
+                print(
+                    f"\n{data_atual()} - INFO - Erro ao criar/validar a pasta {self.nomes['diretorio_log']}: {error} ")
 
     def validar_atualizacao(self, arquivo_principal, infos_config):
 
@@ -413,6 +505,7 @@ class Mss:
 
             arquivo_config = ''
             infos_config = dict()
+            loop = True
 
             while True:
                 print("\n- Tela - Configs")
@@ -421,7 +514,7 @@ class Mss:
                 escolha_menu = input("""|1 - Utilizar config existente
 |2 - Criar um config em branco
 |3 - Voltar
-|Escolha:""")
+|Escolha: """)
 
                 match escolha_menu:
                     case "1":
@@ -1095,7 +1188,7 @@ class Mss:
 |3 - Restaurar Backup
 |4 - Trocar Config
 |5 - Sair
-|Escolha:""")
+|Escolha: """)
 
                 match escolha_menu:
                     case "1":
@@ -1131,6 +1224,32 @@ class Mss:
                         continue
 
     def __init__(self):
+
+        self.atualizador()
+
+        status_pasta = ""
+        # Criar diretorio log
+        try:
+            if os.path.exists(self.nomes['diretorio_log']):
+                status_pasta = status_pasta + "- "
+            else:
+                os.makedirs(self.nomes['diretorio_log'])
+                status_pasta = status_pasta + "+ "
+        except Exception as error:
+            print(f"\n{data_atual()} - INFO - Erro ao criar/validar a pasta {self.nomes['diretorio_log']}: {error} ")
+
+        # Criar diretorio config
+        try:
+            if os.path.exists(self.nomes['diretorio_config']):
+                status_pasta = status_pasta + "- "
+
+            else:
+                os.makedirs(self.nomes['diretorio_config'])
+                status_pasta = status_pasta + "+ "
+        except Exception as error:
+            print(f"\n{data_atual()} - INFO - Erro ao criar/validar a pasta {self.nomes['diretorio_config']}: {error} ")
+
+        print("- " + status_pasta + "- - - - - - - - - - - - - - - - -")
         # Criar o arquivo de log pricipal
         arquivo_principal = open(f"{self.nomes['diretorio_log']}\\{self.nomes['arquivo_base_muro']}.txt", "a")
         with open(f"{self.nomes['diretorio_log']}\\{self.nomes['arquivo_base_muro']}.txt", "r") as arquivo_insp:
@@ -1150,27 +1269,6 @@ class Mss:
         print(f"- Versão: {self.version}")
         arquivo_principal.write(f"\n{data_atual()} - INFO - Versão:  {self.version}")
 
-        # Criar diretorio log
-        try:
-            if os.path.exists(self.nomes['diretorio_log']):
-                arquivo_principal.write(f"\n{data_atual()} - INFO - Pasta {self.nomes['diretorio_log']} já existente")
-            else:
-                os.makedirs(self.nomes['diretorio_log'])
-                arquivo_principal.write(f"\n{data_atual()} - INFO - Pasta {self.nomes['diretorio_log']} criada com sucesso ")
-        except Exception as error:
-            arquivo_principal.write(f"\n{data_atual()} - INFO - Erro ao criar/validar a pasta {self.nomes['diretorio_log']}: {error} ")
-
-        # Criar diretorio config
-        try:
-            if os.path.exists(self.nomes['diretorio_config']):
-                arquivo_principal.write(f"\n{data_atual()} - INFO - Pasta {self.nomes['diretorio_config']} já existente ")
-
-            else:
-                os.makedirs(self.nomes['diretorio_config'])
-                arquivo_principal.write(f"\n{data_atual()} - INFO - Pasta {self.nomes['diretorio_config']} criada com sucesso ")
-
-        except Exception as error:
-            arquivo_principal.write(f"\n{data_atual()} - INFO - Erro ao criar/validar a pasta {self.nomes['diretorio_config']}: {error} ")
 
         # Metodo de escolher o config
         infos_config = self.escolher_config(arquivo_principal)
@@ -1178,6 +1276,4 @@ class Mss:
         # Metodo menu principal
         self.menu(arquivo_principal,infos_config)
 
-
 base_muro = Mss()
-
