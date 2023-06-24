@@ -66,6 +66,7 @@ def realizar_download(maior_tag):
 
 def executar_comando_batch(dir_atual):
     comando = f"""@echo off
+echo Aguarde enquanto a atualização esta em andamento
 timeout /t 10 /nobreak
 xcopy "C:\MSS_temp\BuscaMuro.exe" "{dir_atual}\BuscaMuro.exe" /w/E/Y/H
 echo.
