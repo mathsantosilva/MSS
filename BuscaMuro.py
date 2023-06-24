@@ -108,9 +108,9 @@ def criar_config(arquivo_principal):
         "password": ""
     },
     "configs_restaurar_download": {
-        "server_principal":"",
-        "username": "",
-        "password": ""
+        "server_principal": "",
+        "username_principal": "",
+        "password_principal": ""
     }
 }
     """)
@@ -422,7 +422,7 @@ class Mss:
     nomes['arquivo_restaurar_banco'] = 'restaurar_banco'
     nomes['arquivo_connection_strings'] = 'connection_strings'
     nomes['arquivo_validar'] = 'validar_atualizacao'
-    version = "1.7.0"
+    version = "1.7.1"
 
     def atualizador(self):
         username = "mathsantosilva"
