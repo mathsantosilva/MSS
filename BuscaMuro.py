@@ -5,7 +5,6 @@ import os
 import re
 import sys
 import pyodbc
-from git import Repo
 from github import Github
 import requests
 import shutil
@@ -66,17 +65,17 @@ def realizar_download(maior_tag):
 
 def executar_comando_batch(dir_atual):
     comando = f"""@echo off
+chcp 65001
+cls
 echo Aguarde enquanto a atualização esta em andamento
-timeout /t 10 /nobreak
 xcopy "C:\MSS_temp\BuscaMuro.exe" "{dir_atual}\BuscaMuro.exe" /w/E/Y/H
 echo.
 echo Atualização realizada com sucesso 
 echo.
-start {dir_atual}\BuscaMuro.exe
 pause
 exit
 """
-    arquivo = open("C:/MSS_temp/script_temp.bat", "a")
+    arquivo = open("C:/MSS_temp/script_temp.bat", "a", encoding="UTF-8")
     arquivo.write(comando)
     arquivo.close()
     resultado = subprocess.Popen(['start', 'cmd', '/k', 'C:/MSS_temp/script_temp.bat'], shell=True, text=True)
@@ -423,7 +422,7 @@ class Mss:
     nomes['arquivo_restaurar_banco'] = 'restaurar_banco'
     nomes['arquivo_connection_strings'] = 'connection_strings'
     nomes['arquivo_validar'] = 'validar_atualizacao'
-    version = "1.7.1"
+    version = "1.7.2"
 
     def atualizador(self):
         username = "mathsantosilva"
@@ -1225,56 +1224,59 @@ class Mss:
                         continue
 
     def __init__(self):
-
-        self.atualizador()
-
-        status_pasta = ""
-        # Criar diretorio log
         try:
-            if os.path.exists(self.nomes['diretorio_log']):
-                status_pasta = status_pasta + "- "
+            self.atualizador()
+
+            status_pasta = ""
+            # Criar diretorio log
+            try:
+                if os.path.exists(self.nomes['diretorio_log']):
+                    status_pasta = status_pasta + "- "
+                else:
+                    os.makedirs(self.nomes['diretorio_log'])
+                    status_pasta = status_pasta + "+ "
+            except Exception as error:
+                print(f"\n{data_atual()} - INFO - Erro ao criar/validar a pasta {self.nomes['diretorio_log']}: {error} ")
+
+            # Criar diretorio config
+            try:
+                if os.path.exists(self.nomes['diretorio_config']):
+                    status_pasta = status_pasta + "- "
+
+                else:
+                    os.makedirs(self.nomes['diretorio_config'])
+                    status_pasta = status_pasta + "+ "
+            except Exception as error:
+                print(f"\n{data_atual()} - INFO - Erro ao criar/validar a pasta {self.nomes['diretorio_config']}: {error} ")
+
+            print("- " + status_pasta + "- - - - - - - - - - - - - - - - -")
+            # Criar o arquivo de log pricipal
+            arquivo_principal = open(f"{self.nomes['diretorio_log']}\\{self.nomes['arquivo_base_muro']}.txt", "a")
+            with open(f"{self.nomes['diretorio_log']}\\{self.nomes['arquivo_base_muro']}.txt", "r") as arquivo_insp:
+                conteudo = arquivo_insp.read()
+                linhas = conteudo.count("\n") + 1
+
+            if linhas == 1:
+                pula_linha = ""
             else:
-                os.makedirs(self.nomes['diretorio_log'])
-                status_pasta = status_pasta + "+ "
-        except Exception as error:
-            print(f"\n{data_atual()} - INFO - Erro ao criar/validar a pasta {self.nomes['diretorio_log']}: {error} ")
+                pula_linha = "\n"
 
-        # Criar diretorio config
-        try:
-            if os.path.exists(self.nomes['diretorio_config']):
-                status_pasta = status_pasta + "- "
+            # Data/hora inicio do programa
+            print(f"- Programa iniciado {data_atual()}")
+            arquivo_principal.write(f"{pula_linha}{data_atual()} - INFO - Programa iniciado")
 
-            else:
-                os.makedirs(self.nomes['diretorio_config'])
-                status_pasta = status_pasta + "+ "
-        except Exception as error:
-            print(f"\n{data_atual()} - INFO - Erro ao criar/validar a pasta {self.nomes['diretorio_config']}: {error} ")
-
-        print("- " + status_pasta + "- - - - - - - - - - - - - - - - -")
-        # Criar o arquivo de log pricipal
-        arquivo_principal = open(f"{self.nomes['diretorio_log']}\\{self.nomes['arquivo_base_muro']}.txt", "a")
-        with open(f"{self.nomes['diretorio_log']}\\{self.nomes['arquivo_base_muro']}.txt", "r") as arquivo_insp:
-            conteudo = arquivo_insp.read()
-            linhas = conteudo.count("\n") + 1
-
-        if linhas == 1:
-            pula_linha = ""
-        else:
-            pula_linha = "\n"
-
-        # Data/hora inicio do programa
-        print(f"- Programa iniciado {data_atual()}")
-        arquivo_principal.write(f"{pula_linha}{data_atual()} - INFO - Programa iniciado")
-
-        # Versão atual do programa
-        print(f"- Versão: {self.version}")
-        arquivo_principal.write(f"\n{data_atual()} - INFO - Versão:  {self.version}")
+            # Versão atual do programa
+            print(f"- Versão: {self.version}")
+            arquivo_principal.write(f"\n{data_atual()} - INFO - Versão:  {self.version}")
 
 
-        # Metodo de escolher o config
-        infos_config = self.escolher_config(arquivo_principal)
+            # Metodo de escolher o config
+            infos_config = self.escolher_config(arquivo_principal)
 
-        # Metodo menu principal
-        self.menu(arquivo_principal,infos_config)
+            # Metodo menu principal
+            self.menu(arquivo_principal,infos_config)
+        except(KeyboardInterrupt):
+            print("\nVoce pressionou Ctrl+C para interromper o programa!")
+
 
 base_muro = Mss()
