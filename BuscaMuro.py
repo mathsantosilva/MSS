@@ -12,6 +12,7 @@ import subprocess
 import tkinter as tk
 from tkinter import ttk
 import threading
+import redis
 
 def comparar_tags(tag1, tag2):
     # Função para comparar duas tags no formato 'x.y.z' e retornar 1 se a primeira for maior, -1 se for menor e 0 se forem iguais
@@ -277,8 +278,6 @@ class Aplicativo:
         )
         label_mensagem.grid(row=0, sticky="WE")
         button_sair_mensagem.grid(row=1, pady=(10,10))
-
-        msg.mainloop()
 
     def remover_widget(self, app, name, ent):
         lista_entry = self.percorrer_widgets(app)
@@ -838,12 +837,9 @@ class Aplicativo:
                             else:
                                 break
                         try:
-                            self.infos_config['server_principal'] = params_dict["configs_restaurar_download"][
-                                "server_principal"]
-                            self.infos_config['username_principal'] = params_dict["configs_restaurar_download"][
-                                "username_principal"]
-                            self.infos_config['password_principal'] = params_dict["configs_restaurar_download"][
-                                "password_principal"]
+                            self.infos_config['server_principal'] = params_dict["configs_restaurar_download"]["server_principal"]
+                            self.infos_config['username_principal'] = params_dict["configs_restaurar_download"]["username_principal"]
+                            self.infos_config['password_principal'] = params_dict["configs_restaurar_download"]["password_principal"]
                         except Exception as name_error:
                             self.mensagem(f"O config esta estava desatualizado, foram inseridas as novas tags no config:\n {name_error}")
                             self.arquivo_principal.write(f"\n{data_atual()} - INFO - O config esta estava desatualizado, foram inseridas as novas tags no config, configure elas para usar as rotinas {self.nomes['arquivo_download_backup']} e {self.nomes['arquivo_restaurar_banco']}: {name_error}")
@@ -872,6 +868,75 @@ class Aplicativo:
         "username_principal": "",
         "password_principal": ""
     }}
+}}"""
+                            atualizar_config.write(config_atualizado)
+                            atualizar_config.close()
+                        try:
+                            self.infos_config['redis_qa'] = params_dict["redis_qa"]
+                        except Exception as name_error:
+                            self.mensagem(f"O config esta estava desatualizado, foram inseridas as novas tags no config:\n {name_error}")
+                            self.arquivo_principal.write(
+                                f"\n{data_atual()} - INFO - O config esta estava desatualizado, foram inseridas as novas tags no config, configure elas para usar as rotinas {self.nomes['arquivo_download_backup']} e {self.nomes['arquivo_restaurar_banco']}: {name_error}")
+                            self.infos_config['redis_qa'] = ""
+                            atualizar_config = open("Config\\" + config_selecionado, "w")
+                            bases_utilizadas = str(f"{self.infos_config['bases_muro']}")
+                            bases_utilizadas = bases_utilizadas.replace("'", '"')
+                            server_utilizado = self.infos_config['server']
+                            if "\\" in server_utilizado:
+                                server_utilizado = server_utilizado.replace('\\', '\\\\')
+                            config_atualizado = f"""{{
+    "database_update_br": "{self.infos_config['database_update_br']}",
+    "database_update_mx": "{self.infos_config['database_update_mx']}",
+    "database_update_pt": "{self.infos_config['database_update_pt']}",
+    "database_update_md": "{self.infos_config['database_update_md']}",
+    "bases_muro": {bases_utilizadas},
+    "conexao": {{
+        "server": "{server_utilizado}",
+        "username": "{self.infos_config['username']}",
+        "password": "{self.infos_config['password']}"
+    }},
+    "configs_restaurar_download": {{
+        "server_principal": "{self.infos_config['server_principal']}",
+        "username_principal": "{self.infos_config['username_principal']}",
+        "password_principal": "{self.infos_config['password_principal']}"
+    }},
+	"redis_qa": [
+		{{
+		"nome_redis": "",
+		"ip": "",
+		"port": ""
+		}},
+		{{
+		"nome_redis": "",
+		"ip": "",
+		"port": ""
+		}},
+		{{
+		"nome_redis": "",
+		"ip": "",
+		"port": ""
+		}},
+		{{
+		"nome_redis": "",
+		"ip": "",
+		"port": ""
+		}},
+		{{
+		"nome_redis": "",
+		"ip": "",
+		"port": ""
+		}},
+		{{
+		"nome_redis": "",
+		"ip": "",
+		"port": ""
+		}},
+		{{
+		"nome_redis": "",
+		"ip": "",
+		"port": ""
+		}}
+	]
 }}"""
                             atualizar_config.write(config_atualizado)
                             atualizar_config.close()
@@ -920,7 +985,7 @@ class Aplicativo:
         self.limpar_linha(8)
 
         self.label_lista_arquivos = tk.Label(
-            text="Lista de arquivos"
+            text="Lista de arquivos:"
         )
         self.combobox = ttk.Combobox(
             app,
@@ -985,14 +1050,14 @@ class Aplicativo:
 
         self.button_nav_criar = tk.Button(
             app,
-            text="Criar arquivo",
+            text="Criar",
             name="button_criar",
             width=15,
             height=2,
             bg="#ADADAD",
             command=lambda: self.criar_config()
         )
-        self.input_placeholder(4, 5,  coluna, "Insira o nome para o arquivo...", "Nome do arquivo")
+        self.input_placeholder(4, 5,  coluna, "Insira o nome para o arquivo...", "Nome do arquivo:")
         self.button_nav_criar.grid(row=8, column=coluna, columnspan=1)
 
     def restaurar_banco(self):
@@ -1234,6 +1299,32 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.button_download_inicio.config(state='active')
         self.button_download_voltar.config(state='active')
 
+    def validar_tags_config(self):
+        print("teste 123")
+
+    def limpar_todos_redis(self):
+        self.button_atualizacao_inicio.config(state='disabled')
+        self.button_atualizacao_voltar.config(state='disabled')
+        tam_redis = len(self.infos_config['redis_qa'])
+        for red_atual in self.infos_config['redis_qa']:
+            self.escrever(f"Iniciado processo no Redis {red_atual['nome_redis']}")
+            redis_host = red_atual['ip']  # ou o endereço do seu servidor Redis
+            redis_port = red_atual['port']  # ou a porta que o seu servidor Redis está ouvindo
+
+            # Criando uma instância do cliente Redis
+            redis_client = redis.StrictRedis(host=redis_host, port=redis_port, decode_responses=True)
+
+            try:
+                # Executando o comando FLUSHALL
+                redis_client.flushall()
+            except Exception as err:
+                self.escrever(f"Processo finalizado com falha: {err}")
+            else:
+                self.escrever(f"FLUSHALL executado com sucesso no redis {red_atual['nome_redis']}")
+
+        self.button_atualizacao_inicio.config(state='active')
+        self.button_atualizacao_voltar.config(state='active')
+
     def menu_restaurar_banco(self):
         self.arquivo_restauracao = open(f"Log\\{self.nomes['arquivo_restaurar_banco']}.txt", "a")
         self.infos_config['status'] = True
@@ -1277,6 +1368,15 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                 self.escrever(f"- Processo finalizado")
                 self.arquivo_download.close()
                 break
+
+    def iniciar_processo_limpar_redis_todos(self):
+        self.escrever(f"- Processo iniciado")
+        # Criar uma nova thread para executar o processo demorado
+        try:
+            self.thread = threading.Thread(target=self.limpar_todos_redis)
+            self.thread.start()
+        except threading.excepthook as error:
+            self.escrever(f"Processo finalizado com falha \n {error}")
 
     def iniciar_processo_atualizacao(self):
         self.escrever(f"- Processo iniciado")
@@ -1323,9 +1423,25 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         except threading.excepthook as error:
             self.escrever(f"Processo finalizado com falha \n {error}")
 
-    def trocar_tela_ferramenta(self, app):
+    def trocar_tela_redis_especifico(self, app):
         self.remover_widget(app, '*', '*')
-        self.tela_ferramenta(app, self.version, self.coluna)
+        self.tela_limpar_redis_especifico(app, self.version, self.coluna)
+
+    def trocar_tela_redis_todos(self, app):
+        self.remover_widget(app, '*', '*')
+        self.tela_limpar_redis_todos(app, self.version, self.coluna)
+
+    def trocar_tela_ferramentas(self, app):
+        self.remover_widget(app, '*', '*')
+        self.tela_ferramentas(app, self.version, self.coluna)
+
+    def trocar_tela_ferramentas_bancos(self, app):
+        self.remover_widget(app, '*', '*')
+        self.tela_ferramentas_bancos(app, self.version, self.coluna)
+
+    def trocar_tela_ferramentas_redis(self, app):
+        self.remover_widget(app, '*', '*')
+        self.tela_ferramentas_redis(app, self.version, self.coluna)
 
     def trocar_tela_menu(self, app):
         self.remover_widget(app, '*', '*')
@@ -1355,6 +1471,65 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.remover_widget(app, '*', '*')
         self.tela_replicar_version_muro(app, self.version, self.coluna)
 
+    def tela_limpar_redis_especifico(self, app, version, coluna):
+        titulo = "LIMPAR REDIS ESPECIFICOS"
+        app.title("MSS - " + version + " - " + titulo)
+        opcoes = ["teste 1", "teste 2", "teste 3"]
+
+        self.label_lista_redis = tk.Label(
+            text="Redis:"
+        )
+        self.combobox = ttk.Combobox(
+            app,
+            values=opcoes,
+        )
+        self.button_redis_inicio = tk.Button(
+            app,
+            text="Iniciar",
+            width=25,
+            height=2,
+            command=lambda: self.iniciar_processo_manipula_banco()
+        )
+        self.button_redis_voltar = tk.Button(
+            app,
+            text="Voltar",
+            width=25,
+            height=2,
+            command=lambda: self.trocar_tela_ferramentas_redis(app)
+        )
+
+        self.escrever_titulos(self.app, titulo, 0, coluna)
+        self.combobox.set(opcoes[0])
+        self.label_lista_redis.grid(row=1, column=coluna, columnspan=1, pady=(10, 0), sticky="WS")
+        self.combobox.grid(row=2, column=coluna, columnspan=1, pady =(0, 10), sticky="WEN")
+        self.caixa_texto(3, 4, coluna, "Saida:")
+        self.button_redis_inicio.grid(row=5, column=coluna, pady=(10, 0))
+        self.button_redis_voltar.grid(row=6, column=coluna, pady=(0, 10))
+
+    def tela_limpar_redis_todos(self, app, version, coluna):
+        titulo = "LIMPAR TODOS OS REDIS"
+        app.title("MSS - " + version + " - " + titulo)
+
+        self.button_atualizacao_inicio = tk.Button(
+            app,
+            text="Iniciar",
+            width=25,
+            height=2,
+            command=lambda: self.iniciar_processo_limpar_redis_todos()
+        )
+        self.button_atualizacao_voltar = tk.Button(
+            app,
+            text="Voltar",
+            width=25,
+            height=2,
+            command=lambda: self.trocar_tela_ferramentas_redis(app)
+        )
+
+        self.escrever_titulos(self.app, titulo, 0, coluna)
+        self.caixa_texto(1, 2, coluna, "Saida:")
+        self.button_atualizacao_inicio.grid(row=3, column=coluna,  pady=(10, 0))
+        self.button_atualizacao_voltar.grid(row=4, column=coluna)
+
     def tela_restaurar_backup(self, app, version, coluna):
         titulo = "Restaurar Backup"
         app.title("MSS - " + version + " - " + titulo)
@@ -1375,8 +1550,8 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         )
 
         self.escrever_titulos(self.app, titulo, 0, coluna)
-        self.input_placeholder(1, 2, coluna, " Insira o banco desejado base_karios_123456789...", "Nome do banco")
-        self.caixa_texto(3, 4, coluna, "Dialogo")
+        self.input_placeholder(1, 2, coluna, " Insira o nome do banco desejado (KAIROS_BASE_123456789)", "Nome do banco:")
+        self.caixa_texto(3, 4, coluna, "Saida:")
         self.button_restaurar_inicio.grid(row=5, column=coluna, pady=(10, 0))
         self.button_restaurar_voltar.grid(row=6, column=coluna, pady=(0, 10))
 
@@ -1400,13 +1575,13 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         )
 
         self.escrever_titulos(self.app, titulo, 0, coluna)
-        self.input_placeholder(1, 2, coluna, "Gerado no discord...", "Endereço URL")
-        self.caixa_texto(3, 4, coluna, "Dialogo")
+        self.input_placeholder(1, 2, coluna, "URL DO BACKUP", "Endereço URL:")
+        self.caixa_texto(3, 4, coluna, "Saida:")
         self.button_download_inicio.grid(row=5, column=coluna, pady=(10, 0))
         self.button_download_voltar.grid(row=6, column=coluna, pady=(0, 10))
 
     def tela_busca_muro(self, app, version, coluna):
-        titulo = "Buscar Bancos"
+        titulo = "BUSCAR BANCOS"
         app.title("MSS - " + version + " - " + titulo)
 
         self.button_busca_inicio = tk.Button(
@@ -1421,17 +1596,17 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             text="Voltar",
             width=25,
             height=2,
-            command=lambda: self.trocar_tela_ferramenta(app)
+            command=lambda: self.trocar_tela_ferramentas_bancos(app)
         )
 
         self.escrever_titulos(self.app, titulo, 0, coluna)
         self.input_placeholder(1, 2, coluna, "Insira o version para downgrade...", "Version")
-        self.caixa_texto(3, 4, coluna, "Dialogo")
+        self.caixa_texto(3, 4, coluna, "Saida:")
         self.button_busca_inicio.grid(row=5, column=coluna, pady=(10, 0))
         self.button_busca_voltar.grid(row=6, column=coluna, pady=(0, 10))
 
     def tela_buscar_versions(self, app, version, coluna):
-        titulo = "Consultar version's"
+        titulo = "CONSULTAR VERSIONS"
         app.title("MSS - " + version + " - " + titulo)
 
         self.button_atualizacao_inicio = tk.Button(
@@ -1446,16 +1621,16 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             text="Voltar",
             width=25,
             height=2,
-            command=lambda: self.trocar_tela_ferramenta(app)
+            command=lambda: self.trocar_tela_ferramentas_bancos(app)
         )
 
         self.escrever_titulos(self.app, titulo, 0, coluna)
-        self.caixa_texto(1, 2, coluna, "Dialogo")
+        self.caixa_texto(1, 2, coluna, "Saida:")
         self.button_atualizacao_inicio.grid(row=3, column=coluna,  pady=(10, 0))
         self.button_atualizacao_voltar.grid(row=4, column=coluna)
 
     def tela_replicar_version_muro(self, app, version, coluna):
-        titulo = "Replicar Version"
+        titulo = "REPLICAR VERSIONS"
         app.title("MSS - " + version + " - " + titulo)
 
         self.button_replicar_inicio = tk.Button(
@@ -1470,16 +1645,16 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             text="Voltar",
             width=25,
             height=2,
-            command=lambda: self.trocar_tela_ferramenta(app)
+            command=lambda: self.trocar_tela_ferramentas_bancos(app)
         )
 
         self.escrever_titulos(self.app, titulo, 0, coluna)
-        self.caixa_texto(1, 2, coluna, "Dialogo")
+        self.caixa_texto(1, 2, coluna, "Saida:")
         self.button_replicar_inicio.grid(row=3, column=coluna,  pady=(10, 0))
         self.button_replicar_voltar.grid(row=4, column=coluna)
 
-    def tela_ferramenta(self, app, version, coluna):
-        titulo = "Ferramentas de Banco"
+    def tela_ferramentas_bancos(self, app, version, coluna):
+        titulo = "FERRAMENTAS DE BANCO"
         app.title("MSS - " + version + " - " + titulo)
 
         self.button_ferramenta_busca_banco = tk.Button(
@@ -1512,10 +1687,10 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         )
         self.button_ferramenta_voltar = tk.Button(
             app,
-            text="Voltar ao Menu",
+            text="Voltar - Ferramentas",
             width=25,
             height=2,
-            command=lambda: self.trocar_tela_menu(app)
+            command=lambda: self.trocar_tela_ferramentas(app)
         )
         self.button_ferramenta_sair = tk.Button(
             app,
@@ -1532,16 +1707,101 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.button_ferramenta_voltar.grid(row=5, column=coluna)
         self.button_ferramenta_sair.grid(row=6, column=coluna)
 
+    def tela_ferramentas_redis(self, app, version, coluna):
+        titulo = "FERRAMENTAS DE REDIS"
+        app.title("MSS - " + version + " - " + titulo)
+
+        self.button_ferramenta_busca_banco = tk.Button(
+            app,
+            text="Limpar todos os redis",
+            width=25,
+            height=2,
+            command=lambda: self.trocar_tela_redis_todos(app)
+        )
+        self.button_ferramenta_buscar_versions = tk.Button(
+            app,
+            text="Limpar Redis especifico",
+            width=25,
+            height=2,
+            command=lambda: self.trocar_tela_redis_especifico(app)
+        )
+        self.button_ferramenta_config = tk.Button(
+            app,
+            text="Trocar configuração",
+            width=25,
+            height=2,
+            command=lambda: self.trocar_tela_config(app)
+        )
+        self.button_ferramenta_voltar = tk.Button(
+            app,
+            text="Voltar - Ferramentas",
+            width=25,
+            height=2,
+            command=lambda: self.trocar_tela_ferramentas(app)
+        )
+        self.button_ferramenta_sair = tk.Button(
+            app,
+            text="Sair",
+            width=25,
+            height=2,
+            command=lambda: self.finalizar()
+        )
+        self.escrever_titulos(self.app, titulo, 0, coluna)
+        self.button_ferramenta_busca_banco.grid(row=1, column=coluna)
+        self.button_ferramenta_buscar_versions.grid(row=2, column=coluna)
+        self.button_ferramenta_config.grid(row=3, column=coluna)
+        self.button_ferramenta_voltar.grid(row=4, column=coluna)
+        self.button_ferramenta_sair.grid(row=5, column=coluna)
+
+    def tela_ferramentas(self, app, version, coluna):
+        titulo = "FERRAMENTAS"
+        app.title("MSS - " + version + " - " + titulo)
+
+        self.button_menu_ferramentas = tk.Button(
+            app,
+            text="Ferramentas de Bancos",
+            width=25,
+            height=2,
+            command=lambda: self.trocar_tela_ferramentas_bancos(app)
+        )
+        self.button_menu_ferramentas_redis = tk.Button(
+            app,
+            text="Ferramentas Redis",
+            width=25,
+            height=2,
+            command=lambda: self.trocar_tela_ferramentas_redis(app)
+        )
+        self.button_menu_Voltar = tk.Button(
+            app,
+            text="Voltar - Menu",
+            width=25,
+            height=2,
+            command=lambda: self.trocar_tela_menu(app)
+        )
+        self.button_menu_sair = tk.Button(
+            app,
+            text="Sair",
+            width=25,
+            height=2,
+            command=lambda: self.finalizar()
+        )
+
+        self.escrever_titulos(self.app, titulo, 0, coluna)
+        self.button_menu_ferramentas.grid(row=1, column=coluna)
+        self.button_menu_ferramentas_redis.grid(row=2, column=coluna)
+        self.button_menu_Voltar.grid(row=3, column=coluna)
+        self.button_menu_sair.grid(row=4, column=coluna)
+
     def tela_menu(self, app, version, coluna):
         titulo = "Menu"
         app.title("MSS - " + version + " - " + titulo)
 
         self.button_menu_ferramentas = tk.Button(
             app,
-            text="Ferramentas de Banco",
+            text="Ferramentas",
             width=25,
             height=2,
-            command=lambda: self.trocar_tela_ferramenta(app)
+            command=lambda: self.trocar_tela_ferramentas(app)
         )
         self.button_menu_download = tk.Button(
             app,
@@ -1579,20 +1839,20 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.button_menu_sair.grid(row=5, column=coluna)
 
     def tela_config(self, app, version, coluna):
-        self.arquivo_principal.write(f"\n{data_atual()} - INFO - Tela - Escolha do config")
-        titulo = "Escolha o config"
+        self.arquivo_principal.write(f"\n{data_atual()} - INFO - Tela - CONFIGURAÇÃO")
+        titulo = "CONFIGURAÇÃO"
         app.title("MSS - " + version + " - " + titulo)
 
         self.button_config_existente = tk.Button(
             app,
-            text="Escolher Arquivo Existente",
+            text="Escolher arquivo Config",
             width=25,
             height=2,
             command=lambda: self.arquivo_existente(app, coluna)
         )
         self.button_config_novo = tk.Button(
             app,
-            text="Criar Arquivo config",
+            text="Novo arquivo Config",
             width=25,
             height=2,
             command=lambda: self.arquivo_novo(app, coluna)
