@@ -41,6 +41,7 @@ def pesquisar_maior_tag(username, repository, tag_atual):
         if comparar_tags(tag.name, tag_atual) > 0:
             if maior_tag is None or comparar_tags(tag.name, maior_tag) > 0:
                 maior_tag = tag.name
+                break
 
     return maior_tag
 
@@ -93,8 +94,24 @@ def validar_linha(nome):
 
     return pula_linha
 
+def validar_diretorio(nomes, mensagem):
+    # Criar diretorio log
+    try:
+        if not os.path.exists(nomes['diretorio_log']):
+            os.makedirs(nomes['diretorio_log'])
+    except Exception as error:
+        mensagem(f"\n{data_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_log']}: {error} ")
+
+    # Criar diretorio config
+    try:
+        if not os.path.exists(nomes['diretorio_config']):
+            os.makedirs(nomes['diretorio_config'])
+    except Exception as error:
+        mensagem(
+            f"\n{data_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_config']}: {error} ")
+
 class Aplicativo:
-    version = "2.0.0"
+    version = "2.2.1"
     coluna = 1
     widget = []
     nomes = dict()
@@ -914,31 +931,6 @@ class Aplicativo:
 		"nome_redis": "",
 		"ip": "",
 		"port": ""
-		}},
-		{{
-		"nome_redis": "",
-		"ip": "",
-		"port": ""
-		}},
-		{{
-		"nome_redis": "",
-		"ip": "",
-		"port": ""
-		}},
-		{{
-		"nome_redis": "",
-		"ip": "",
-		"port": ""
-		}},
-		{{
-		"nome_redis": "",
-		"ip": "",
-		"port": ""
-		}},
-		{{
-		"nome_redis": "",
-		"ip": "",
-		"port": ""
 		}}
 	]
 }}"""
@@ -1037,7 +1029,19 @@ class Aplicativo:
         "server_principal": "",
         "username_principal": "",
         "password_principal": ""
-    }
+    },
+	"redis_qa": [
+		{
+		"nome_redis": "",
+		"ip": "",
+		"port": ""
+		},
+		{
+		"nome_redis": "",
+		"ip": "",
+		"port": ""
+		}
+	]
 }""")
                 arquivo_config.close()
                 self.mensagem("Novo config criado com sucesso")
@@ -2004,23 +2008,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         return self.app
 
     def main(self):
-
-        # Validar atualização do programa
-        self.atualizador()
-
-        # Criar diretorio log
-        try:
-            if not os.path.exists(self.nomes['diretorio_log']):
-                os.makedirs(self.nomes['diretorio_log'])
-        except Exception as error:
-            self.mensagem(f"\n{data_atual()} - INFO - Erro ao criar/validar a pasta {self.nomes['diretorio_log']}: {error} ")
-
-        # Criar diretorio config
-        try:
-            if not os.path.exists(self.nomes['diretorio_config']):
-                os.makedirs(self.nomes['diretorio_config'])
-        except Exception as error:
-            self.mensagem(f"\n{data_atual()} - INFO - Erro ao criar/validar a pasta {self.nomes['diretorio_config']}: {error} ")
+        validar_diretorio(self.nomes, self.mensagem)
 
         # Criar o arquivo de log pricipal
         self.arquivo_principal = open(f"{self.nomes['diretorio_log']}\\{self.nomes['arquivo_base_muro']}.txt", "a")
@@ -2028,6 +2016,9 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
 
         # Data/hora inicio do programa
         self.arquivo_principal.write(f"{pula_linha}{data_atual()} - INFO - Programa iniciado")
+
+        # Validar atualização do programa
+        self.atualizador()
 
         # Versão atual do programa
         self.arquivo_principal.write(f"\n{data_atual()} - INFO - Versão:  {self.version}")
