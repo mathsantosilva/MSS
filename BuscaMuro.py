@@ -108,6 +108,7 @@ class Aplicativo:
     nomes['arquivo_restaurar_banco'] = 'restaurar_banco'
     nomes['arquivo_connection_strings'] = 'connection_strings'
     nomes['arquivo_validar'] = 'buscar_versions'
+    nomes['arquivo_redis'] = 'limpeza_redis'
 
     def __init__(self):
         self.placeholder_text = None
@@ -248,7 +249,7 @@ class Aplicativo:
         #scrollbar.config(command=self.widtexto.yview)
         self.widtexto.config(state="disabled")
 
-    def escrever(self,texto):
+    def escrever(self, texto):
         self.widtexto.config(state="normal")
         self.widtexto.insert(tk.END, str(texto) + '\n')
         self.widtexto.config(state="disabled")
@@ -353,6 +354,7 @@ class Aplicativo:
         self.button_atualizacao_voltar.config(state='active')
 
     def manipular_banco_muro(self):
+        self.entry.config(state='disabled')
         self.button_busca_inicio.config(state='disabled')
         self.button_busca_voltar.config(state='disabled')
         lista_string_instancia = ''
@@ -372,6 +374,7 @@ class Aplicativo:
             self.escrever(f"-O campo Version não pode estar em branco")
             self.button_busca_inicio.config(state='active')
             self.button_busca_voltar.config(state='active')
+            self.entry.config(state='normal')
             return
         else:
             self.escrever(f"- Version para downgrade: {versao_databases}")
@@ -582,6 +585,7 @@ class Aplicativo:
             self.escrever(f"- Fim da operação Busca muro")
             self.arquivo.write(f"\n{data_atual()} - INFO - Fim da operação Busca muro")
             self.arquivo.close()
+            self.entry.config(state='normal')
             self.button_busca_inicio.config(state='active')
             self.button_busca_voltar.config(state='active')
 
@@ -774,10 +778,10 @@ class Aplicativo:
                     #    f"\n{self.data_atual()} - ERRO - Não foi possível achar uma opção compativel com o banco de muro ")
             return database_update
 
-    def escolher_config_existente(self, app, combobox):
+    def escolher_config_existente(self, app):
             params_dict = ''
             self.infos_config['status'] = False
-            config_selecionado = combobox.get()
+            config_selecionado = self.combobox.get()
 
             # Validando o arquivo de config
             try:
@@ -997,7 +1001,7 @@ class Aplicativo:
             width=15,
             height=2,
             bg="#ADADAD",
-            command=lambda: self.escolher_config_existente(app, self.combobox)
+            command=lambda: self.escolher_config_existente(app)
         )
         self.combobox.set(opcoes[0])
         self.label_lista_arquivos.grid(row=4, column=coluna, columnspan=1, pady=(10, 0), sticky="WS")
@@ -1064,6 +1068,7 @@ class Aplicativo:
         self.arquivo_principal.write(f"\n{data_atual()} - INFO - Tela - Restaurar Backup")
         self.button_restaurar_inicio.config(state='disabled')
         self.button_restaurar_voltar.config(state='disabled')
+        self.entry.config(state='disabled')
         pula_linha = validar_linha(self.nomes['arquivo_restaurar_banco'])
         cnxnrs = ''
         cursorrs = ''
@@ -1074,6 +1079,7 @@ class Aplicativo:
             self.escrever("- O campo acima deverá ser preenchido")
             self.button_restaurar_inicio.config(state='active')
             self.button_restaurar_voltar.config(state='active')
+            self.entry.config(state='normal')
             return
         else:
             self.arquivo_restauracao.write(f"{pula_linha}{data_atual()} - INFO - Inserido o nome do banco apresentado no discord: {nome_banco_restaurado} ")
@@ -1243,6 +1249,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.escrever("- Processo finalizado")
         self.arquivo_restauracao.write(f"\n{data_atual()} - INFO - Processo finalizado")
         self.arquivo_restauracao.close()
+        self.entry.config(state='normal')
         self.button_restaurar_inicio.config(state='active')
         self.button_restaurar_voltar.config(state='active')
 
@@ -1250,6 +1257,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.arquivo_principal.write(f"\n{data_atual()} - INFO - Tela - Download Backup ")
         self.button_download_inicio.config(state='disabled')
         self.button_download_voltar.config(state='disabled')
+        self.entry.config(state='disabled')
         pula_linha = validar_linha(self.nomes['arquivo_download_backup'])
         self.arquivo_download.write(f"{pula_linha}{data_atual()} - INFO - Inicio da operação Download Backup ")
         endereco_download = self.entry.get()
@@ -1259,6 +1267,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             self.escrever("- O campo acima deverá ser preenchido")
             self.button_download_inicio.config(state='active')
             self.button_download_voltar.config(state='active')
+            self.entry.config(state='normal')
             return
         else:
             comando = f"""xp_cmdshell 'powershell.exe -file C:\\wget\\download.ps1 bkp "{endereco_download}"'"""
@@ -1296,18 +1305,18 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.escrever("- Processo finalizado")
         self.arquivo_download.write(f"\n{data_atual()} - INFO - Processo finalizado ")
         self.arquivo_download.close()
+        self.entry.config(state='normal')
         self.button_download_inicio.config(state='active')
         self.button_download_voltar.config(state='active')
-
-    def validar_tags_config(self):
-        print("teste 123")
 
     def limpar_todos_redis(self):
         self.button_atualizacao_inicio.config(state='disabled')
         self.button_atualizacao_voltar.config(state='disabled')
-        tam_redis = len(self.infos_config['redis_qa'])
+        pula_linha = validar_linha(self.nomes['arquivo_redis'])
+        self.arquivo_redis.write(f"{pula_linha}{data_atual()} - INFO - Inicio da operação Limpar todos Redis ")
         for red_atual in self.infos_config['redis_qa']:
-            self.escrever(f"Iniciado processo no Redis {red_atual['nome_redis']}")
+            self.escrever(f"- Iniciado processo no Redis {red_atual['nome_redis']}")
+            self.arquivo_redis.write(f"\n{data_atual()} - INFO - Iniciado processo no Redis {red_atual['nome_redis']} ")
             redis_host = red_atual['ip']  # ou o endereço do seu servidor Redis
             redis_port = red_atual['port']  # ou a porta que o seu servidor Redis está ouvindo
 
@@ -1318,12 +1327,51 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                 # Executando o comando FLUSHALL
                 redis_client.flushall()
             except Exception as err:
-                self.escrever(f"Processo finalizado com falha: {err}")
+                self.escrever(f"- Processo finalizado com falha: {err}")
+                self.arquivo_redis.write(f"\n{data_atual()} - INFO - Processo finalizado com falha: {err}")
             else:
-                self.escrever(f"FLUSHALL executado com sucesso no redis {red_atual['nome_redis']}")
-
+                self.escrever(f"- FLUSHALL executado com sucesso no redis")
+                self.arquivo_redis.write(f"\n{data_atual()} - INFO - FLUSHALL executado com sucesso no redis")
+        self.escrever("- Processo finalizado")
+        self.arquivo_redis.write(f"\n{data_atual()} - INFO - Processo finalizado ")
         self.button_atualizacao_inicio.config(state='active')
         self.button_atualizacao_voltar.config(state='active')
+        self.arquivo_redis.close()
+
+    def limpar_redis_especifico(self):
+        self.combobox.config(state='disabled')
+        self.button_redis_inicio.config(state='disabled')
+        self.button_redis_voltar.config(state='disabled')
+        pula_linha = validar_linha(self.nomes['arquivo_redis'])
+        self.arquivo_redis.write(f"{pula_linha}{data_atual()} - INFO - Inicio da operação Limpar Redis especifico")
+        redis_selecionado = self.combobox.get()
+        self.escrever(f"- Iniciado processo no Redis {redis_selecionado}")
+        self.arquivo_redis.write(f"\n{data_atual()} - INFO - Iniciado processo no Redis {redis_selecionado} ")
+        todos_valores_redis = self.infos_config["redis_qa"]
+        for redis_unico in todos_valores_redis:
+            if redis_unico["nome_redis"] == redis_selecionado:
+                self.redis_certo = redis_unico
+        redis_host = self.redis_certo["ip"]
+        redis_port = self.redis_certo["port"]
+
+        # Criando uma instância do cliente Redis
+        redis_client = redis.StrictRedis(host=redis_host, port=redis_port, decode_responses=True)
+
+        try:
+            # Executando o comando FLUSHALL
+            redis_client.flushall()
+        except Exception as err:
+            self.escrever(f"- Processo finalizado com falha: {err}")
+            self.arquivo_redis.write(f"\n{data_atual()} - INFO - Processo finalizado com falha: {err}")
+        else:
+            self.escrever(f"- FLUSHALL executado com sucesso no redis")
+            self.arquivo_redis.write(f"\n{data_atual()} - INFO - FLUSHALL executado com sucesso no redis")
+        self.escrever("- Processo finalizado")
+        self.arquivo_redis.write(f"\n{data_atual()} - INFO - Processo finalizado ")
+        self.button_redis_inicio.config(state='active')
+        self.button_redis_voltar.config(state='active')
+        self.combobox.config(state='active')
+        self.arquivo_redis.close()
 
     def menu_restaurar_banco(self):
         self.arquivo_restauracao = open(f"Log\\{self.nomes['arquivo_restaurar_banco']}.txt", "a")
@@ -1345,6 +1393,52 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             else:
                 self.escrever(f"- Processo finalizado")
                 self.arquivo_restauracao.close()
+                break
+
+    def menu_redis_todos(self):
+        self.arquivo_redis = open(f"Log\\{self.nomes['arquivo_redis']}.txt", "a")
+        self.infos_config['status'] = True
+        while True:
+            if self.infos_config['status']:
+                try:
+                    if self.infos_config['redis_qa'] != "":
+                        self.iniciar_processo_limpar_redis_todos()
+                        break
+                    else:
+                        self.escrever(f"- A tag de redis_qa parece estar vazia")
+                        self.arquivo_redis.write(f"\n{data_atual()} - INFO - A tag de redis_qa parece estar vazia, preencha e recarregue o config novamente ")
+                        self.infos_config['status'] = False
+                except (Exception or pyodbc.DatabaseError) as err:
+                    self.escrever(f"- Falha ao tentar ler o arquivo {err}")
+                    self.arquivo_redis.write(f"\n{data_atual()} - ERRO - Falha ao tentar ler o arquivo, corrija e tente novamente: {err} ")
+                    self.infos_config['status'] = False
+                    self.arquivo_redis.close()
+            else:
+                self.escrever(f"- Processo finalizado")
+                self.arquivo_redis.close()
+                break
+
+    def menu_redis_especifico(self):
+        self.arquivo_redis = open(f"Log\\{self.nomes['arquivo_redis']}.txt", "a")
+        self.infos_config['status'] = True
+        while True:
+            if self.infos_config['status']:
+                try:
+                    if self.infos_config['redis_qa'] != "":
+                        self.iniciar_processo_limpar_redis_especifico()
+                        break
+                    else:
+                        self.escrever(f"- A tag de redis_qa parece estar vazia")
+                        self.arquivo_redis.write(f"\n{data_atual()} - INFO - A tag de redis_qa parece estar vazia, preencha e recarregue o config novamente ")
+                        self.infos_config['status'] = False
+                except (Exception or pyodbc.DatabaseError) as err:
+                    self.escrever(f"- Falha ao tentar ler o arquivo {err}")
+                    self.arquivo_redis.write(f"\n{data_atual()} - ERRO - Falha ao tentar ler o arquivo, corrija e tente novamente: {err} ")
+                    self.infos_config['status'] = False
+                    self.arquivo_redis.close()
+            else:
+                self.escrever(f"- Processo finalizado")
+                self.arquivo_redis.close()
                 break
 
     def menu_download_backup(self):
@@ -1369,6 +1463,15 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                 self.arquivo_download.close()
                 break
 
+    def iniciar_processo_limpar_redis_especifico(self):
+        self.escrever(f"- Processo iniciado")
+        # Criar uma nova thread para executar o processo demorado
+        try:
+            self.thread = threading.Thread(target=self.limpar_redis_especifico)
+            self.thread.start()
+        except threading.excepthook as error:
+            self.escrever(f"- Processo finalizado com falha \n {error}")
+
     def iniciar_processo_limpar_redis_todos(self):
         self.escrever(f"- Processo iniciado")
         # Criar uma nova thread para executar o processo demorado
@@ -1376,7 +1479,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             self.thread = threading.Thread(target=self.limpar_todos_redis)
             self.thread.start()
         except threading.excepthook as error:
-            self.escrever(f"Processo finalizado com falha \n {error}")
+            self.escrever(f"- Processo finalizado com falha \n {error}")
 
     def iniciar_processo_atualizacao(self):
         self.escrever(f"- Processo iniciado")
@@ -1474,7 +1577,14 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
     def tela_limpar_redis_especifico(self, app, version, coluna):
         titulo = "LIMPAR REDIS ESPECIFICOS"
         app.title("MSS - " + version + " - " + titulo)
-        opcoes = ["teste 1", "teste 2", "teste 3"]
+        opcoes = []
+
+        if self.infos_config["redis_qa"]:
+            for red_nome in self.infos_config["redis_qa"]:
+                opcoes.append(red_nome["nome_redis"])
+        else:
+            self.mensagem(f"Não existe arquivos .json na pasta config")
+            return
 
         self.label_lista_redis = tk.Label(
             text="Redis:"
@@ -1488,7 +1598,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             text="Iniciar",
             width=25,
             height=2,
-            command=lambda: self.iniciar_processo_manipula_banco()
+            command=lambda: self.menu_redis_especifico()
         )
         self.button_redis_voltar = tk.Button(
             app,
@@ -1515,7 +1625,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             text="Iniciar",
             width=25,
             height=2,
-            command=lambda: self.iniciar_processo_limpar_redis_todos()
+            command=lambda: self.menu_redis_todos()
         )
         self.button_atualizacao_voltar = tk.Button(
             app,
@@ -1600,7 +1710,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         )
 
         self.escrever_titulos(self.app, titulo, 0, coluna)
-        self.input_placeholder(1, 2, coluna, "Insira o version para downgrade...", "Version")
+        self.input_placeholder(1, 2, coluna, "Insira o version para downgrade...", "Version:")
         self.caixa_texto(3, 4, coluna, "Saida:")
         self.button_busca_inicio.grid(row=5, column=coluna, pady=(10, 0))
         self.button_busca_voltar.grid(row=6, column=coluna, pady=(0, 10))
