@@ -111,7 +111,7 @@ def validar_diretorio(nomes, mensagem):
             f"\n{data_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_config']}: {error} ")
 
 class Aplicativo:
-    version = "2.2.1"
+    version = "2.2.2"
     coluna = 1
     widget = []
     nomes = dict()
@@ -1405,7 +1405,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         while True:
             if self.infos_config['status']:
                 try:
-                    if self.infos_config['redis_qa'] != "":
+                    if self.infos_config['redis_qa'][0]["nome_redis"] != "":
                         self.iniciar_processo_limpar_redis_todos()
                         break
                     else:
@@ -1428,7 +1428,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         while True:
             if self.infos_config['status']:
                 try:
-                    if self.infos_config['redis_qa'] != "":
+                    if self.infos_config['redis_qa'][0]["nome_redis"] != "":
                         self.iniciar_processo_limpar_redis_especifico()
                         break
                     else:
@@ -1585,7 +1585,9 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
 
         if self.infos_config["redis_qa"]:
             for red_nome in self.infos_config["redis_qa"]:
-                opcoes.append(red_nome["nome_redis"])
+                if self.infos_config['redis_qa'][0]["nome_redis"] != "":
+                    opcoes.append(red_nome["nome_redis"])
+
         else:
             self.mensagem(f"Não existe arquivos .json na pasta config")
             return
@@ -1613,7 +1615,8 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         )
 
         self.escrever_titulos(self.app, titulo, 0, coluna)
-        self.combobox.set(opcoes[0])
+        if len(opcoes) > 0:
+            self.combobox.set(opcoes[0])
         self.label_lista_redis.grid(row=1, column=coluna, columnspan=1, pady=(10, 0), sticky="WS")
         self.combobox.grid(row=2, column=coluna, columnspan=1, pady =(0, 10), sticky="WEN")
         self.caixa_texto(3, 4, coluna, "Saida:")
