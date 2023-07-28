@@ -111,7 +111,7 @@ def validar_diretorio(nomes, mensagem):
             f"\n{data_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_config']}: {error} ")
 
 class Aplicativo:
-    version = "2.2.2"
+    version = "2.2.3"
     coluna = 1
     widget = []
     nomes = dict()
@@ -269,6 +269,7 @@ class Aplicativo:
     def escrever(self, texto):
         self.widtexto.config(state="normal")
         self.widtexto.insert(tk.END, str(texto) + '\n')
+        self.widtexto.see(tk.END)
         self.widtexto.config(state="disabled")
 
     def mensagem(self, mensagem):
