@@ -31,33 +31,46 @@ def comparar_tags(tag1, tag2):
 
     return 0
 
-def pesquisar_maior_tag(username, repository, tag_atual):
+def pesquisar_maior_tag(username, repository, tag_atual, mensagem):
     github = Github()
-    repo = github.get_repo(f"{username}/{repository}")
-    tags = repo.get_tags()
-
-    maior_tag = None
-    for tag in tags:
-        if comparar_tags(tag.name, tag_atual) > 0:
-            if maior_tag is None or comparar_tags(tag.name, maior_tag) > 0:
-                maior_tag = tag.name
-                break
-
-    return maior_tag
-
-def realizar_download(maior_tag):
-    caminho = f"https://github.com/mathsantosilva/MSS/releases/download/{maior_tag}/BuscaMuro.exe"
-    response = requests.get(caminho)
+    tags = []
     try:
-        if os.path.exists("C:/MSS_temp"):
-            return
-        else:
-            os.makedirs("C:/MSS_temp")
+        repo = github.get_repo(f"{username}/{repository}")
+        tags_on = repo.get_tags()
+        for tag_in in tags_on:
+            tags.append(tag_in.name)
     except Exception as error:
-        prog.mensagem(f"Erro ao criar/validar a pasta C:/MSS_temp: {error} ")
-    with open("C:/MSS_temp/BuscaMuro.exe", "wb") as arquivo:
-        arquivo.write(response.content)
-        arquivo.close()
+        mensagem(f"Erro ao consultar tags para atualização: {error} ")
+    else:
+        maior_tag = None
+        try:
+            for tag in tags:
+                if comparar_tags(tag, tag_atual) > 0:
+                    if maior_tag is None or comparar_tags(tag, maior_tag) > 0:
+                        maior_tag = tag
+                        break
+        except Exception as error:
+            mensagem(f"Erro ao consultar tags para atualização: {error} ")
+
+        return maior_tag
+
+def realizar_download(maior_tag, mensagem):
+    try:
+        caminho = f"https://github.com/mathsantosilva/MSS/releases/download/{maior_tag}/BuscaMuro.exe"
+        response = requests.get(caminho)
+    except Exception as error:
+        mensagem(f"Erro ao consultar tags para atualização: {error} ")
+    else:
+        try:
+            if os.path.exists("C:/MSS_temp"):
+                return
+            else:
+                os.makedirs("C:/MSS_temp")
+        except Exception as error:
+            prog.mensagem(f"Erro ao criar/validar a pasta C:/MSS_temp: {error} ")
+        with open("C:/MSS_temp/BuscaMuro.exe", "wb") as arquivo:
+            arquivo.write(response.content)
+            arquivo.close()
 
 def executar_comando_batch(dir_atual):
     comando = f"""@echo off
@@ -111,7 +124,7 @@ def validar_diretorio(nomes, mensagem):
             f"\n{data_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_config']}: {error} ")
 
 class Aplicativo:
-    version = "2.2.3"
+    version = "2.2.4"
     coluna = 1
     widget = []
     nomes = dict()
@@ -185,13 +198,16 @@ class Aplicativo:
         username = "mathsantosilva"
         repository = "MSS"
         tag_atual = self.version
-        maior_tag = pesquisar_maior_tag(username, repository, tag_atual)
+        maior_tag = pesquisar_maior_tag(username, repository, tag_atual, self.mensagem)
 
         if maior_tag is not None:
-            realizar_download(maior_tag)
-            dir_atual = os.getcwd()
-            executar_comando_batch(dir_atual)
-            self.finalizar()
+            realizar_download(maior_tag, self.mensagem)
+            if os.path.exists("C:/MSS_temp"):
+                dir_atual = os.getcwd()
+                executar_comando_batch(dir_atual)
+                self.finalizar()
+            else:
+                return
         else:
             try:
                 if os.path.exists("C:/MSS_temp"):
@@ -1989,14 +2005,6 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.button_config_sair.grid(row=3, column=coluna, sticky="WE")
 
     def tela(self):
-        self.app = tk.Tk()
-        self.largura = 420
-        self.altura = 420
-
-        pos_wid = self.app.winfo_screenwidth()
-        pos_hei = self.app.winfo_screenheight()
-        self.metade_wid = int((pos_wid / 2) - (self.largura / 2))
-        self.metade_hei = int((pos_hei / 2) - (self.altura / 2))
         self.app.geometry(f"{self.largura}x{self.altura}+{self.metade_wid}+{self.metade_hei}")
         self.circulo = []
         self.status_thread = False
@@ -2012,6 +2020,13 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         return self.app
 
     def main(self):
+        self.app = tk.Tk()
+        self.largura = 420
+        self.altura = 420
+        pos_wid = self.app.winfo_screenwidth()
+        pos_hei = self.app.winfo_screenheight()
+        self.metade_wid = int((pos_wid / 2) - (self.largura / 2))
+        self.metade_hei = int((pos_hei / 2) - (self.altura / 2))
         validar_diretorio(self.nomes, self.mensagem)
 
         # Criar o arquivo de log pricipal
