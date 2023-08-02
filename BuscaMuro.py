@@ -4,13 +4,14 @@ import json
 import os
 import re
 import sys
+from tkinter import colorchooser
+from tkinter.ttk import *
 import pyodbc
 from github import Github
 import requests
 import shutil
 import subprocess
-import tkinter as tk
-from tkinter import ttk
+from tkinter import *
 import threading
 import redis
 import configparser
@@ -129,7 +130,7 @@ def validar_diretorio(nomes, mensagem):
             f"\n{data_hora_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_config']}: {error} ")
 
 class Aplicativo:
-    version = "2.2.4"
+    version = "3.0.0"
     coluna = 1
     widget = []
     nomes = dict()
@@ -147,6 +148,11 @@ class Aplicativo:
     nomes['arquivo_config_default'] = 'prog.conf'
 
     def __init__(self):
+        self.color_default = "#F0F0F0"
+        self.color_default_navs = "#ADADAD"
+        self.color_default_fonte = "#000000"
+        self.infos_config_prog = dict()
+        self.infos_config = dict()
         self.placeholder_text = None
         self.label = None
         self.entry = None
@@ -156,7 +162,6 @@ class Aplicativo:
         self.arquivo_validar = None
         self.arquivo = None
         self.arquivo_replicar = None
-        self.infos_config = None
         self.label_lista_arquivos = None
         self.combobox = None
         self.button_nav_escolher = None
@@ -200,55 +205,97 @@ class Aplicativo:
         sys.exit(200)
 
     def atualizador(self):
-        username = "mathsantosilva"
-        repository = "MSS"
-        tag_atual = self.version
-        maior_tag = pesquisar_maior_tag(username, repository, tag_atual, self.mensagem)
+        if self.infos_config_prog['atualizar']:
+            username = "mathsantosilva"
+            repository = "MSS"
+            tag_atual = self.version
+            maior_tag = pesquisar_maior_tag(username, repository, tag_atual, self.mensagem)
 
-        if maior_tag is not None:
-            realizar_download(maior_tag, self.mensagem)
-            if os.path.exists("C:/MSS_temp"):
-                dir_atual = os.getcwd()
-                executar_comando_batch(dir_atual)
-                self.finalizar()
-            else:
-                return
-        else:
-            try:
+            if maior_tag is not None:
+                realizar_download(maior_tag, self.mensagem)
                 if os.path.exists("C:/MSS_temp"):
-                    shutil.rmtree("C:/MSS_temp")
+                    dir_atual = os.getcwd()
+                    executar_comando_batch(dir_atual)
+                    self.alterar_ult_busca()
+                    self.finalizar()
                 else:
                     return
+            else:
+                try:
+                    if os.path.exists("C:/MSS_temp"):
+                        shutil.rmtree("C:/MSS_temp")
+                    else:
+                        return
+                except Exception as error:
+                    self.mensagem(f"Erro ao criar/validar a pasta {self.nomes['diretorio_log']}: {error} ")
+        else:
+            return
+
+    def menu_cascata(self):
+        menu_bar = Menu(self.app)
+        self.app.config(menu=menu_bar)
+        file_menu = Menu(menu_bar, tearoff=0)
+        menu_bar.add_cascade(label="Configuração", menu=file_menu)
+        file_menu.add_command(label="Trocar Configuração", command=self.trocar_tela_config)
+
+        help_menu = Menu(menu_bar, tearoff=0)
+        menu_bar.add_cascade(label="Aparência", menu=help_menu)
+        help_menu.add_command(label="Alterar Aparência", command=self.trocar_tela_alterar_aparencia)
+        help_menu.add_command(label="Redefinir Aparência", command=self.redefinir_background)
+
+    def validar_atual_config(self):
+        data = data_atual()
+        if os.path.isfile(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}"):
+            try:
+                config = configparser.ConfigParser()
+                config.read(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}")
+                self.infos_config_prog["data_ultima_atualizacao"] = ""
+                data_ultima_atualizacao = config.get('ConfiguracoesGerais', 'data_ultima_atualizacao')
+                if data_ultima_atualizacao != '':
+                    if data_ultima_atualizacao < data:
+                        self.infos_config_prog["atualizar"] = True
+                        self.alterar_ult_busca()
+                    else:
+                        self.infos_config_prog["atualizar"] = False
+                        return
+                else:
+                    self.infos_config_prog["atualizar"] = True
+                    self.alterar_ult_busca()
             except Exception as error:
-                self.mensagem(f"Erro ao criar/validar a pasta {self.nomes['diretorio_log']}: {error} ")
+                self.mensagem(f"Erro ao validar a ultima atualização: {error}")
+                self.infos_config_prog["atualizar"] = False
+        else:
+            self.infos_config_prog["atualizar"] = False
+            return
 
     def ler_arquivo_config(self):
-        self.infos_config_default = ""
-        self.infos_background_color_fundo = self.color_default
-        self.infos_background_color_titulos = self.color_default
-        self.infos_background_color_botoes = self.color_default
-        self.infos_background_color_botoes_navs = self.color_default_navs
         try:
+            self.infos_config_prog["config_default"] = ""
+            self.infos_config_prog["background_color_fundo"] =self.color_default
+            self.infos_config_prog["background_color_titulos"] = self.color_default
+            self.infos_config_prog["background_color_botoes"] = self.color_default
+            self.infos_config_prog["background_color_botoes_navs"] = self.color_default_navs
+            self.infos_config_prog["background_color_fonte"] = self.color_default_fonte
             config = configparser.ConfigParser()
             config.read(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}")
             config_default = config.get('ConfiguracoesGerais', 'config_default')
-            data_ultima_atualizacao = config.get('ConfiguracoesGerais', 'data_ultima_atualizacao')
             background_color_fundo = config.get('ConfiguracoesAparencia', 'background_color_fundo')
             background_color_titulos = config.get('ConfiguracoesAparencia', 'background_color_titulos')
             background_color_botoes = config.get('ConfiguracoesAparencia', 'background_color_botoes')
             background_color_botoes_navs = config.get('ConfiguracoesAparencia', 'background_color_botoes_navs')
+            background_color_fonte = config.get('ConfiguracoesAparencia', 'background_color_fonte')
             if config_default != "":
-                self.infos_config_default = config_default
-            if data_ultima_atualizacao != "":
-                self.infos_data_ultima_atualizacao = data_ultima_atualizacao
+                self.infos_config_prog["config_default"] = config_default
             if background_color_fundo != self.color_default:
-                self.infos_background_color_fundo = background_color_fundo
+                self.infos_config_prog["background_color_fundo"] = background_color_fundo
             if background_color_titulos != self.color_default:
-                self.infos_background_color_titulos = background_color_titulos
+                self.infos_config_prog["background_color_titulos"] = background_color_titulos
             if background_color_botoes != self.color_default:
-                self.infos_background_color_botoes = background_color_botoes
+                self.infos_config_prog["background_color_botoes"] = background_color_botoes
             if background_color_botoes_navs != self.color_default_navs:
-                self.infos_background_color_botoes_navs = background_color_botoes_navs
+                self.infos_config_prog["background_color_botoes_navs"] = background_color_botoes_navs
+            if background_color_fonte != self.color_default_fonte:
+                self.infos_config_prog["background_color_fonte"] = background_color_fonte
         except Exception as error:
             self.mensagem(f"Erro ao acessar arquivo de configuração default {error}")
 
@@ -258,41 +305,99 @@ class Aplicativo:
             config.read(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}")
             config.set('ConfiguracoesGerais', 'config_default', config_setado)
             self.salvar_alteracoes_config(config)
-            self.infos_config_default = config_setado
+            self.infos_config_prog['config_default'] = config_setado
         except Exception as error:
             self.mensagem(f"Erro ao atualizar o arquivo config: {error}")
             
-    def alterar_ult_busca(self,config_setado):
+    def alterar_ult_busca(self):
         data = data_atual()
         try:
             config = configparser.ConfigParser()
-            config.read(self.nomes['arquivo_config_default'])
+            config.read(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}")
             config.set('ConfiguracoesGerais', 'data_ultima_atualizacao', data)
             self.salvar_alteracoes_config(config)
         except Exception as error:
-            print("teste")
+            self.mensagem(f"Erro ao atualizar a data da ultima atualização: {error}")
 
-    def alterar_background(self,config_setado):
-        data = data_atual()
+    def alterar_background(self):
+        backg_fundo = self.entry_background_fundo.get()
+        backg_titulos = self.entry_background_titulos.get()
+        backg_botoes = self.entry_background_botoes.get()
+        backg_botoes_navs = self.entry_background_botoes_navs.get()
+        backg_fontes = self.entry_background_fonte.get()
+
+        if backg_fundo == '':
+            backg_fundo = self.color_default
+        if backg_titulos == '':
+            backg_titulos = self.color_default
+        if backg_botoes == '':
+            backg_botoes = self.color_default
+        if backg_botoes_navs == '':
+            backg_botoes_navs = self.color_default_navs
+        if backg_fontes == '':
+            backg_fontes = self.color_default_fonte
+
         try:
             config = configparser.ConfigParser()
-            config.read(self.nomes['arquivo_config_default'])
-            config.set('ConfiguracoesGerais', 'background_color', data)
+            config.read(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}")
+            config.set('ConfiguracoesAparencia', 'background_color_fundo', backg_fundo)
+            config.set('ConfiguracoesAparencia', 'background_color_titulos', backg_titulos)
+            config.set('ConfiguracoesAparencia', 'background_color_botoes', backg_botoes)
+            config.set('ConfiguracoesAparencia', 'background_color_botoes_navs', backg_botoes_navs)
+            config.set('ConfiguracoesAparencia', 'background_color_fonte', backg_fontes)
             self.salvar_alteracoes_config(config)
+            self.infos_config_prog["background_color_fundo"] = backg_fundo
+            self.infos_config_prog["background_color_titulos"] = backg_titulos
+            self.infos_config_prog["background_color_botoes"] = backg_botoes
+            self.infos_config_prog["background_color_botoes_navs"] = backg_botoes_navs
+            self.infos_config_prog["background_color_fonte"] = backg_fontes
+            self.trocar_tela_menu()
         except Exception as error:
-            print("teste")
+            self.mensagem(f"Erro ao Alterar o background: {error}")
 
-    def criar_arquivo_config(self):
+    def redefinir_background(self):
+        backg_fundo = self.color_default
+        backg_titulos = self.color_default
+        backg_botoes = self.color_default
+        backg_botoes_navs = self.color_default_navs
+        backg_fontes = self.color_default_fonte
+
+        try:
+            config = configparser.ConfigParser()
+            config.read(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}")
+            config.set('ConfiguracoesAparencia', 'background_color_fundo', backg_fundo)
+            config.set('ConfiguracoesAparencia', 'background_color_titulos', backg_titulos)
+            config.set('ConfiguracoesAparencia', 'background_color_botoes', backg_botoes)
+            config.set('ConfiguracoesAparencia', 'background_color_botoes_navs', backg_botoes_navs)
+            config.set('ConfiguracoesAparencia', 'background_color_fonte', backg_fontes)
+            self.salvar_alteracoes_config(config)
+            self.infos_config_prog["background_color_fundo"] = backg_fundo
+            self.infos_config_prog["background_color_titulos"] = backg_titulos
+            self.infos_config_prog["background_color_botoes"] = backg_botoes
+            self.infos_config_prog["background_color_botoes_navs"] = backg_botoes_navs
+            self.infos_config_prog["background_color_fonte"] = backg_fontes
+            self.trocar_tela_menu()
+        except Exception as error:
+            self.mensagem(f"Erro ao Alterar o background: {error}")
+
+    def caixa_selecao_de_cor(self,campo):
+        color_code = colorchooser.askcolor(title="Escolha uma cor")
+        if color_code[1]:
+            campo.delete(0, END)
+            campo.insert(0, color_code[1])
+
+    def criar_arquivo_config_prog(self):
         arquivo_config = open(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}", "a")
-        arquivo_config.write("""[ConfiguracoesGerais]
+        arquivo_config.write(f"""[ConfiguracoesGerais]
 config_default = 
 data_ultima_atualizacao =
  
 [ConfiguracoesAparencia]
-background_color_fundo = #F0F0F0
-background_color_titulos = #F0F0F0
-background_color_botoes = #F0F0F0
-background_color_botoes_navs = #ADADAD""")
+background_color_fundo = {self.color_default}
+background_color_titulos = {self.color_default}
+background_color_botoes = {self.color_default}
+background_color_botoes_navs = {self.color_default_navs}
+background_color_fonte = {self.color_default_fonte}""")
         arquivo_config.close()
 
     def salvar_alteracoes_config(self, config):
@@ -312,7 +417,7 @@ background_color_botoes_navs = #ADADAD""")
 
     def on_entry_click(self, event):
         if self.entry.get() == self.placeholder_text:
-            self.entry.delete(0, tk.END)
+            self.entry.delete(0, END)
             self.entry.config(foreground='black')
 
     def on_focusout(self, event):
@@ -324,11 +429,12 @@ background_color_botoes_navs = #ADADAD""")
         texo_com_espaco = "  " + texto
         self.placeholder_text = texo_com_espaco
         placeholder_color = "gray"
-        self.label = tk.Label(
+        self.label = Label(
             text=nome_campo,
-            bg=self.infos_background_color_fundo
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
         )
-        self.entry = tk.Entry(
+        self.entry = Entry(
             self.app,
             fg=placeholder_color
         )
@@ -339,11 +445,12 @@ background_color_botoes_navs = #ADADAD""")
         self.entry.grid(row=linha_entry, column=coluna, columnspan=1, sticky="WEN", pady=(0, 10))
 
     def escrever_titulos(self, app, tela, linha, coluna):
-        self.label_restaurar_backup = tk.Label(
+        self.label_restaurar_backup = Label(
             app,
             text=tela,
             font=('Arial', 12, 'bold'),
-            bg=self.infos_background_color_titulos
+            bg=self.infos_config_prog["background_color_titulos"],
+            fg=self.infos_config_prog["background_color_fonte"]
         )
         self.label_restaurar_backup.grid(row=linha, column=coluna, sticky="NWE")
 
@@ -353,11 +460,12 @@ background_color_botoes_navs = #ADADAD""")
             widget.destroy()
 
     def caixa_texto(self, linha_label, linha_texto, coluna, nome):
-        self.nome_campo_caixa = tk.Label(
+        self.nome_campo_caixa = Label(
             text=nome,
-            bg=self.infos_background_color_fundo
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg = self.infos_config_prog["background_color_fonte"]
         )
-        self.widtexto = tk.Text(
+        self.widtexto = Text(
             self.app,
             height=12,
             wrap="word"
@@ -365,40 +473,41 @@ background_color_botoes_navs = #ADADAD""")
         self.nome_campo_caixa.grid(row=linha_label, column=coluna, sticky="WE")
         self.widtexto.grid(row=linha_texto, column=coluna, sticky="WE")
         self.widtexto.config(width=50)
-        #scrollbar = tk.Scrollbar(self.app, background="red")
+        #scrollbar = Scrollbar(self.app, background="red")
         #scrollbar.grid(row=linha, column=coluna, sticky="NSE", padx=0)
         #scrollbar.config(command=self.widtexto.yview)
         self.widtexto.config(state="disabled")
 
     def escrever(self, texto):
         self.widtexto.config(state="normal")
-        self.widtexto.insert(tk.END, str(texto) + '\n')
-        self.widtexto.see(tk.END)
+        self.widtexto.insert(END, str(texto) + '\n')
+        self.widtexto.see(END)
         self.widtexto.config(state="disabled")
 
     def mensagem(self, mensagem):
-        msg = tk.Tk()
+        msg = Tk()
         msg.geometry(f"{self.largura}x200+{self.metade_wid}+{self.metade_hei}")
-        msg.configure(bg=self.infos_background_color_fundo)
+        msg.configure(bg=self.infos_config_prog["background_color_fundo"])
         msg.grid_rowconfigure(0, weight=1)
         msg.grid_columnconfigure(0, weight=1)
         msg.config(padx=10, pady=10)
         msg.title("MSS - " + self.version + " - ALERTA")
-        label_mensagem = tk.Label(
+        label_mensagem = Label(
             msg,
             text=mensagem,
             padx = 20,
             pady = 20,
-            bg=self.infos_background_color_titulos
+            bg=self.infos_config_prog["background_color_titulos"]
 
         )
-        button_sair_mensagem = tk.Button(
+        button_sair_mensagem = Button(
             msg,
             text="Fechar",
             width=10,
             height=2,
             background="grey",
-            bg=self.infos_background_color_botoes_navs,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: fechar_janela(msg)
 
         )
@@ -428,12 +537,13 @@ background_color_botoes_navs = #ADADAD""")
                             return
 
     def texto_config_selecionado(self, app):
-        tela = f"Ultimo Config: {self.infos_config_default}"
-        self.label_config_selecionado = tk.Label(
+        tela = f"Ultimo Config: {self.infos_config_prog['config_default']}"
+        self.label_config_selecionado = Label(
             app,
             text=tela,
             font=('Arial', 12),
-            bg=self.infos_background_color_fundo
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
         )
         self.label_config_selecionado.grid(row=0, column=0, columnspan=3, sticky="WN", padx=2, pady=2)
 
@@ -922,14 +1032,14 @@ background_color_botoes_navs = #ADADAD""")
 
     def escolher_config_existente(self):
             params_dict = ''
-            self.infos_status = False
+            self.infos_config['status'] = False
 
-            if self.infos_escolha_manual:
+            if self.infos_config_prog['escolha_manual']:
                 self.config_selecionado = self.combobox.get()
-            elif self.infos_escolha_manual is False and self.infos_config_default != "":
-                self.config_selecionado = self.infos_config_default
+            elif self.infos_config_prog['escolha_manual'] is False and self.infos_config_prog['config_default'] != "":
+                self.config_selecionado = self.infos_config_prog['config_default']
             else:
-                self.mensagem(f"Erro na validação do arquivo config: {self.infos_escolha_manual} e {self.infos_config_default}")
+                self.mensagem(f"Erro na validação do arquivo config: {self.infos_config_prog['escolha_manual']} e {self.infos_config_prog['config_default']}")
 
 
             # Validando o arquivo de config
@@ -980,7 +1090,7 @@ background_color_botoes_navs = #ADADAD""")
                         self.mensagem(f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
                         self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
                     else:
-                        self.infos_status = True
+                        self.infos_config['status'] = True
                         # Limpando strings vazias na base muro
                         limpa_muro_tam = len(self.infos_config['bases_muro'])
                         for num in range(0, limpa_muro_tam, +1):
@@ -1068,18 +1178,17 @@ background_color_botoes_navs = #ADADAD""")
 }}"""
                             atualizar_config.write(config_atualizado)
                             atualizar_config.close()
-            if self.infos_status:
+            if self.infos_config['status']:
                 self.atualizar_config_default(self.config_selecionado)
                 self.trocar_tela_menu()
             else:
-                self.trocar_tela_config(self.app)
+                self.trocar_tela_config()
 
             return self.infos_config
 
-    def arquivo_existente(self, app, coluna):
+    def insrir_campos_arquivo_existente(self, app, coluna):
         self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Tela - Escolher Arquivo Existente")
         opcoes = []
-        self.infos_config = dict()
 
         # listar os arquivos de dentro da pasta
         try:
@@ -1110,27 +1219,29 @@ background_color_botoes_navs = #ADADAD""")
                     return
 
         self.button_config_existente.config(state="disabled")
-        self.button_config_novo.config(state="active")
+        self.button_config_novo.config(state="active" , fg = self.infos_config_prog["background_color_fonte"])
         self.limpar_linha(5,1)
         self.limpar_linha(6,1)
         self.limpar_linha(7,1)
         self.limpar_linha(10,2)
-        self.infos_escolha_manual = True
+        self.infos_config_prog['escolha_manual']= True
 
-        self.label_lista_arquivos = tk.Label(
+        self.label_lista_arquivos = Label(
             text="Lista de arquivos:",
-            bg=self.infos_background_color_fundo
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg = self.infos_config_prog["background_color_fonte"]
         )
-        self.combobox = ttk.Combobox(
+        self.combobox = Combobox(
             app,
             values=opcoes,
         )
-        self.button_nav_escolher = tk.Button(
+        self.button_nav_escolher = Button(
             app,
             text="Escolher",
             width=15,
             height=2,
-            bg=self.infos_background_color_botoes_navs,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.escolher_config_existente()
         )
         if len(opcoes) > 0:
@@ -1186,23 +1297,23 @@ background_color_botoes_navs = #ADADAD""")
                 self.mensagem("Novo config criado com sucesso")
                 self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Novo config criado com sucesso, configure e selecione para ser utilizado ")
 
-    def arquivo_novo(self, app, coluna):
+    def insrir_campos_arquivo_novo(self, app, coluna):
         self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Tela - Criar Arquivo config")
         self.button_config_novo.config(state="disabled")
-        self.button_config_existente.config(state="active")
-
+        self.button_config_existente.config(state="active", fg = self.infos_config_prog["background_color_fonte"])
         self.limpar_linha(5, 1)
         self.limpar_linha(6, 1)
         self.limpar_linha(7, 1)
         self.limpar_linha(10, 2)
 
-        self.button_nav_criar = tk.Button(
+        self.button_nav_criar = Button(
             app,
             text="Criar",
             name="button_criar",
             width=15,
             height=2,
-            bg=self.infos_background_color_botoes_navs,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.criar_config()
         )
         self.input_placeholder(5, 6,  coluna, "Insira o nome para o arquivo...", "Nome do arquivo:")
@@ -1530,9 +1641,9 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
 
     def menu_restaurar_banco(self):
         self.arquivo_restauracao = open(f"{self.nomes['diretorio_log']}\\{self.nomes['arquivo_restaurar_banco']}.txt", "a")
-        self.infos_status = True
+        self.infos_config['status'] = True
         while True:
-            if self.infos_status:
+            if self.infos_config['status']:
                 try:
                     if self.infos_config['server_principal'] != "":
                         self.iniciar_processo_restaurar()
@@ -1540,11 +1651,11 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                     else:
                         self.escrever(f"- A tag de server_principal parece estar vazia")
                         self.arquivo_restauracao.write(f"\n{data_hora_atual()} - INFO - A tag de server_principal parece estar vazia, preencha e recarregue o config novamente ")
-                        self.infos_status = False
+                        self.infos_config['status'] = False
                 except (Exception or pyodbc.DatabaseError) as err:
                     self.escrever(f"- Falha ao tentar ler o arquivo {err}")
                     self.arquivo_restauracao.write(f"\n{data_hora_atual()} - ERRO - Falha ao tentar ler o arquivo, corrija e tente novamente: {err} ")
-                    self.infos_status = False
+                    self.infos_config['status'] = False
             else:
                 self.escrever(f"- Processo finalizado")
                 self.arquivo_restauracao.close()
@@ -1552,9 +1663,9 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
 
     def menu_redis_todos(self):
         self.arquivo_redis = open(f"{self.nomes['diretorio_log']}\\{self.nomes['arquivo_redis']}.txt", "a")
-        self.infos_status = True
+        self.infos_config['status'] = True
         while True:
-            if self.infos_status:
+            if self.infos_config['status']:
                 try:
                     if self.infos_config['redis_qa'][0]["nome_redis"] != "":
                         self.iniciar_processo_limpar_redis_todos()
@@ -1562,11 +1673,11 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                     else:
                         self.escrever(f"- A tag de redis_qa parece estar vazia")
                         self.arquivo_redis.write(f"\n{data_hora_atual()} - INFO - A tag de redis_qa parece estar vazia, preencha e recarregue o config novamente ")
-                        self.infos_status = False
+                        self.infos_config['status'] = False
                 except (Exception or pyodbc.DatabaseError) as err:
                     self.escrever(f"- Falha ao tentar ler o arquivo {err}")
                     self.arquivo_redis.write(f"\n{data_hora_atual()} - ERRO - Falha ao tentar ler o arquivo, corrija e tente novamente: {err} ")
-                    self.infos_status = False
+                    self.infos_config['status'] = False
                     self.arquivo_redis.close()
             else:
                 self.escrever(f"- Processo finalizado")
@@ -1575,9 +1686,9 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
 
     def menu_redis_especifico(self):
         self.arquivo_redis = open(f"{self.nomes['diretorio_log']}\\{self.nomes['arquivo_redis']}.txt", "a")
-        self.infos_status = True
+        self.infos_config['status'] = True
         while True:
-            if self.infos_status:
+            if self.infos_config['status']:
                 try:
                     if self.infos_config['redis_qa'][0]["nome_redis"] != "":
                         self.iniciar_processo_limpar_redis_especifico()
@@ -1585,11 +1696,11 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                     else:
                         self.escrever(f"- A tag de redis_qa parece estar vazia")
                         self.arquivo_redis.write(f"\n{data_hora_atual()} - INFO - A tag de redis_qa parece estar vazia, preencha e recarregue o config novamente ")
-                        self.infos_status = False
+                        self.infos_config['status'] = False
                 except (Exception or pyodbc.DatabaseError) as err:
                     self.escrever(f"- Falha ao tentar ler o arquivo {err}")
                     self.arquivo_redis.write(f"\n{data_hora_atual()} - ERRO - Falha ao tentar ler o arquivo, corrija e tente novamente: {err} ")
-                    self.infos_status = False
+                    self.infos_config['status'] = False
                     self.arquivo_redis.close()
             else:
                 self.escrever(f"- Processo finalizado")
@@ -1598,9 +1709,9 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
 
     def menu_download_backup(self):
         self.arquivo_download = open(f"{self.nomes['diretorio_log']}\\{self.nomes['arquivo_download_backup']}.txt", "a")
-        self.infos_status = True
+        self.infos_config['status'] = True
         while True:
-            if self.infos_status:
+            if self.infos_config['status']:
                 try:
                     if self.infos_config['server_principal'] != "":
                         self.iniciar_processo_download()
@@ -1608,11 +1719,11 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                     else:
                         self.escrever(f"- A tag de server_principal parece estar vazia")
                         self.arquivo_download.write(f"\n{data_hora_atual()} - INFO - A tag de server_principal parece estar vazia, preencha e recarregue o config novamente ")
-                        self.infos_status = False
+                        self.infos_config['status'] = False
                 except (Exception or pyodbc.DatabaseError) as err:
                     self.escrever(f"- Falha ao tentar ler o arquivo {err}")
                     self.arquivo_download.write(f"\n{data_hora_atual()} - ERRO - Falha ao tentar ler o arquivo, corrija e tente novamente: {err} ")
-                    self.infos_status = False
+                    self.infos_config['status'] = False
             else:
                 self.escrever(f"- Processo finalizado")
                 self.arquivo_download.close()
@@ -1791,6 +1902,18 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.estruturar_tela()
         self.tela_replicar_version_muro(app, self.version, self.coluna)
 
+    def trocar_tela_alterar_aparencia(self):
+        peso_linha = 0
+        self.app.rowconfigure(1, weight= 1)
+        self.app.rowconfigure(2, weight= 1)
+        self.app.rowconfigure(3, weight= peso_linha)
+        self.app.rowconfigure(4, weight= peso_linha)
+        self.app.rowconfigure(5, weight= peso_linha)
+        self.app.rowconfigure(6, weight= peso_linha)
+        self.app.rowconfigure(9, weight= 1)
+        self.estruturar_tela()
+        self.tela_alterar_aparencia(self.app, self.version, self.coluna)
+
     def tela_limpar_redis_especifico(self, app, version, coluna):
         titulo = "LIMPAR REDIS ESPECIFICOS"
         app.title("MSS - " + version + " - " + titulo)
@@ -1805,28 +1928,31 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             self.mensagem(f"Não existe arquivos .json na pasta config")
             return
 
-        self.label_lista_redis = tk.Label(
+        self.label_lista_redis = Label(
             text="Redis:",
-            bg=self.infos_background_color_fundo
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
         )
-        self.combobox = ttk.Combobox(
+        self.combobox = Combobox(
             app,
             values=opcoes,
         )
-        self.button_redis_inicio = tk.Button(
+        self.button_redis_inicio = Button(
             app,
             text="Iniciar",
             width=25,
             height=2,
-            bg=self.infos_background_color_botoes,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.menu_redis_especifico()
         )
-        self.button_redis_voltar = tk.Button(
+        self.button_redis_voltar = Button(
             app,
             text="Voltar",
             width=15,
             height=2,
-            bg=self.infos_background_color_botoes_navs,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_ferramentas_redis(app)
         )
         self.limpar_linha(10, 2)
@@ -1843,20 +1969,22 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         titulo = "LIMPAR TODOS OS REDIS"
         app.title("MSS - " + version + " - " + titulo)
 
-        self.button_atualizacao_inicio = tk.Button(
+        self.button_atualizacao_inicio = Button(
             app,
             text="Iniciar",
             width=25,
             height=2,
-            bg=self.infos_background_color_botoes,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.menu_redis_todos()
         )
-        self.button_atualizacao_voltar = tk.Button(
+        self.button_atualizacao_voltar = Button(
             app,
             text="Voltar",
             width=15,
             height=2,
-            bg=self.infos_background_color_botoes_navs,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_ferramentas_redis(app)
         )
         self.limpar_linha(10, 2)
@@ -1869,20 +1997,22 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         titulo = "Restaurar Backup"
         app.title("MSS - " + version + " - " + titulo)
 
-        self.button_restaurar_inicio = tk.Button(
+        self.button_restaurar_inicio = Button(
             app,
             text="Iniciar",
             width=25,
             height=2,
-            bg=self.infos_background_color_botoes,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.menu_restaurar_banco()
         )
-        self.button_restaurar_voltar = tk.Button(
+        self.button_restaurar_voltar = Button(
             app,
             text="Voltar",
             width=15,
             height=2,
-            bg=self.infos_background_color_botoes_navs,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu()
         )
         self.limpar_linha(10, 2)
@@ -1896,20 +2026,22 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         titulo = "Download Backup"
         app.title("MSS - " + version + " - " + titulo)
 
-        self.button_download_inicio = tk.Button(
+        self.button_download_inicio = Button(
             app,
             text="Iniciar",
             width=25,
             height=2,
-            bg=self.infos_background_color_botoes,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.menu_download_backup()
         )
-        self.button_download_voltar = tk.Button(
+        self.button_download_voltar = Button(
             app,
             text="Voltar",
             width=15,
             height=2,
-            bg=self.infos_background_color_botoes_navs,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu()
         )
         self.limpar_linha(10, 2)
@@ -1923,20 +2055,22 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         titulo = "BUSCAR BANCOS"
         app.title("MSS - " + version + " - " + titulo)
 
-        self.button_busca_inicio = tk.Button(
+        self.button_busca_inicio = Button(
             app,
             text="Iniciar",
             width=25,
             height=2,
-            bg=self.infos_background_color_botoes,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.iniciar_processo_manipula_banco()
         )
-        self.button_busca_voltar = tk.Button(
+        self.button_busca_voltar = Button(
             app,
             text="Voltar",
             width=15,
             height=2,
-            bg=self.infos_background_color_botoes_navs,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_ferramentas_bancos(app)
         )
 
@@ -1950,20 +2084,22 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         titulo = "CONSULTAR VERSIONS"
         app.title("MSS - " + version + " - " + titulo)
 
-        self.button_atualizacao_inicio = tk.Button(
+        self.button_atualizacao_inicio = Button(
             app,
             text="Iniciar",
             width=25,
             height=2,
-            bg=self.infos_background_color_botoes,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.iniciar_processo_atualizacao()
         )
-        self.button_atualizacao_voltar = tk.Button(
+        self.button_atualizacao_voltar = Button(
             app,
             text="Voltar",
             width=15,
             height=2,
-            bg=self.infos_background_color_botoes_navs,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_ferramentas_bancos(app)
         )
 
@@ -1976,20 +2112,22 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         titulo = "REPLICAR VERSIONS"
         app.title("MSS - " + version + " - " + titulo)
 
-        self.button_replicar_inicio = tk.Button(
+        self.button_replicar_inicio = Button(
             app,
             text="Iniciar",
             width=25,
             height=2,
-            bg=self.infos_background_color_botoes,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.iniciar_processo_replicar()
         )
-        self.button_replicar_voltar = tk.Button(
+        self.button_replicar_voltar = Button(
             app,
             text="Voltar",
             width=15,
             height=2,
-            bg=self.infos_background_color_botoes_navs,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_ferramentas_bancos(app)
         )
         self.limpar_linha(10, 2)
@@ -2002,44 +2140,40 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         titulo = "FERRAMENTAS BD"
         app.title("MSS - " + version + " - " + titulo)
 
-        self.button_ferramenta_busca_banco = tk.Button(
+        self.button_ferramenta_busca_banco = Button(
             app,
             text="Buscar Bancos",
             width=25,
             height=2,
-            bg=self.infos_background_color_botoes,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_busca_muro(app)
         )
-        self.button_ferramenta_buscar_versions = tk.Button(
+        self.button_ferramenta_buscar_versions = Button(
             app,
             text="Buscar Version's",
             width=25,
             height=2,
-            bg=self.infos_background_color_botoes,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_buscar_versions(app)
         )
-        self.button_ferramenta_replicar_version = tk.Button(
+        self.button_ferramenta_replicar_version = Button(
             app,
             text="Replicar version",
             width=25,
             height=2,
-            bg=self.infos_background_color_botoes,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_replicar_version(app)
         )
-        self.button_ferramenta_config = tk.Button(
-            app,
-            text="Trocar configuração",
-            width=25,
-            height=2,
-            bg=self.infos_background_color_botoes,
-            command=lambda: self.trocar_tela_config(app)
-        )
-        self.button_ferramenta_voltar = tk.Button(
+        self.button_ferramenta_voltar = Button(
             app,
             text="Voltar",
             width=15,
             height=2,
-            bg=self.infos_background_color_botoes_navs,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_ferramentas(app)
         )
         self.limpar_linha(10, 2)
@@ -2047,35 +2181,37 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.button_ferramenta_busca_banco.grid(row=3, column=coluna)
         self.button_ferramenta_buscar_versions.grid(row=4, column=coluna)
         self.button_ferramenta_replicar_version.grid(row=5, column=coluna)
-        self.button_ferramenta_config.grid(row=6, column=coluna)
         self.button_ferramenta_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
 
     def tela_ferramentas_redis(self, app, version, coluna):
         titulo = "FERRAMENTAS REDIS"
         app.title("MSS - " + version + " - " + titulo)
 
-        self.button_ferramenta_busca_banco = tk.Button(
+        self.button_ferramenta_busca_banco = Button(
             app,
             text="Limpar todos os redis",
             width=25,
             height=2,
-            bg=self.infos_background_color_botoes,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_redis_todos(app)
         )
-        self.button_ferramenta_buscar_versions = tk.Button(
+        self.button_ferramenta_buscar_versions = Button(
             app,
             text="Limpar Redis especifico",
             width=25,
             height=2,
-            bg=self.infos_background_color_botoes,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_redis_especifico(app)
         )
-        self.button_ferramenta_voltar = tk.Button(
+        self.button_ferramenta_voltar = Button(
             app,
             text="Voltar",
             width=15,
             height=2,
-            bg=self.infos_background_color_botoes_navs,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_ferramentas(app)
         )
         self.limpar_linha(10, 2)
@@ -2088,28 +2224,31 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         titulo = "FERRAMENTAS"
         app.title("MSS - " + version + " - " + titulo)
 
-        self.button_menu_ferramentas = tk.Button(
+        self.button_menu_ferramentas = Button(
             app,
             text="Ferramentas de Bancos",
             width=25,
             height=2,
-            bg=self.infos_background_color_botoes,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_ferramentas_bancos(app)
         )
-        self.button_menu_ferramentas_redis = tk.Button(
+        self.button_menu_ferramentas_redis = Button(
             app,
             text="Ferramentas Redis",
             width=25,
             height=2,
-            bg=self.infos_background_color_botoes,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_ferramentas_redis(app)
         )
-        self.button_menu_Voltar = tk.Button(
+        self.button_menu_Voltar = Button(
             app,
             text="Voltar",
             width=15,
             height=2,
-            bg=self.infos_background_color_botoes_navs,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu()
         )
         self.limpar_linha(10, 2)
@@ -2122,86 +2261,222 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         titulo = "Menu"
         app.title("MSS - " + version + " - " + titulo)
 
-        self.button_menu_ferramentas = tk.Button(
+        self.button_menu_ferramentas = Button(
             app,
             text="Ferramentas",
             width=25,
             height=2,
-            bg=self.infos_background_color_botoes,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_ferramentas(app)
         )
-        self.button_menu_download = tk.Button(
+        self.button_menu_download = Button(
             app,
             text="Download Backup",
             width=25,
             height=2,
-            bg=self.infos_background_color_botoes,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_download_backup(app)
         )
-        self.button_menu_restaurar = tk.Button(
+        self.button_menu_restaurar = Button(
             app,
             text="Restaurar Backup",
             width=25,
             height=2,
-            bg=self.infos_background_color_botoes,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_restaurar_backup(app)
-        )
-        self.button_menu_config = tk.Button(
-            app,
-            text="Trocar configuração",
-            width=25,
-            height=2,
-            bg=self.infos_background_color_botoes,
-            command=lambda: self.trocar_tela_config(app)
         )
         self.limpar_linha(10, 2)
         self.escrever_titulos(self.app, titulo, 2, coluna)
         self.button_menu_ferramentas.grid(row=3, column=coluna)
         self.button_menu_download.grid(row=4, column=coluna)
         self.button_menu_restaurar.grid(row=5, column=coluna)
-        self.button_menu_config.grid(row=6, column=coluna)
 
     def tela_config(self, app, version, coluna):
         self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Tela - CONFIGURAÇÃO")
         titulo = "CONFIGURAÇÃO"
         app.title("MSS - " + version + " - " + titulo)
 
-        self.button_config_existente = tk.Button(
+        self.button_config_existente = Button(
             app,
             text="Escolher arquivo Config",
             width=25,
             height=2,
-            bg=self.infos_background_color_titulos,
-            command=lambda: self.arquivo_existente(app, coluna)
+            bg=self.infos_config_prog["background_color_titulos"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.insrir_campos_arquivo_existente(app, coluna)
         )
-        self.button_config_novo = tk.Button(
+        self.button_config_novo = Button(
             app,
             text="Novo arquivo Config",
             width=25,
             height=2,
-            bg=self.infos_background_color_titulos,
-            command=lambda: self.arquivo_novo(app, coluna)
+            bg=self.infos_config_prog["background_color_titulos"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.insrir_campos_arquivo_novo(app, coluna)
         )
         self.limpar_linha(10, 2)
         self.escrever_titulos(self.app, titulo, 2, coluna)
         self.button_config_existente.grid(row=3, column=coluna, sticky="WE")
         self.button_config_novo.grid(row=4, column=coluna, sticky="WE")
 
+    def tela_alterar_aparencia(self, app, version, coluna):
+        self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Tela - CONFIGURAÇÃO")
+        titulo = "ALTERAR APARENCIA"
+        app.title("MSS - " + version + " - " + titulo)
+        placeholder_color = "Insira a cor em Hexadecimal"
+        tam_width = 5
+
+        self.label_background_fundo = Label(
+            app,
+            text="Cor do fundo",
+            font=('Arial', 12),
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg = self.infos_config_prog["background_color_fonte"]
+        )
+        self.entry_background_fundo = Entry(
+            self.app,
+            width = 10
+        )
+        self.button_background_fundo = Button(
+            app,
+            text="Cor",
+            width=tam_width,
+            height=1,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.caixa_selecao_de_cor(self.entry_background_fundo)
+        )
+        self.label_background_titulos = Label(
+            app,
+            text="Cor dos titulos",
+            font=('Arial', 12),
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
+        self.entry_background_titulos = Entry(
+            self.app,
+            width = 10
+        )
+        self.button_background_titulos = Button(
+            app,
+            text="Cor",
+            width=tam_width,
+            height=1,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.caixa_selecao_de_cor(self.entry_background_titulos)
+        )
+        self.label_background_botoes = Label(
+            app,
+            text="Cor dos Botões",
+            font=('Arial', 12),
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
+        self.entry_background_botoes = Entry(
+            self.app,
+            width = 10
+        )
+        self.button_background_botoes = Button(
+            app,
+            text="Cor",
+            width=tam_width,
+            height=1,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.caixa_selecao_de_cor(self.entry_background_botoes)
+        )
+        self.label_background_botoes_navs = Label(
+            app,
+            text="Cor dos Botões navs",
+            font=('Arial', 12),
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
+        self.entry_background_botoes_navs = Entry(
+            self.app,
+            width = 10
+        )
+        self.button_background_botoes_navs = Button(
+            app,
+            text="Cor",
+            width=tam_width,
+            height=1,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.caixa_selecao_de_cor(self.entry_background_botoes_navs)
+        )
+        self.label_background_fonte = Label(
+            app,
+            text="Cor das fontes",
+            font=('Arial', 12,),
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg = self.infos_config_prog["background_color_fonte"]
+        )
+        self.entry_background_fonte = Entry(
+            self.app,
+            width = 10
+        )
+        self.button_background_fonte = Button(
+            app,
+            text="Cor",
+            width=tam_width,
+            height=1,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.caixa_selecao_de_cor(self.entry_background_fonte)
+        )
+        self.button_nav_salvar = Button(
+            app,
+            text="Criar",
+            name="button_criar",
+            width=15,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.alterar_background()
+        )
+
+        self.limpar_linha(10, 2)
+        self.escrever_titulos(self.app, titulo, 2, coluna)
+        self.label_background_fundo.grid(row=3, column=coluna, sticky="WN")
+        self.entry_background_fundo.grid(row=3, column=coluna, sticky="EN")
+        self.button_background_fundo.grid(row=3, column=2, sticky="WS")
+        self.label_background_titulos.grid(row=4, column=coluna, sticky="WN")
+        self.entry_background_titulos.grid(row=4, column=coluna, sticky="EN")
+        self.button_background_titulos.grid(row=4, column=2, sticky="WS")
+        self.label_background_botoes.grid(row=5, column=coluna, sticky="WN")
+        self.entry_background_botoes.grid(row=5, column=coluna, sticky="EN")
+        self.button_background_botoes.grid(row=5, column=2, sticky="WS")
+        self.label_background_botoes_navs.grid(row=6, column=coluna, sticky="WN")
+        self.entry_background_botoes_navs.grid(row=6, column=coluna, sticky="EN")
+        self.button_background_botoes_navs.grid(row=6, column=2, sticky="WS")
+        self.label_background_fonte.grid(row=7, column=coluna, sticky="WN")
+        self.entry_background_fonte.grid(row=7, column=coluna, sticky="EN")
+        self.button_background_fonte.grid(row=7, column=2, sticky="WS")
+        self.button_nav_salvar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
+
+
     def botoes_navs(self, app):
-        self.button_menu_sair = tk.Button(
+        self.button_menu_sair = Button(
             app,
             text="Sair",
             width=15,
             height=2,
-            bg=self.infos_background_color_botoes_navs,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.finalizar()
         )
-        self.button_menu_generico = tk.Button(
+        self.button_menu_generico = Button(
             app,
             text="",
             width=15,
             height=2,
-            bg=self.infos_background_color_botoes_navs,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.finalizar()
         )
         self.button_menu_generico.config(state='disabled')
@@ -2209,14 +2484,15 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.button_menu_generico.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
 
     def estruturar_tela(self):
-        self.app.configure(bg=self.infos_background_color_fundo)
+        self.app.configure(bg=self.infos_config_prog["background_color_fundo"])
         self.app.rowconfigure(0, weight= 0)
         self.app.rowconfigure(10, weight= 0)
         self.remover_widget(self.app, '*', '*')
+        self.menu_cascata()
         self.texto_config_selecionado(self.app)
         self.botoes_navs(self.app)
 
-    def trocar_tela_config(self, app):
+    def trocar_tela_config(self):
         peso_linha = 0
         self.app.rowconfigure(1, weight= 1)
         self.app.rowconfigure(2, weight= 1)
@@ -2224,12 +2500,12 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.app.rowconfigure(4, weight= peso_linha)
         self.app.rowconfigure(9, weight= 1)
         self.estruturar_tela()
-        self.tela_config(app, self.version, self.coluna)
+        self.tela_config(self.app, self.version, self.coluna)
 
     def tela(self):
         self.app.geometry(f"{self.largura}x{self.altura}+{self.metade_wid}+{self.metade_hei}")
         self.status_thread = False
-        menu = tk.Menu(self.app)
+        menu = Menu(self.app)
         self.app.config(menu=menu)
 
         self.peso_linha_zero = 1
@@ -2246,11 +2522,9 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         return self.app
 
     def main(self):
-        self.app = tk.Tk()
+        self.app = Tk()
         self.largura = 450
         self.altura = 450
-        self.color_default = "#F0F0F0"
-        self.color_default_navs = "#ADADAD"
         pos_wid = self.app.winfo_screenwidth()
         pos_hei = self.app.winfo_screenheight()
         self.metade_wid = int((pos_wid / 2) - (self.largura / 2))
@@ -2263,34 +2537,31 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
 
         # Data/hora inicio do programa
         self.arquivo_principal.write(f"{pula_linha}{data_hora_atual()} - INFO - Programa iniciado")
-
-        # Validar atualização do programa
-        self.atualizador()
-
-        # Versão atual do programa
-        self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Versão:  {self.version}")
-
         self.app = self.tela()
         self.app.protocol("WM_DELETE_WINDOW", self.finalizar)
+        self.validar_atual_config()
+        self.atualizador()
 
         try:
             if os.path.isfile(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}"):
                 self.ler_arquivo_config()
-                if self.infos_config_default != "":
-                    self.infos_escolha_manual = False
+                if self.infos_config_prog['config_default'] != "":
+                    self.infos_config_prog['escolha_manual'] = False
                     self.escolher_config_existente()
                 else:
-                    self.trocar_tela_config(self.app)
+                    self.trocar_tela_config()
 
             else:
-                self.criar_arquivo_config()
-                self.trocar_tela_config(self.app)
+                self.criar_arquivo_config_prog()
+                self.ler_arquivo_config()
+                self.trocar_tela_config()
 
         except Exception as error:
             self.mensagem(f"Erro ao acessar arquivo de configuração default")
-            self.trocar_tela_config(self.app)
+            self.trocar_tela_config()
 
-
+        # Versão atual do programa
+        self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Versão:  {self.version}")
         self.app.mainloop()
 
 
