@@ -15,6 +15,8 @@ from tkinter import *
 import threading
 import redis
 import configparser
+import random
+import math
 
 def comparar_tags(tag1, tag2):
     # Função para comparar duas tags no formato 'x.y.z' e retornar 1 se a primeira for maior, -1 se for menor e 0 se forem iguais
@@ -130,7 +132,7 @@ def validar_diretorio(nomes, mensagem):
             f"\n{data_hora_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_config']}: {error} ")
 
 class Aplicativo:
-    version = "3.0.0"
+    version = "3.1.0"
     coluna = 1
     widget = []
     nomes = dict()
@@ -476,6 +478,11 @@ background_color_fonte = {self.color_default_fonte}""")
         #scrollbar = Scrollbar(self.app, background="red")
         #scrollbar.grid(row=linha, column=coluna, sticky="NSE", padx=0)
         #scrollbar.config(command=self.widtexto.yview)
+        self.widtexto.config(state="disabled")
+
+    def limpar_caixa_texto(self):
+        self.widtexto.config(state="normal")
+        self.widtexto.delete(1.0, 'end')
         self.widtexto.config(state="disabled")
 
     def escrever(self, texto):
@@ -1639,6 +1646,298 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.button_menu_sair.config(state='active')
         self.arquivo_redis.close()
 
+    def gerador_nif(self, linhas):
+        self.combobox.config(state='disabled')
+        self.entry.config(state='disabled')
+        self.button_gerador_inicio.config(state='disabled')
+        self.button_gerador_voltar.config(state='disabled')
+        self.button_menu_sair.config(state='disabled')
+        self.button_gerador_limpar.config(state='disabled')
+        contador = int(linhas)
+
+        while contador:
+            soma = 0
+            string_soma = ''
+            soma_digitos = 0
+            lista = []
+            etapa1_cpf = 0
+            etapa2_cpf = 0
+            etapa3_cpf = 0
+            etapa4_cpf = 0
+            etapa5_cpf = 0
+            etapa6_cpf = 0
+            n1 = 2
+            n2 = random.randrange(0, 9, 1)
+            n3 = random.randrange(0, 9, 1)
+            n4 = random.randrange(0, 9, 1)
+            n5 = random.randrange(0, 9, 1)
+            n6 = random.randrange(0, 9, 1)
+            n7 = random.randrange(0, 9, 1)
+            n8 = random.randrange(0, 9, 1)
+
+            print(f"{n1} {n2} {n3} {n4} {n5} {n6} {n7} {n8}")
+            soma1 = (n1 * 9) + (n2 * 8) + (n3 * 7) + (n4 * 6) + (n5 * 5) + (n6 * 4) + (n7 * 3) + (n8 * 2)
+            etapa1_nif = math.floor(soma1/11)
+            etapa2_nif = soma1 - etapa1_nif * 11
+            if etapa2_nif == 1 or etapa2_nif == 0:
+                dig1_nif = 0
+            else:
+                dig1_nif = 11 - etapa2_nif
+
+            nif_gerado = str(n1) + str(n2) + str(n3) + str(n4) + str(n5) + str(n6) + str(n7) + str(n8) + str(dig1_nif)
+            lista.append(nif_gerado)
+            contador -= 1
+            self.escrever(lista[0])
+        self.combobox.config(state='active')
+        self.entry.config(state='normal')
+        self.button_gerador_inicio.config(state='active')
+        self.button_gerador_voltar.config(state='active')
+        self.button_menu_sair.config(state='active')
+        self.button_gerador_limpar.config(state='active')
+        self.escrever(f"- Processo finalizado com sucesso")
+
+    def gerador_cnpj(self, linhas):
+        self.combobox.config(state='disabled')
+        self.entry.config(state='disabled')
+        self.button_gerador_inicio.config(state='disabled')
+        self.button_gerador_voltar.config(state='disabled')
+        self.button_menu_sair.config(state='disabled')
+        self.button_gerador_limpar.config(state='disabled')
+        contador = int(linhas)
+
+        while contador:
+            soma = 0
+            string_soma = ''
+            soma_digitos = 0
+            lista = []
+            etapa1_cpf = 0
+            etapa2_cpf = 0
+            etapa3_cpf = 0
+            etapa4_cpf = 0
+            etapa5_cpf = 0
+            etapa6_cpf = 0
+            n1 = random.randrange(0, 9, 1)
+            n2 = random.randrange(0, 9, 1)
+            n3 = random.randrange(0, 9, 1)
+            n4 = random.randrange(0, 9, 1)
+            n5 = random.randrange(0, 9, 1)
+            n6 = random.randrange(0, 9, 1)
+            n7 = random.randrange(0, 9, 1)
+            n8 = random.randrange(0, 9, 1)
+            n9 = 0
+            n10 = 0
+            n11 = 0
+            n12 = random.randrange(0, 9, 1)
+
+            print(f"{n1} {n2} {n3} {n4} {n5} {n6} {n7} {n8} {n9} {n10} {n11} {n12}")
+            soma1 = (n1 * 5) + (n2 * 4) + (n3 * 3) + (n4 * 2) + (n5 * 9) + (n6 * 8) + (n7 * 7) + (n8 * 6) + (n9 * 5) + (n10 * 4) + (n11 * 3) + (n12 * 2)
+            etapa1_cnpj = math.floor(soma1/11)
+            etapa2_cnpj = math.floor(etapa1_cnpj * 11)
+            etapa3_cnpj = math.floor(soma1 - etapa2_cnpj)
+            dig1_cnpj = 0 if 11 - etapa3_cnpj > 9 else 11 - etapa3_cnpj
+
+            soma2 = (n1 * 6) + (n2 * 5) + (n3 * 4) + (n4 * 3) + (n5 * 2) + (n6 * 9) + (n7 * 8) + (n8 * 7) + (n9 * 6) + (n10 * 5) + (n11 * 4) + (n12 * 3) + (dig1_cnpj * 2)
+            etapa4_cnpj = math.floor(soma2/11)
+            etapa5_cnpj = math.floor(etapa4_cnpj*11)
+            etapa6_cnpj = math.floor(soma2 - etapa5_cnpj)
+            dig2_cnpj = 0 if 11 - etapa6_cnpj > 9 else 11 - etapa6_cnpj
+
+            cnpj_gerado = str(n1) + str(n2) + str(n3) + str(n4) + str(n5) + str(n6) + str(n7) + str(n8) + str(n9) + str(n10) + str(n11) + str(n12) + str(dig1_cnpj) + str(dig2_cnpj)
+            lista.append(cnpj_gerado)
+            contador -= 1
+            self.escrever(lista[0])
+        self.combobox.config(state='active')
+        self.entry.config(state='normal')
+        self.button_gerador_inicio.config(state='active')
+        self.button_gerador_voltar.config(state='active')
+        self.button_menu_sair.config(state='active')
+        self.button_gerador_limpar.config(state='active')
+        self.escrever(f"- Processo finalizado com sucesso")
+
+    def gerador_cpf(self, linhas):
+        self.combobox.config(state='disabled')
+        self.entry.config(state='disabled')
+        self.button_gerador_inicio.config(state='disabled')
+        self.button_gerador_voltar.config(state='disabled')
+        self.button_menu_sair.config(state='disabled')
+        self.button_gerador_limpar.config(state='disabled')
+        contador = int(linhas)
+
+        while contador:
+            soma = 0
+            string_soma = ''
+            soma_digitos = 0
+            lista = []
+            etapa1_cpf = 0
+            etapa2_cpf = 0
+            etapa3_cpf = 0
+            etapa4_cpf = 0
+            etapa5_cpf = 0
+            etapa6_cpf = 0
+            n1 = random.randrange(0, 9, 1)
+            n2 = random.randrange(0, 9, 1)
+            n3 = random.randrange(0, 9, 1)
+            n4 = random.randrange(0, 9, 1)
+            n5 = random.randrange(0, 9, 1)
+            n6 = random.randrange(0, 9, 1)
+            n7 = random.randrange(0, 9, 1)
+            n8 = random.randrange(0, 9, 1)
+            n9 = random.randrange(0, 9, 1)
+
+            print(f"{n1} {n2} {n3} {n4} {n5} {n6} {n7} {n8} {n9}")
+            soma1 = (n1 * 10) + (n2 * 9) + (n3 * 8) + (n4 * 7) + (n5 * 6) + (n6 * 5) + (n7 * 4) + (n8 * 3) + (n9 * 2)
+            etapa1_cpf = math.floor(soma1/11)
+            etapa2_cpf = math.floor(etapa1_cpf*11)
+            etapa3_cpf = math.floor(soma1 - etapa2_cpf)
+            dig1_cpf = 0 if 11 - etapa3_cpf > 9 else 11 - etapa3_cpf
+
+            soma2 = (n1 * 11) + (n2 * 10) + (n3 * 9) + (n4 * 8) + (n5 * 7) + (n6 * 6) + (n7 * 5) + (n8 * 4) + (n9 * 3) + (dig1_cpf * 2)
+            etapa4_cpf = math.floor(soma2/11)
+            etapa5_cpf = math.floor(etapa4_cpf*11)
+            etapa6_cpf = math.floor(soma2 - etapa5_cpf)
+            dig2_cpf = 0 if 11 - etapa6_cpf > 9 else 11 - etapa6_cpf
+
+            cpf_gerado = str(n1) + str(n2) + str(n3) + str(n4) + str(n5) + str(n6) + str(n7) + str(n8) + str(n9) + str(dig1_cpf) + str(dig2_cpf)
+            lista.append(cpf_gerado)
+            contador -= 1
+            self.escrever(lista[0])
+        self.combobox.config(state='active')
+        self.entry.config(state='normal')
+        self.button_gerador_inicio.config(state='active')
+        self.button_gerador_voltar.config(state='active')
+        self.button_menu_sair.config(state='active')
+        self.button_gerador_limpar.config(state='active')
+        self.escrever(f"- Processo finalizado com sucesso")
+
+    def gerador_cei(self, linhas):
+        self.combobox.config(state='disabled')
+        self.entry.config(state='disabled')
+        self.button_gerador_inicio.config(state='disabled')
+        self.button_gerador_voltar.config(state='disabled')
+        self.button_menu_sair.config(state='disabled')
+        self.button_gerador_limpar.config(state='disabled')
+        contador = int(linhas)
+
+        while contador:
+            lista = []
+            n1 = random.randrange(0, 9, 1)
+            n2 = random.randrange(0, 9, 1)
+            n3 = random.randrange(0, 9, 1)
+            n4 = random.randrange(0, 9, 1)
+            n5 = random.randrange(0, 9, 1)
+            n6 = random.randrange(0, 9, 1)
+            n7 = random.randrange(0, 9, 1)
+            n8 = random.randrange(0, 9, 1)
+            n9 = random.randrange(0, 9, 1)
+            n10 = random.randrange(0, 9, 1)
+            n11 = 8
+            print(f"{n1}{n2}{n3}{n4}{n5}{n6}{n7}{n8}{n9}{n10}{n11}")
+            soma = (n1 * 7) + (n2 * 4) + (n3 * 1) + (n4 * 8) + (n5 * 5) + (n6 * 2) + (n7 * 1) + (n8 * 6) + (n9 * 3) + (n10 * 7) + (n11 * 4)
+            string_soma = str(soma)
+            soma_digitos = int(string_soma[len(string_soma) - 1]) + int(string_soma[len(string_soma) - 2])
+            etapa1 = math.floor(soma_digitos / 10)
+            if etapa1 == 1:
+                etapa1 = 0
+            etapa2 = (soma_digitos % 10)
+            etapa3 = etapa2 + etapa1
+            etapa4 = (etapa3 % 10)
+            etapa5 = math.floor(10 - (etapa4 % 10))
+            if etapa5 == 10:
+                etapa6 = 0
+            else:
+                etapa6 = etapa5
+            cei_gerado = str(n1) + str(n2) + str(n3) + str(n4) + str(n5) + str(n6) + str(n7) + str(n8) + str(n9) + str(n10) + str(n11) + str(etapa6)
+            lista.append(cei_gerado)
+            contador -= 1
+            self.escrever(lista[0])
+        self.combobox.config(state='active')
+        self.entry.config(state='normal')
+        self.button_gerador_inicio.config(state='active')
+        self.button_gerador_voltar.config(state='active')
+        self.button_menu_sair.config(state='active')
+        self.button_gerador_limpar.config(state='active')
+        self.escrever(f"- Processo finalizado com sucesso")
+
+    def gerador_pis(self, linhas):
+        self.combobox.config(state='disabled')
+        self.entry.config(state='disabled')
+        self.button_gerador_inicio.config(state='disabled')
+        self.button_gerador_voltar.config(state='disabled')
+        self.button_menu_sair.config(state='disabled')
+        self.button_gerador_limpar.config(state='disabled')
+        quant = 0
+        fase2 = []
+        divisor = 11
+        contador = int(linhas)
+
+        while contador:
+            basepis = []
+            lista = []
+            pos_alga = 0
+            algarismopis = [3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+            pis_gerado = ''
+            fase2 = []
+
+            numaleatorio = random.randrange(1000000000, 1999999999, 12345)
+            for num_alg in str(numaleatorio):
+                basepis.append(num_alg)
+            # Fase 2 - multiplicação
+            for pos in basepis:
+                fase2.append(int(pos) * int(algarismopis[pos_alga]))
+                pos_alga += 1
+
+            # Fase 3 - Soma
+            fase3 = sum(fase2)
+            # Fase 5 - Divisão
+            fase5 = fase3 / divisor
+            # Fase 6 - Resto da Divisão
+            fase6 = fase3 % divisor
+            # Fase 7 - Validador
+            if (divisor - fase6 == 10):
+                fase7 = 0
+            elif(divisor - fase6 == 11):
+                fase7 = 0
+            else:
+                fase7 = divisor - fase6
+            # Fase 8 - montando o pis
+            for pos in basepis:
+                pis_gerado = str(pis_gerado) + str(pos)
+            pis_gerado = str(pis_gerado) + str(fase7)
+            # Guardando os Pis gerados em um Array
+            lista.append(pis_gerado)
+            contador -= 1
+            self.escrever(lista[0])
+        self.combobox.config(state='active')
+        self.entry.config(state='normal')
+        self.button_gerador_inicio.config(state='active')
+        self.button_gerador_voltar.config(state='active')
+        self.button_menu_sair.config(state='active')
+        self.button_gerador_limpar.config(state='active')
+        self.escrever(f"- Processo finalizado com sucesso")
+
+    def menu_gerador_documentos(self):
+        selecao_combobox = self.combobox.get()
+        quant_insirada = self.entry.get()
+        if quant_insirada != self.placeholder_text and quant_insirada != "":
+            match selecao_combobox:
+                case "PIS":
+                    self.iniciar_processo_gerar_pis(quant_insirada)
+                case "CPF":
+                    self.iniciar_processo_gerar_cpf(quant_insirada)
+                case "CNPJ":
+                    self.iniciar_processo_gerar_cnpj(quant_insirada)
+                case "CEI":
+                    self.iniciar_processo_gerar_cei(quant_insirada)
+                case "NIF":
+                    self.iniciar_processo_gerar_nif(quant_insirada)
+                case _:
+                    self.escrever(f"- Função não implementada")
+
+
+        else:
+            self.escrever(f"- Insira a quantidade de registros para serem gerados")
+            return
+
     def menu_restaurar_banco(self):
         self.arquivo_restauracao = open(f"{self.nomes['diretorio_log']}\\{self.nomes['arquivo_restaurar_banco']}.txt", "a")
         self.infos_config['status'] = True
@@ -1729,6 +2028,51 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                 self.arquivo_download.close()
                 break
 
+    def iniciar_processo_gerar_nif(self, linhas):
+        self.escrever(f"- Processo iniciado - Gerador de NIF")
+        # Criar uma nova thread para executar o processo demorado
+        try:
+            self.thread = threading.Thread(target=self.gerador_nif, args=[linhas])
+            self.thread.start()
+        except threading.excepthook as error:
+            self.escrever(f"- Processo finalizado com falha \n {error}")
+
+    def iniciar_processo_gerar_cnpj(self, linhas):
+        self.escrever(f"- Processo iniciado - Gerador de CNPJ")
+        # Criar uma nova thread para executar o processo demorado
+        try:
+            self.thread = threading.Thread(target=self.gerador_cnpj, args=[linhas])
+            self.thread.start()
+        except threading.excepthook as error:
+            self.escrever(f"- Processo finalizado com falha \n {error}")
+
+    def iniciar_processo_gerar_cpf(self, linhas):
+        self.escrever(f"- Processo iniciado - Gerador de CPF")
+        # Criar uma nova thread para executar o processo demorado
+        try:
+            self.thread = threading.Thread(target=self.gerador_cpf, args=[linhas])
+            self.thread.start()
+        except threading.excepthook as error:
+            self.escrever(f"- Processo finalizado com falha \n {error}")
+
+    def iniciar_processo_gerar_cei(self, linhas):
+        self.escrever(f"- Processo iniciado - Gerador de CEI")
+        # Criar uma nova thread para executar o processo demorado
+        try:
+            self.thread = threading.Thread(target=self.gerador_cei, args=[linhas])
+            self.thread.start()
+        except threading.excepthook as error:
+            self.escrever(f"- Processo finalizado com falha \n {error}")
+
+    def iniciar_processo_gerar_pis(self, linhas):
+        self.escrever(f"- Processo iniciado - Gerador de PIS")
+        # Criar uma nova thread para executar o processo demorado
+        try:
+            self.thread = threading.Thread(target=self.gerador_pis, args=[linhas])
+            self.thread.start()
+        except threading.excepthook as error:
+            self.escrever(f"- Processo finalizado com falha \n {error}")
+
     def iniciar_processo_limpar_redis_especifico(self):
         self.escrever(f"- Processo iniciado")
         # Criar uma nova thread para executar o processo demorado
@@ -1792,6 +2136,20 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         except threading.excepthook as error:
             self.escrever(f"Processo finalizado com falha \n {error}")
 
+    def trocar_tela_geradores(self, app):
+        peso_linha = 0
+        self.app.rowconfigure(1, weight= 1)
+        self.app.rowconfigure(2, weight= peso_linha)
+        self.app.rowconfigure(3, weight= peso_linha)
+        self.app.rowconfigure(4, weight= peso_linha)
+        self.app.rowconfigure(5, weight= peso_linha)
+        self.app.rowconfigure(6, weight= peso_linha)
+        self.app.rowconfigure(7, weight= peso_linha)
+        self.app.rowconfigure(8, weight=peso_linha)
+        self.app.rowconfigure(9, weight= 1)
+        self.estruturar_tela()
+        self.tela_geradores(app, self.version, self.coluna)
+
     def trocar_tela_redis_especifico(self, app):
         peso_linha = 0
         self.app.rowconfigure(1, weight= 1)
@@ -1812,15 +2170,16 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.estruturar_tela()
         self.tela_limpar_redis_todos(app, self.version, self.coluna)
 
-    def trocar_tela_ferramentas(self, app):
+    def trocar_tela_ferramentas(self):
         peso_linha = 0
         self.app.rowconfigure(1, weight= 1)
         self.app.rowconfigure(2, weight= 1)
         self.app.rowconfigure(3, weight= peso_linha)
         self.app.rowconfigure(4, weight= peso_linha)
+        self.app.rowconfigure(5, weight=peso_linha)
         self.app.rowconfigure(9, weight= 1)
         self.estruturar_tela()
-        self.tela_ferramentas(app, self.version, self.coluna)
+        self.tela_ferramentas(self.app, self.version, self.coluna)
 
     def trocar_tela_ferramentas_bancos(self, app):
         peso_linha = 0
@@ -2174,7 +2533,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas(app)
+            command=lambda: self.trocar_tela_ferramentas()
         )
         self.limpar_linha(10, 2)
         self.escrever_titulos(self.app, titulo, 2, coluna)
@@ -2212,7 +2571,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas(app)
+            command=lambda: self.trocar_tela_ferramentas()
         )
         self.limpar_linha(10, 2)
         self.escrever_titulos(self.app, titulo, 2, coluna)
@@ -2242,6 +2601,15 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_ferramentas_redis(app)
         )
+        self.button_menu_ferramentas_geradores = Button(
+            app,
+            text="Gerador de documentos",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_geradores(app)
+        )
         self.button_menu_Voltar = Button(
             app,
             text="Voltar",
@@ -2255,7 +2623,54 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.escrever_titulos(self.app, titulo, 2, coluna)
         self.button_menu_ferramentas.grid(row=3, column=coluna)
         self.button_menu_ferramentas_redis.grid(row=4, column=coluna)
+        self.button_menu_ferramentas_geradores.grid(row=5, column=coluna)
         self.button_menu_Voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
+
+    def tela_geradores(self, app, version, coluna):
+        titulo = "Geradores"
+        app.title("MSS - " + version + " - " + titulo)
+        opcoes = ["PIS", "CEI", "CPF", "CNPJ", "NIF",]
+
+        self.combobox = Combobox(
+            app,
+            values=opcoes,
+        )
+        self.button_gerador_inicio = Button(
+            app,
+            text="Iniciar",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.menu_gerador_documentos()
+        )
+        self.button_gerador_limpar = Button(
+            app,
+            text="Limpar",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.limpar_caixa_texto()
+        )
+        self.button_gerador_voltar = Button(
+            app,
+            text="Voltar",
+            width=15,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_ferramentas()
+        )
+        self.limpar_linha(10, 2)
+        self.combobox.set(opcoes[0])
+        self.escrever_titulos(self.app, titulo, 2, coluna)
+        self.combobox.grid(row=3, column=coluna, pady =(0, 10), sticky="SWE")
+        self.input_placeholder(4, 5, coluna, " Insira a quantidade de números que serão gerados", "Quantidade:")
+        self.caixa_texto(6, 7, coluna, "Saida:")
+        self.button_gerador_inicio.grid(row=8, column=coluna, pady=(10, 0), sticky="E")
+        self.button_gerador_limpar.grid(row=8, column=coluna, pady=(10, 0), sticky="W")
+        self.button_gerador_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
 
     def tela_menu(self, app, version, coluna):
         titulo = "Menu"
@@ -2268,7 +2683,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             height=2,
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas(app)
+            command=lambda: self.trocar_tela_ferramentas()
         )
         self.button_menu_download = Button(
             app,
@@ -2459,7 +2874,6 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.button_background_fonte.grid(row=7, column=2, sticky="WS")
         self.button_nav_salvar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
 
-
     def botoes_navs(self, app):
         self.button_menu_sair = Button(
             app,
@@ -2524,7 +2938,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
     def main(self):
         self.app = Tk()
         self.largura = 450
-        self.altura = 450
+        self.altura = 465
         pos_wid = self.app.winfo_screenwidth()
         pos_hei = self.app.winfo_screenheight()
         self.metade_wid = int((pos_wid / 2) - (self.largura / 2))
