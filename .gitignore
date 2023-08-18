@@ -9,5 +9,4 @@
 BuscaMuro.spec
 dist/BuscaMuro.exe
 dist/Log/base_muro.txt
-__pycache__/
 /dist/Config/prog.conf
