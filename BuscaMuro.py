@@ -702,9 +702,9 @@ background_color_fonte = {self.color_default_fonte}""")
                     for i in range(len(lista_connection_string)):
                         guarda_string_cs.append(lista_connection_string[i].CONNECTION_STRING)
                         string_separada = guarda_string_cs[i].split(";")
-                        nome_banco = string_separada[1]
-                        tam_nome_banco = len(nome_banco)
-                        lista_nome_banco.append((nome_banco[16:tam_nome_banco]).strip())
+                        catalog = string_separada[1]
+                        nome_banco = catalog.split("=")[1]
+                        lista_nome_banco.append(nome_banco)
                         continue
 
                     # separar o id do banco nas connection strings
@@ -715,12 +715,9 @@ background_color_fonte = {self.color_default_fonte}""")
 
                     # separar o nome do banco nas instancias
                     for ins in range(len(lista_string_instancia)):
-                        guarda_banco_instancia.append(str(lista_string_instancia[ins]))
+                        guarda_banco_instancia.append(str(lista_string_instancia[ins]).split("'")[1])
                         nome_banco_instancia = guarda_banco_instancia[ins]
-                        tam_nome_banco_instancia = len(nome_banco_instancia)
-                        tam_nome_banco_instancia -= 4
-                        separa_string.append(nome_banco_instancia[2:tam_nome_banco_instancia])
-                        lista_banco_instancia.append((separa_string[ins]).strip())
+                        lista_banco_instancia.append(nome_banco_instancia)
                         continue
 
                     # Comparar bancos "strings"
