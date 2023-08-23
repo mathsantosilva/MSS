@@ -132,7 +132,7 @@ def validar_diretorio(nomes, mensagem):
             f"\n{data_hora_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_config']}: {error} ")
 
 class Aplicativo:
-    version = "3.1.1"
+    version = "3.1.2"
     coluna = 1
     widget = []
     nomes = dict()
@@ -222,15 +222,14 @@ class Aplicativo:
                     self.finalizar()
                 else:
                     return
-            else:
-                try:
-                    if os.path.exists("C:/MSS_temp"):
-                        shutil.rmtree("C:/MSS_temp")
-                    else:
-                        return
-                except Exception as error:
-                    self.mensagem(f"Erro ao criar/validar a pasta {self.nomes['diretorio_log']}: {error} ")
         else:
+            try:
+                if os.path.exists("C:/MSS_temp"):
+                    shutil.rmtree("C:/MSS_temp")
+                else:
+                    return
+            except Exception as error:
+                self.mensagem(f"Erro ao criar/validar a pasta {self.nomes['diretorio_log']}: {error} ")
             return
 
     def menu_cascata(self):
