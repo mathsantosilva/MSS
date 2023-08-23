@@ -132,7 +132,7 @@ def validar_diretorio(nomes, mensagem):
             f"\n{data_hora_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_config']}: {error} ")
 
 class Aplicativo:
-    version = "3.1.0"
+    version = "3.1.1"
     coluna = 1
     widget = []
     nomes = dict()
