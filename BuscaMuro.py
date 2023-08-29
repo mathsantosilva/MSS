@@ -18,8 +18,10 @@ import configparser
 import random
 import math
 
+
 def comparar_tags(tag1, tag2):
-    # Função para comparar duas tags no formato 'x.y.z' e retornar 1 se a primeira for maior, -1 se for menor e 0 se forem iguais
+    # Função para comparar duas tags no formato 'x.y.z'
+    # retornar 1 se a primeira for maior, -1 se for menor e 0 se forem iguais
     version_regex = r"(\d+)\.(\d+)\.(\d+)"
     match1 = re.match(version_regex, tag1)
     match2 = re.match(version_regex, tag2)
@@ -35,7 +37,8 @@ def comparar_tags(tag1, tag2):
 
     return 0
 
-def pesquisar_maior_tag(username, repository, tag_atual, mensagem):
+
+def pesquisar_maior_tag(username, repository, tag_atual, popup_mensagem):
     github = Github()
     tags = []
     try:
@@ -44,7 +47,7 @@ def pesquisar_maior_tag(username, repository, tag_atual, mensagem):
         for tag_in in tags_on:
             tags.append(tag_in.name)
     except Exception as error:
-        mensagem(f"Erro ao consultar tags para atualização: {error} ")
+        popup_mensagem(f"Erro ao consultar tags para atualização: {error} ")
     else:
         maior_tag = None
         try:
@@ -54,16 +57,17 @@ def pesquisar_maior_tag(username, repository, tag_atual, mensagem):
                         maior_tag = tag
                         break
         except Exception as error:
-            mensagem(f"Erro ao consultar tags para atualização: {error} ")
+            popup_mensagem(f"Erro ao consultar tags para atualização: {error} ")
 
         return maior_tag
 
-def realizar_download(maior_tag, mensagem):
+
+def realizar_download(maior_tag, popup_mensagem):
     try:
         caminho = f"https://github.com/mathsantosilva/MSS/releases/download/{maior_tag}/BuscaMuro.exe"
         response = requests.get(caminho)
     except Exception as error:
-        mensagem(f"Erro ao consultar tags para atualização: {error} ")
+        popup_mensagem(f"Erro ao consultar tags para atualização: {error} ")
     else:
         try:
             if os.path.exists("C:/MSS_temp"):
@@ -71,17 +75,18 @@ def realizar_download(maior_tag, mensagem):
             else:
                 os.makedirs("C:/MSS_temp")
         except Exception as error:
-            prog.mensagem(f"Erro ao criar/validar a pasta C:/MSS_temp: {error} ")
+            popup_mensagem(f"Erro ao criar/validar a pasta C:/MSS_temp: {error} ")
         with open("C:/MSS_temp/BuscaMuro.exe", "wb") as arquivo:
             arquivo.write(response.content)
             arquivo.close()
+
 
 def executar_comando_batch(dir_atual):
     comando = f"""@echo off
 chcp 65001
 cls
 echo Aguarde enquanto a atualização esta em andamento
-xcopy "C:\MSS_temp\BuscaMuro.exe" "{dir_atual}\BuscaMuro.exe" /w/E/Y/H
+xcopy "C:\\MSS_temp\\BuscaMuro.exe" "{dir_atual}\\BuscaMuro.exe" /w/E/Y/H
 echo.
 echo Atualização realizada com sucesso 
 echo.
@@ -93,46 +98,54 @@ exit
     arquivo.close()
     subprocess.Popen(['start', 'cmd', '/k', 'C:/MSS_temp/script_temp.bat'], shell=True, text=True)
 
+
 def fechar_janela(msg):
     msg.destroy()
+
 
 def data_hora_atual():
     data_hora = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     return data_hora
 
+
 def data_atual():
     data_hora = datetime.datetime.now().strftime("%d-%m-%Y")
     return data_hora
+
 
 def validar_linha(nome):
     with open(f"Log\\{nome}.txt", "r") as arquivo_insp:
         conteudo = arquivo_insp.read()
         linhas = conteudo.count("\n") + 1
-    if linhas == 1:
+        caracteres = conteudo.count("")
+    if linhas == 1 and caracteres == 1:
         pula_linha = ""
     else:
         pula_linha = "\n"
 
     return pula_linha
 
-def validar_diretorio(nomes, mensagem):
+
+def validar_diretorio(nomes, popup_mensagem):
     # Criar diretorio log
     try:
         if not os.path.exists(nomes['diretorio_log']):
             os.makedirs(nomes['diretorio_log'])
     except Exception as error:
-        mensagem(f"\n{data_hora_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_log']}: {error} ")
+        popup_mensagem(
+            f"\n{data_hora_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_log']}: {error} ")
 
     # Criar diretorio config
     try:
         if not os.path.exists(nomes['diretorio_config']):
             os.makedirs(nomes['diretorio_config'])
     except Exception as error:
-        mensagem(
+        popup_mensagem(
             f"\n{data_hora_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_config']}: {error} ")
 
+
 class Aplicativo:
-    version = "3.1.0"
+    version = "3.1.2"
     coluna = 1
     widget = []
     nomes = dict()
@@ -155,21 +168,22 @@ class Aplicativo:
         self.color_default_fonte = "#000000"
         self.infos_config_prog = dict()
         self.infos_config = dict()
+        self.arquivo_log = None
+        self.config_selecionado = None
+        self.arquivo_config = None
         self.placeholder_text = None
+        self.label_config_selecionado = None
         self.label = None
         self.entry = None
         self.label_restaurar_backup = None
         self.nome_campo_caixa = None
         self.widtexto = None
-        self.arquivo_validar = None
         self.arquivo = None
-        self.arquivo_replicar = None
         self.label_lista_arquivos = None
         self.combobox = None
         self.button_nav_escolher = None
         self.button_nav_criar = None
         self.thread = None
-        self.arquivo_restauracao = None
         self.arquivo_download = None
         self.button_restaurar_inicio = None
         self.button_restaurar_voltar = None
@@ -197,24 +211,33 @@ class Aplicativo:
         self.button_config_sair = None
         self.app = None
         self.status_thread = None
-        self.arquivo_principal = None
         self.app = None
         self.main()
 
     def finalizar(self):
-        self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Programa finalizado")
-        self.arquivo_principal.close()
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Programa finalizado")
         sys.exit(200)
+
+    def escrever_arquivo_log(self, nome_arquivo, texto):
+        self.arquivo_log = open(f"{self.nomes['diretorio_log']}\\{nome_arquivo}.txt", "a")
+        pula_linha = validar_linha(nome_arquivo)
+        self.arquivo_log.write(f"{pula_linha}{data_hora_atual()} - {texto}")
+        self.arquivo_log.close()
+
+    def escrever_arquivo_config(self, nome_arquivo, texto):
+        self.arquivo_config = open(f"{self.nomes['diretorio_config']}\\{nome_arquivo}.json", "a")
+        self.arquivo_config.write(texto)
+        self.arquivo_config.close()
 
     def atualizador(self):
         if self.infos_config_prog['atualizar']:
             username = "mathsantosilva"
             repository = "MSS"
             tag_atual = self.version
-            maior_tag = pesquisar_maior_tag(username, repository, tag_atual, self.mensagem)
+            maior_tag = pesquisar_maior_tag(username, repository, tag_atual, self.popup_mensagem)
 
             if maior_tag is not None:
-                realizar_download(maior_tag, self.mensagem)
+                realizar_download(maior_tag, self.popup_mensagem)
                 if os.path.exists("C:/MSS_temp"):
                     dir_atual = os.getcwd()
                     executar_comando_batch(dir_atual)
@@ -229,7 +252,7 @@ class Aplicativo:
                     else:
                         return
                 except Exception as error:
-                    self.mensagem(f"Erro ao criar/validar a pasta {self.nomes['diretorio_log']}: {error} ")
+                    self.popup_mensagem(f"Erro ao criar/validar a pasta {self.nomes['diretorio_log']}: {error} ")
         else:
             return
 
@@ -264,7 +287,7 @@ class Aplicativo:
                     self.infos_config_prog["atualizar"] = True
                     self.alterar_ult_busca()
             except Exception as error:
-                self.mensagem(f"Erro ao validar a ultima atualização: {error}")
+                self.popup_mensagem(f"Erro ao validar a ultima atualização: {error}")
                 self.infos_config_prog["atualizar"] = False
         else:
             self.infos_config_prog["atualizar"] = False
@@ -273,7 +296,7 @@ class Aplicativo:
     def ler_arquivo_config(self):
         try:
             self.infos_config_prog["config_default"] = ""
-            self.infos_config_prog["background_color_fundo"] =self.color_default
+            self.infos_config_prog["background_color_fundo"] = self.color_default
             self.infos_config_prog["background_color_titulos"] = self.color_default
             self.infos_config_prog["background_color_botoes"] = self.color_default
             self.infos_config_prog["background_color_botoes_navs"] = self.color_default_navs
@@ -298,10 +321,11 @@ class Aplicativo:
                 self.infos_config_prog["background_color_botoes_navs"] = background_color_botoes_navs
             if background_color_fonte != self.color_default_fonte:
                 self.infos_config_prog["background_color_fonte"] = background_color_fonte
+            return background_color_fundo, background_color_titulos, background_color_botoes, background_color_botoes_navs, background_color_fonte
         except Exception as error:
-            self.mensagem(f"Erro ao acessar arquivo de configuração default {error}")
+            self.popup_mensagem(f"Erro ao acessar arquivo de configuração default {error}")
 
-    def atualizar_config_default(self,config_setado):
+    def atualizar_config_default(self, config_setado):
         try:
             config = configparser.ConfigParser()
             config.read(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}")
@@ -309,7 +333,7 @@ class Aplicativo:
             self.salvar_alteracoes_config(config)
             self.infos_config_prog['config_default'] = config_setado
         except Exception as error:
-            self.mensagem(f"Erro ao atualizar o arquivo config: {error}")
+            self.popup_mensagem(f"Erro ao atualizar o arquivo config: {error}")
             
     def alterar_ult_busca(self):
         data = data_atual()
@@ -319,7 +343,7 @@ class Aplicativo:
             config.set('ConfiguracoesGerais', 'data_ultima_atualizacao', data)
             self.salvar_alteracoes_config(config)
         except Exception as error:
-            self.mensagem(f"Erro ao atualizar a data da ultima atualização: {error}")
+            self.popup_mensagem(f"Erro ao atualizar a data da ultima atualização: {error}")
 
     def alterar_background(self):
         backg_fundo = self.entry_background_fundo.get()
@@ -355,9 +379,10 @@ class Aplicativo:
             self.infos_config_prog["background_color_fonte"] = backg_fontes
             self.trocar_tela_menu()
         except Exception as error:
-            self.mensagem(f"Erro ao Alterar o background: {error}")
+            self.popup_mensagem(f"Erro ao Alterar o background: {error}")
 
     def redefinir_background(self):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Background Redefinido")
         backg_fundo = self.color_default
         backg_titulos = self.color_default
         backg_botoes = self.color_default
@@ -380,17 +405,16 @@ class Aplicativo:
             self.infos_config_prog["background_color_fonte"] = backg_fontes
             self.trocar_tela_menu()
         except Exception as error:
-            self.mensagem(f"Erro ao Alterar o background: {error}")
+            self.popup_mensagem(f"Erro ao Alterar o background: {error}")
 
-    def caixa_selecao_de_cor(self,campo):
+    def caixa_selecao_de_cor(self, campo):
         color_code = colorchooser.askcolor(title="Escolha uma cor")
         if color_code[1]:
             campo.delete(0, END)
             campo.insert(0, color_code[1])
 
     def criar_arquivo_config_prog(self):
-        arquivo_config = open(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}", "a")
-        arquivo_config.write(f"""[ConfiguracoesGerais]
+        arquivo_config = f"""[ConfiguracoesGerais]
 config_default = 
 data_ultima_atualizacao =
  
@@ -399,15 +423,15 @@ background_color_fundo = {self.color_default}
 background_color_titulos = {self.color_default}
 background_color_botoes = {self.color_default}
 background_color_botoes_navs = {self.color_default_navs}
-background_color_fonte = {self.color_default_fonte}""")
-        arquivo_config.close()
+background_color_fonte = {self.color_default_fonte}"""
+        self.escrever_arquivo_config(self.nomes['arquivo_config_default'], arquivo_config)
 
     def salvar_alteracoes_config(self, config):
         try:
             with open(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}", 'w') as config_file:
                 config.write(config_file)
         except Exception as error:
-            self.mensagem(f"Erro ao atualizar o arquivo config: {error}")
+            self.popup_mensagem(f"Erro ao atualizar o arquivo config: {error}")
 
     def percorrer_widgets(self, app):
         self.widget.clear()
@@ -465,7 +489,7 @@ background_color_fonte = {self.color_default_fonte}""")
         self.nome_campo_caixa = Label(
             text=nome,
             bg=self.infos_config_prog["background_color_fundo"],
-            fg = self.infos_config_prog["background_color_fonte"]
+            fg=self.infos_config_prog["background_color_fonte"]
         )
         self.widtexto = Text(
             self.app,
@@ -475,9 +499,6 @@ background_color_fonte = {self.color_default_fonte}""")
         self.nome_campo_caixa.grid(row=linha_label, column=coluna, sticky="WE")
         self.widtexto.grid(row=linha_texto, column=coluna, sticky="WE")
         self.widtexto.config(width=50)
-        #scrollbar = Scrollbar(self.app, background="red")
-        #scrollbar.grid(row=linha, column=coluna, sticky="NSE", padx=0)
-        #scrollbar.config(command=self.widtexto.yview)
         self.widtexto.config(state="disabled")
 
     def limpar_caixa_texto(self):
@@ -485,13 +506,13 @@ background_color_fonte = {self.color_default_fonte}""")
         self.widtexto.delete(1.0, 'end')
         self.widtexto.config(state="disabled")
 
-    def escrever(self, texto):
+    def escrever_no_input(self, texto):
         self.widtexto.config(state="normal")
         self.widtexto.insert(END, str(texto) + '\n')
         self.widtexto.see(END)
         self.widtexto.config(state="disabled")
 
-    def mensagem(self, mensagem):
+    def popup_mensagem(self, mensagem):
         msg = Tk()
         msg.geometry(f"{self.largura}x200+{self.metade_wid}+{self.metade_hei}")
         msg.configure(bg=self.infos_config_prog["background_color_fundo"])
@@ -502,8 +523,8 @@ background_color_fonte = {self.color_default_fonte}""")
         label_mensagem = Label(
             msg,
             text=mensagem,
-            padx = 20,
-            pady = 20,
+            padx=20,
+            pady=20,
             bg=self.infos_config_prog["background_color_titulos"]
 
         )
@@ -519,7 +540,7 @@ background_color_fonte = {self.color_default_fonte}""")
 
         )
         label_mensagem.grid(row=0, sticky="WE")
-        button_sair_mensagem.grid(row=1, pady=(10,10))
+        button_sair_mensagem.grid(row=1, pady=(10, 10))
 
     def remover_widget(self, app, name, ent):
         lista_entry = self.percorrer_widgets(app)
@@ -559,16 +580,14 @@ background_color_fonte = {self.color_default_fonte}""")
         self.button_atualizacao_voltar.config(state='disabled')
         self.button_menu_sair.config(state='disabled')
         tam_base_muro = len(self.infos_config['bases_muro'])
-        self.arquivo_validar = open(f"{self.nomes['diretorio_log']}\\{self.nomes['arquivo_validar']}.txt", "a")
-        pula_linha = validar_linha(self.nomes['arquivo_validar'])
-        self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Tela - Validar atualização")
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Validar atualização")
 
-        self.arquivo_validar.write(f"{pula_linha}{data_hora_atual()} - INFO - Inicio da validação do banco update ")
+        self.escrever_arquivo_log(self.nomes['arquivo_validar'], f"INFO - Inicio da validação do banco update ")
 
         for num in range(tam_base_muro):
             database_update = self.valida_banco_update(num)
 
-            self.escrever(f"\n- Iniciando consulta no banco update")
+            self.escrever_no_input(f"\n- Iniciando consulta no banco update")
             try:
                 cnxnrp = pyodbc.connect(
                     f"DRIVER=SQL Server;SERVER={self.infos_config['server']};DATABASE={database_update};ENCRYPT=not;UID={self.infos_config['username']};PWD={self.infos_config['password']}")
@@ -577,32 +596,30 @@ background_color_fonte = {self.color_default_fonte}""")
                 cursorrp.execute(comando)
                 result = cursorrp.fetchall()
             except (Exception or pyodbc.DatabaseError) as err:
-                self.escrever(f"- Falha ao tentar consultar banco de update: {err}")
-                self.arquivo_validar.write(
-                    f"\n{data_hora_atual()} - ERRO - Falha ao tentar consultar banco de muro update: {err}")
+                self.escrever_no_input(f"- Falha ao tentar consultar banco de update: {err}")
+                self.escrever_arquivo_log(self.nomes['arquivo_validar'], f"ERRO - Falha ao tentar consultar banco de muro update: {err}")
             else:
-                self.escrever(f"- Sucesso ao consulta: {database_update}")
-                self.arquivo_validar.write(f"\n{data_hora_atual()} - INFO - Sucesso ao consulta no banco de update")
+                self.escrever_no_input(f"- Sucesso ao consulta: {database_update}")
+                self.escrever_arquivo_log(
+                    self.nomes['arquivo_validar'], f"INFO - Sucesso ao consulta no banco de update")
 
                 if len(result) > 0:
                     for n in range(len(result)):
-                        self.escrever(f"- Version: {result[n][0]} - Quantidade: {result[n][1]}")
-                        self.arquivo_validar.write(
-                            f"\n{data_hora_atual()} - INFO - Version: {result[n][0]} - Quantidade: {result[n][1]}")
+                        self.escrever_no_input(f"- Version: {result[n][0]} - Quantidade: {result[n][1]}")
+                        self.escrever_arquivo_log(self.nomes['arquivo_validar'], f"INFO - Version: {result[n][0]} - Quantidade: {result[n][1]}")
                 else:
-                    self.escrever(f"- Não foram retornados registros no banco: {database_update}")
-                    self.arquivo_validar.write(f"\n{data_hora_atual()} - INFO - Não foram retornados registros no banco:")
+                    self.escrever_no_input(f"- Não foram retornados registros no banco: {database_update}")
+                    self.escrever_arquivo_log(
+                        self.nomes['arquivo_validar'], f"INFO - Não foram retornados registros no banco:")
 
             if num < 4:
                 num += 1
-            self.escrever(f"\n- Concluído a parte {num}, de um total de {tam_base_muro}. ")
-            self.arquivo_validar.write(
-                f"\n{data_hora_atual()} - INFO - Concluído a parte {num}, de um total de {tam_base_muro}. ")
+            self.escrever_no_input(f"\n- Concluído a parte {num}, de um total de {tam_base_muro}. ")
+            self.escrever_arquivo_log(self.nomes['arquivo_validar'], f"INFO - Concluído a parte {num}, de um total de {tam_base_muro}. ")
             continue
 
-        self.escrever(f"- Fim da operação de consulta")
-        self.arquivo_validar.write(f"\n{data_hora_atual()} - INFO - Fim da operação Validar atualização")
-        self.arquivo_validar.close()
+        self.escrever_no_input(f"- Fim da operação de consulta")
+        self.escrever_arquivo_log(self.nomes['arquivo_validar'], f"INFO - Fim da operação Validar atualização")
         self.button_atualizacao_inicio.config(state='active')
         self.button_atualizacao_voltar.config(state='active')
         self.button_menu_sair.config(state='active')
@@ -612,34 +629,32 @@ background_color_fonte = {self.color_default_fonte}""")
         self.button_busca_inicio.config(state='disabled')
         self.button_busca_voltar.config(state='disabled')
         self.button_menu_sair.config(state='disabled')
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Buscar Bancos")
         lista_string_instancia = ''
         cursor1 = ''
         status_consulta = False
 
-        self.arquivo = open(f"{self.nomes['diretorio_log']}\\{self.nomes['arquivo_busca_bancos']}.txt", "a")
-        pula_linha = validar_linha(self.nomes['arquivo_busca_bancos'])
-        self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Tela - Busca muro ")
-
-        self.escrever(f"- Inicio da operação Buscar Bancos")
-        self.arquivo.write(f"{pula_linha}{data_hora_atual()} - INFO - Inicio da operação Busca muro ")
+        self.escrever_no_input(f"- Inicio da operação Buscar Bancos")
+        self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], "INFO - Inicio da operação Busca muro ")
 
         versao_databases = self.entry.get()
 
         if versao_databases == '' or versao_databases == self.placeholder_text:
-            self.escrever(f"-O campo Version não pode estar em branco")
+            self.escrever_no_input(f"-O campo Version não pode estar em branco")
             self.button_busca_inicio.config(state='active')
             self.button_busca_voltar.config(state='active')
             self.entry.config(state='normal')
             self.button_menu_sair.config(state='active')
             return
         else:
-            self.escrever(f"- Version para downgrade: {versao_databases}")
-            self.arquivo.write(f"\n{data_hora_atual()} - INFO - Version para downgrade: {versao_databases} ")
+            self.escrever_no_input(f"- Version para downgrade: {versao_databases}")
+            self.escrever_arquivo_log(
+                self.nomes['arquivo_busca_bancos'], "INFO - Version para downgrade: {versao_databases} ")
 
             # Pegar a lista de bancos da instancia
-            self.escrever(f"\n- Iniciando a busca dos bancos na instância: {self.infos_config['server']} ")
-            self.arquivo.write(
-                f"\n{data_hora_atual()} - INFO - Iniciando a busca dos bancos na instância: {self.infos_config['server']} ")
+            self.escrever_no_input(f"\n- Iniciando a busca dos bancos na instância: {self.infos_config['server']} ")
+            self.escrever_arquivo_log(
+                self.nomes['arquivo_busca_bancos'], f"INFO - Iniciando a busca dos bancos na instância: {self.infos_config['server']} ")
 
             try:
                 cnxn1 = pyodbc.connect(
@@ -648,14 +663,13 @@ background_color_fonte = {self.color_default_fonte}""")
                 cursor1.execute("SELECT name FROM sys.databases;")
                 lista_string_instancia = cursor1.fetchall()
             except (Exception or pyodbc.DatabaseError) as err:
-                self.escrever(f"- Falha ao tentar buscar os bancos da instancia {err}")
-                self.arquivo.write(f"\n{data_hora_atual()} - ERRO - Falha ao tentar buscar os bancos da instancia {err} ")
+                self.escrever_no_input(f"- Falha ao tentar buscar os bancos da instancia {err}")
+                self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"ERRO - Falha ao tentar buscar os bancos da instancia {err} ")
             else:
                 cursor1.commit()
 
-                self.escrever(f"- Quantidade de bancos encontrados: {len(lista_string_instancia)}")
-                self.arquivo.write(
-                    f"\n{data_hora_atual()} - INFO - Quantidade de bancos encontrados: {len(lista_string_instancia)} ")
+                self.escrever_no_input(f"- Quantidade de bancos encontrados: {len(lista_string_instancia)}")
+                self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Quantidade de bancos encontrados: {len(lista_string_instancia)} ")
                 status_consulta = True
 
             if status_consulta:
@@ -663,9 +677,8 @@ background_color_fonte = {self.color_default_fonte}""")
                 # Iniciando processo banco muro.
                 for num in range(len(self.infos_config['bases_muro'])):
 
-                    self.escrever(f"\n- Iniciando o processo no banco: {self.infos_config['bases_muro'][num]}")
-                    self.arquivo.write(
-                        f"\n{data_hora_atual()} - INFO - Iniciando o processo no banco: {self.infos_config['bases_muro'][num]} ")
+                    self.escrever_no_input(f"\n- Iniciando o processo no banco: {self.infos_config['bases_muro'][num]}")
+                    self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Iniciando o processo no banco: {self.infos_config['bases_muro'][num]} ")
 
                     # Configurando as Variáveis
                     lista_connection_string = []
@@ -689,14 +702,13 @@ background_color_fonte = {self.color_default_fonte}""")
                         lista_connection_string = cursor1.fetchall()
 
                     except (Exception or pyodbc.DatabaseError) as err:
-                        self.escrever(f"- Falha ao tentar consultar banco de muro: {err}")
-                        self.arquivo.write(f"\n{data_hora_atual()} - ERRO - Falha ao tentar consultar banco de muro {err} ")
+                        self.escrever_no_input(f"- Falha ao tentar consultar banco de muro: {err}")
+                        self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"ERRO - Falha ao tentar consultar banco de muro {err} ")
                     else:
                         cursor1.commit()
 
-                        self.escrever(f"- Quantidade de registros encontrados: {len(lista_connection_string)}")
-                        self.arquivo.write(
-                            f"\n{data_hora_atual()} - INFO - Quantidade de registros encontrados: {len(lista_connection_string)} ")
+                        self.escrever_no_input(f"- Quantidade de registros encontrados: {len(lista_connection_string)}")
+                        self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Quantidade de registros encontrados: {len(lista_connection_string)} ")
 
                     # separar o nome do banco nas connection strings
                     for i in range(len(lista_connection_string)):
@@ -724,8 +736,9 @@ background_color_fonte = {self.color_default_fonte}""")
                         continue
 
                     # Comparar bancos "strings"
-                    self.escrever("\n- Iniciando a comparação dos bancos")
-                    self.arquivo.write(f"\n{data_hora_atual()} - INFO - Iniciando a comparação dos bancos ")
+                    self.escrever_no_input("\n- Iniciando a comparação dos bancos")
+                    self.escrever_arquivo_log(
+                        self.nomes['arquivo_busca_bancos'], f"INFO - Iniciando a comparação dos bancos ")
                     for comparar in range(len(lista_banco_instancia)):
                         if lista_banco_instancia[comparar] in lista_nome_banco:
                             index_banco.append(lista_nome_banco.index(lista_banco_instancia[comparar]))
@@ -737,13 +750,11 @@ background_color_fonte = {self.color_default_fonte}""")
                         database_id.append(lista_id_banco[index_banco[nums]])
 
                     if len(connection_string) > 0:
-                        self.escrever("- Quantidade de bancos que deram Match: " + str(len(connection_string)))
-                        self.arquivo.write(
-                            f"\n{data_hora_atual()} - INFO - Quantidade de bancos que deram Match: {len(connection_string)} ")
+                        self.escrever_no_input("- Quantidade de bancos que deram Match: " + str(len(connection_string)))
+                        self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Quantidade de bancos que deram Match: {len(connection_string)} ")
                     else:
-                        self.escrever("- Não foram encontrados Match na comparação de bancos")
-                        self.arquivo.write(
-                            f"\n{data_hora_atual()} - INFO - Não foram encontrados Match na comparação de bancos ")
+                        self.escrever_no_input("- Não foram encontrados Match na comparação de bancos")
+                        self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Não foram encontrados Match na comparação de bancos ")
 
                     # Limpar as strings para inserir no banco
                     for lim in range(len(connection_string)):
@@ -753,33 +764,30 @@ background_color_fonte = {self.color_default_fonte}""")
                         continue
 
                     database_update = self.valida_banco_update(num)
-                    self.escrever(f"\n- Iniciando a limpeza dos bancos update`s")
+                    self.escrever_no_input(f"\n- Iniciando a limpeza dos bancos update`s")
                     if len(string_limpa) > 0:
                         # Limpeza base muro UPDATE
-                        self.escrever(f"- limpando o banco: {database_update}")
-                        self.arquivo.write(
-                            f"\n{data_hora_atual()} - INFO - limpando o banco: {database_update} ")
+                        self.escrever_no_input(f"- limpando o banco: {database_update}")
+                        self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'],
+                                                  f"INFO - limpando o banco: {database_update} ")
                         try:
                             cursor1.execute(f'DELETE FROM {database_update}.[dbo].[KAIROS_DATABASES]')
 
                         except (Exception or pyodbc.DatabaseError) as err:
-                            self.escrever(f"- Falha ao tentar zerar o banco update {err}")
-                            self.arquivo.write(
-                                f"\n{data_hora_atual()}  - ERRO - Falha ao tentar zerar o banco de muro update {err} ")
+                            self.escrever_no_input(f"- Falha ao tentar zerar o banco update {err}")
+                            self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"ERRO - Falha ao tentar zerar o banco de muro update {err} ")
                         else:
                             cursor1.commit()
-                            self.escrever(f"- banco {database_update} zerado com sucesso")
-                            self.arquivo.write(f"\n{data_hora_atual()} - INFO - Banco {database_update} zerado com sucesso ")
+                            self.escrever_no_input(f"- banco {database_update} zerado com sucesso")
+                            self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Banco {database_update} zerado com sucesso ")
                     else:
-                        self.escrever("- Não foi realizada a limpeza no banco: " + database_update)
-                        self.arquivo.write(
-                            f"\n{data_hora_atual()} - INFO - Não foi realizada a limpeza no banco: {database_update} ")
+                        self.escrever_no_input("- Não foi realizada a limpeza no banco: " + database_update)
+                        self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Não foi realizada a limpeza no banco: {database_update} ")
 
                     # Inserindo as connections strings no banco muro update
-                    self.escrever(
+                    self.escrever_no_input(
                         f"\n- Iniciando o processo de inserção: {database_update}")
-                    self.arquivo.write(
-                        f"\n{data_hora_atual()} - INFO - Iniciando o processo de inserção:  {database_update} ")
+                    self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Iniciando o processo de inserção:  {database_update} ")
                     if len(string_limpa) > 0:
                         try:
                             cnxn1 = pyodbc.connect(
@@ -794,53 +802,40 @@ background_color_fonte = {self.color_default_fonte}""")
                             cursor1.execute("set identity_insert [dbo].[KAIROS_DATABASES]  off")
 
                         except (Exception or pyodbc.DatabaseError) as err:
-                            self.escrever(f"- Falha ao tentar inserir registros no banco update {err}")
-                            self.arquivo.write(
-                                f"\n{data_hora_atual()} - ERRO - Falha ao tentar inserir registros no banco update {err} ")
+                            self.escrever_no_input(f"- Falha ao tentar inserir registros no banco update {err}")
+                            self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"ERRO - Falha ao tentar inserir registros no banco update {err} ")
                         else:
                             cursor1.commit()
-                            self.escrever("- Sucesso ao inserir connection Strings no Banco de muro Update  ")
-                            self.arquivo.write(
-                                f"\n{data_hora_atual()} - INFO - Sucesso ao inserir connection Strings no Banco de muro Update ")
+                            self.escrever_no_input("- Sucesso ao inserir connection Strings no Banco de muro Update  ")
+                            self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Sucesso ao inserir connection Strings no Banco de muro Update ")
 
                             # Logando as connection string
                             quant = 1
-                            arquivo_strings = open(f"{self.nomes['diretorio_log']}\\{self.nomes['arquivo_connection_strings']}.txt", "a")
-                            pula_linha = validar_linha(self.nomes['arquivo_connection_strings'])
-                            arquivo_strings.write(
-                                f"{pula_linha}{data_hora_atual()} - INFO - Buscar Bancos - Listando as connection strings utilizadas ")
-                            arquivo_strings.write(
-                                f"\n{data_hora_atual()} - INFO - Buscar Bancos - Ambiente: {self.infos_config['bases_muro'][num]} ")
+                            self.escrever_arquivo_log(self.nomes['arquivo_connection_strings'], f"INFO - Buscar Bancos - Listando as connection strings utilizadas ")
+                            self.escrever_arquivo_log(self.nomes['arquivo_connection_strings'], f"INFO - Buscar Bancos - Ambiente: {self.infos_config['bases_muro'][num]} ")
                             for log in range(len(connection_string)):
-                                arquivo_strings.writelines(
-                                    f"\n{data_hora_atual()} - INFO - {quant} - {connection_string[log]} ")
+                                self.escrever_arquivo_log(self.nomes['arquivo_connection_strings'], f"INFO - {quant} - {connection_string[log]} ")
                                 quant += 1
                                 continue
 
-                            arquivo_strings.close()
-                            self.arquivo.write(
-                                f"\n{data_hora_atual()} - INFO - Listado as Connection Strings no arquivo: {self.nomes['arquivo_connection_strings']} ")
+                            self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Listado as Connection Strings no arquivo: {self.nomes['arquivo_connection_strings']} ")
 
                     else:
-                        self.escrever("- Não a registros para serem inseridos no banco: " + database_update)
-                        self.arquivo.write(
-                            f"\n{data_hora_atual()} - INFO - Não a registros para serem inseridos no banco: {database_update} ")
+                        self.escrever_no_input("- Não a registros para serem inseridos no banco: " + database_update)
+                        self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Não a registros para serem inseridos no banco: {database_update} ")
                     if num < 4:
                         num += 1
-                    self.escrever(
+                    self.escrever_no_input(
                         f"\n- Concluído a parte {num}, de um total de {len(self.infos_config['bases_muro'])}.")
-                    self.arquivo.write(
-                        f"\n{data_hora_atual()} - INFO - Concluído a parte {num}, de um total de {len(self.infos_config['bases_muro'])}. ")
+                    self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Concluído a parte {num}, de um total de {len(self.infos_config['bases_muro'])}. ")
                     continue
                 cursor1.close()
             else:
-                self.escrever(f"- Erro na primeira etapa das buscas, o processo foi interrompido.")
-                self.arquivo.write(
-                    f"\n{data_hora_atual()} - INFO - Erro na primeira etapa das buscas, o processo foi interrompido. ")
+                self.escrever_no_input(f"- Erro na primeira etapa das buscas, o processo foi interrompido.")
+                self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Erro na primeira etapa das buscas, o processo foi interrompido. ")
 
-            self.escrever(f"- Fim da operação Busca muro")
-            self.arquivo.write(f"\n{data_hora_atual()} - INFO - Fim da operação Busca muro")
-            self.arquivo.close()
+            self.escrever_no_input(f"- Fim da operação Busca muro")
+            self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Fim da operação Busca muro")
             self.entry.config(state='normal')
             self.button_busca_inicio.config(state='active')
             self.button_busca_voltar.config(state='active')
@@ -851,12 +846,10 @@ background_color_fonte = {self.color_default_fonte}""")
         self.button_replicar_voltar.config(state='disabled')
         self.button_menu_sair.config(state='disabled')
         tam_base_muro = len(self.infos_config['bases_muro'])
-        self.arquivo_replicar = open(f"{self.nomes['diretorio_log']}\\{self.nomes['arquivo_replicar_version']}.txt", "a")
-        pula_linha = validar_linha(self.nomes['arquivo_replicar_version'])
-        self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Tela - Replicar version ")
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Replicar version ")
 
-        self.escrever(f"- Inicio da operação replicar version")
-        self.arquivo_replicar.write(f"{pula_linha}{data_hora_atual()} - INFO - Inicio da operação replicar version")
+        self.escrever_no_input(f"- Inicio da operação replicar version")
+        self.escrever_arquivo_log(self.nomes['arquivo_replicar_version'], f"INFO - Inicio da operação replicar version")
 
         for num in range(len(self.infos_config['bases_muro'])):
             lista_registros_db = []
@@ -864,9 +857,8 @@ background_color_fonte = {self.color_default_fonte}""")
             lista_versions = []
             lista_connection_string = []
 
-            self.escrever(f"\n- replicando para: {self.infos_config['bases_muro'][num]}")
-            self.arquivo_replicar.write(
-                f"\n{data_hora_atual()} - INFO - Replicando para: {self.infos_config['bases_muro'][num]}")
+            self.escrever_no_input(f"\n- replicando para: {self.infos_config['bases_muro'][num]}")
+            self.escrever_arquivo_log(self.nomes['arquivo_replicar_version'], f"INFO - Replicando para: {self.infos_config['bases_muro'][num]}")
 
             database_update = self.valida_banco_update(num)
 
@@ -877,20 +869,17 @@ background_color_fonte = {self.color_default_fonte}""")
                 cursorrp1.execute(f"SELECT * FROM {database_update}.[dbo].[KAIROS_DATABASES]")
                 lista_registros_db = cursorrp1.fetchall()
             except (Exception or pyodbc.DatabaseError) as err:
-                self.escrever("- Falha ao tentar consultar banco de muro update: " + str(err))
-                self.arquivo_replicar.write(
-                    f"\n{data_hora_atual()} - ERRO - Falha ao tentar consultar banco de muro update: {err}")
+                self.escrever_no_input("- Falha ao tentar consultar banco de muro update: " + str(err))
+                self.escrever_arquivo_log(self.nomes['arquivo_replicar_version'], f"ERRO - Falha ao tentar consultar banco de muro update: {err}")
             else:
                 cursorrp1.commit()
                 cursorrp1.close()
 
-                self.escrever(f"- Sucesso na consulta: {database_update}")
-                self.arquivo_replicar.write(
-                    f"\n{data_hora_atual()} - INFO - Sucesso na consulta no banco de muro update: {database_update}")
+                self.escrever_no_input(f"- Sucesso na consulta: {database_update}")
+                self.escrever_arquivo_log(self.nomes['arquivo_replicar_version'], f"INFO - Sucesso na consulta no banco de muro update: {database_update}")
 
-                self.escrever(f"- Quantidade de registros encontrados: {len(lista_registros_db)}")
-                self.arquivo_replicar.write(
-                    f"\n{data_hora_atual()} - INFO - Quantidade de registros encontrados: {len(lista_registros_db)}")
+                self.escrever_no_input(f"- Quantidade de registros encontrados: {len(lista_registros_db)}")
+                self.escrever_arquivo_log(self.nomes['arquivo_replicar_version'], f"INFO - Quantidade de registros encontrados: {len(lista_registros_db)}")
 
             tam_busca_realizada = len(lista_registros_db)
             if tam_busca_realizada > 0:
@@ -909,51 +898,41 @@ background_color_fonte = {self.color_default_fonte}""")
                         cursorrp2.execute(montar_comando)
                         continue
                 except (Exception or pyodbc.DatabaseError) as err:
-                    self.escrever(f"- Falha ao tentar consultar banco de muro update: {err}")
-                    self.arquivo_replicar.write(
-                        f"\n{data_hora_atual()} - ERRO - Falha ao tentar consultar banco de muro update: {err}")
+                    self.escrever_no_input(f"- Falha ao tentar consultar banco de muro update: {err}")
+                    self.escrever_arquivo_log(self.nomes['arquivo_replicar_version'], f"ERRO - Falha ao tentar consultar banco de muro update: {err}")
                 else:
                     cursorrp2.commit()
                     cursorrp2.close()
-                    self.escrever(
+                    self.escrever_no_input(
                         f"- Sucesso ao inserir version's")
-                    self.arquivo_replicar.write(
-                        f"\n{data_hora_atual()} - INFO - Sucesso ao inserir version's")
+                    self.escrever_arquivo_log(
+                        self.nomes['arquivo_replicar_version'], f"INFO - Sucesso ao inserir version's")
 
                     # Logando as connection string
-                    arquivo_replicar_strings = open(f"{self.nomes['diretorio_log']}\\{self.nomes['arquivo_connection_strings']}.txt", "a")
-                    pula_linha = validar_linha(self.nomes['arquivo_connection_strings'])
-                    arquivo_replicar_strings.write(
-                        f"{pula_linha}{data_hora_atual()} - INFO - Replicar Version - Listando as connection strings utilizadas ")
-                    arquivo_replicar_strings.write(
-                        f"\n{data_hora_atual()} - INFO - Replicar Version - Ambiente: {self.infos_config['bases_muro'][num]} ")
+                    self.escrever_arquivo_log(self.nomes['arquivo_connection_strings'], f"INFO - Replicar Version - Listando as connection strings utilizadas ")
+                    self.escrever_arquivo_log(self.nomes['arquivo_connection_strings'], f"INFO - Replicar Version - Ambiente: {self.infos_config['bases_muro'][num]} ")
                     quant = 1
                     for log in range(tam_busca_realizada):
-                        arquivo_replicar_strings.writelines(
-                            f"\n{data_hora_atual()} - INFO - {quant} - ID: {lista_ids[log]} - Version: {lista_versions[log]} ")
+                        self.escrever_arquivo_log(self.nomes['arquivo_connection_strings'], f"\n{data_hora_atual()} - INFO - {quant} - ID: {lista_ids[log]} - Version: {lista_versions[log]} ")
                         quant += 1
                         continue
 
-                    arquivo_replicar_strings.write(f"\n{data_hora_atual()} - INFO - Processo finalizado")
-                    arquivo_replicar_strings.close()
-                    self.arquivo_replicar.write(
-                        f"\n{data_hora_atual()} - INFO - Listado os version no arquivo: {self.nomes['arquivo_connection_strings']}")
+                    self.escrever_arquivo_log(self.nomes['arquivo_connection_strings'], f"INFO - Processo finalizado")
+                    self.escrever_arquivo_log(self.nomes['arquivo_replicar_version'], f"INFO - Listado os version no arquivo: {self.nomes['arquivo_connection_strings']}")
             else:
-                self.escrever("- Não existem registros para alterar o version")
-                self.arquivo_replicar.write(f"\n{data_hora_atual()} - INFO - Não existem registros para alterar o version")
+                self.escrever_no_input("- Não existem registros para alterar o version")
+                self.escrever_arquivo_log(self.nomes['arquivo_replicar_version'], f"INFO - Não existem registros para alterar o version")
 
             if num < 4:
                 num += 1
 
-            self.escrever(
+            self.escrever_no_input(
                 f"\n- Concluído a parte {num}, de um total de {tam_base_muro}.")
-            self.arquivo_replicar.write(
-                f"\n{data_hora_atual()} - INFO - Concluído a parte {num}, de um total de {tam_base_muro}.")
+            self.escrever_arquivo_log(self.nomes['arquivo_replicar_version'], f"INFO - Concluído a parte {num}, de um total de {tam_base_muro}.")
             continue
 
-        self.escrever(f"- Fim da operação replicar version")
-        self.arquivo_replicar.write(f"\n{data_hora_atual()} - INFO - Fim da operação replicar version")
-        self.arquivo_replicar.close()
+        self.escrever_no_input(f"- Fim da operação replicar version")
+        self.escrever_arquivo_log(self.nomes['arquivo_replicar_version'], f"INFO - Fim da operação replicar version")
         self.button_replicar_inicio.config(state='active')
         self.button_replicar_voltar.config(state='active')
         self.button_menu_sair.config(state='active')
@@ -968,161 +947,150 @@ background_color_fonte = {self.color_default_fonte}""")
                         database_update = self.infos_config['database_update_br']
                         return database_update
                     else:
-                        self.escrever(
+                        self.escrever_no_input(
                             "- Não foi inserido no arquivo de config o apontamento para o banco Muro update BR")
-                        # arquivo.write(f"\n{self.data_hora_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update BR ")
                 case 'qcdev_kairos_base_muro':
                     if self.infos_config['database_update_br'] != '':
                         database_update = self.infos_config['database_update_br']
                         return database_update
                     else:
-                        self.escrever(
+                        self.escrever_no_input(
                             "- Não foi inserido no arquivo de config o apontamento para o banco Muro update BR")
-                        # arquivo.write(f"\n{self.data_hora_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update BR ")
                 case "qcmaint_kairos_base_muro_mx":
                     if self.infos_config['database_update_mx'] != '':
                         database_update = self.infos_config['database_update_mx']
                         return database_update
                     else:
-                        self.escrever(
+                        self.escrever_no_input(
                             "-  Não foi inserido no arquivo de config o apontamento para o banco Muro update MX")
-                        # arquivo.write(
-                        #    f"\n{self.data_hora_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update MX ")
                 case "qcdev_kairos_base_muro_mx":
                     if self.infos_config['database_update_mx'] != '':
                         database_update = self.infos_config['database_update_mx']
                         return database_update
                     else:
-                        self.escrever(
+                        self.escrever_no_input(
                             "-  Não foi inserido no arquivo de config o apontamento para o banco Muro update MX")
-                        # arquivo.write(
-                        #    f"\n{self.data_hora_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update MX ")
                 case "qcmaint_kairos_base_muro_pt":
                     if self.infos_config['database_update_pt'] != '':
                         database_update = self.infos_config['database_update_pt']
                         return database_update
                     else:
-                        self.escrever(
+                        self.escrever_no_input(
                             "- Não foi inserido no arquivo de config o apontamento para o banco Muro update PT")
-                        # arquivo.write(
-                        #    f"\n{self.data_hora_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update PT ")
                 case "qcdev_kairos_base_muro_pt":
                     if self.infos_config['database_update_pt'] != '':
                         database_update = self.infos_config['database_update_pt']
                         return database_update
                     else:
-                        self.escrever(
+                        self.escrever_no_input(
                             "- Não foi inserido no arquivo de config o apontamento para o banco Muro update PT")
-                        # arquivo.write(
-                        #    f"\n{self.data_hora_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update PT ")
                 case "qcmaint_mdcomune_base_muro":
                     if self.infos_config['database_update_md'] != '':
                         database_update = self.infos_config['database_update_md']
                         return database_update
                     else:
-                        self.escrever(
+                        self.escrever_no_input(
                             "- Não foi inserido no arquivo de config o apontamento para o banco Muro update MD")
-                        #    arquivo.write(f"\n{self.data_hora_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update MD ")
                 case "qcdev_mdcomune_base_muro":
                     if self.infos_config['database_update_md'] != '':
                         database_update = self.infos_config['database_update_md']
                         return database_update
                     else:
-                        self.escrever(
+                        self.escrever_no_input(
                             "- Não foi inserido no arquivo de config o apontamento para o banco Muro update MD")
-                    #    arquivo.write(f"\n{self.data_hora_atual()} - ERRO - Não foi inserido no arquivo de config o apontamento para o banco Muro update MD ")
                 case _:
-                    self.escrever("- Não foi possível achar uma opção compativel com o banco de muro")
-                    # arquivo.write(
-                    #    f"\n{self.data_hora_atual()} - ERRO - Não foi possível achar uma opção compativel com o banco de muro ")
+                    self.escrever_no_input("- Não foi possível achar uma opção compativel com o banco de muro")
             return database_update
 
     def escolher_config_existente(self):
-            params_dict = ''
-            self.infos_config['status'] = False
+        params_dict = ''
+        self.infos_config['status'] = False
 
-            if self.infos_config_prog['escolha_manual']:
-                self.config_selecionado = self.combobox.get()
-            elif self.infos_config_prog['escolha_manual'] is False and self.infos_config_prog['config_default'] != "":
-                self.config_selecionado = self.infos_config_prog['config_default']
+        if self.infos_config_prog['escolha_manual']:
+            self.config_selecionado = self.combobox.get()
+        elif self.infos_config_prog['escolha_manual'] is False and self.infos_config_prog['config_default'] != "":
+            self.config_selecionado = self.infos_config_prog['config_default']
+        else:
+            self.popup_mensagem(f"Erro na validação do arquivo config: {self.infos_config_prog['escolha_manual']} e {self.infos_config_prog['config_default']}")
+
+        # Validando o arquivo de config
+        try:
+            if os.path.isfile(f"{self.nomes['diretorio_config']}\\{self.config_selecionado}"):
+                config_bjt = open(f"{self.nomes['diretorio_config']}\\{self.config_selecionado}", "r")
+                config_json = config_bjt.read().lower()
+                params_dict = json.loads(config_json)
             else:
-                self.mensagem(f"Erro na validação do arquivo config: {self.infos_config_prog['escolha_manual']} e {self.infos_config_prog['config_default']}")
-
-
-            # Validando o arquivo de config
+                self.popup_mensagem(
+                    f"Não foi possível encontrar um .JSON com esse nome na pasta {self.nomes['diretorio_config']}!")
+        except Exception as name_error:
+            self.popup_mensagem(f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
+            return
+        else:
             try:
-                if os.path.isfile(f"{self.nomes['diretorio_config']}\\{self.config_selecionado}"):
-                    config_bjt = open(f"{self.nomes['diretorio_config']}\\{self.config_selecionado}", "r")
-                    config_json = config_bjt.read().lower()
-                    params_dict = json.loads(config_json)
-                else:
-                    self.mensagem(f"Não foi possível encontrar um .JSON com esse nome na pasta {self.nomes['diretorio_config']}!")
+                if params_dict['conexao']['server'] == '':
+                    self.popup_mensagem("O valor do server não foi especificado no config")
+                    self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - O valor do server não foi especificado no config, Informe e tente novamente ")
+                    return
+                elif params_dict["conexao"]["username"] == '':
+                    self.popup_mensagem("O valor do Username não foi especificado no config")
+                    self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - O valor do Username não foi especificado no config, Informe e tente novamente ")
+                    return
+                elif params_dict["conexao"]["password"] == '':
+                    self.popup_mensagem("O valor do Password não foi especificado no config")
+                    self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - O valor do Password não foi especificado no config, Informe e tente novamente ")
+                    return
+                elif not params_dict["bases_muro"]:
+                    self.popup_mensagem("O valor do Base_Muro não foi especificado no config")
+                    self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - O valor do Base_Muro não foi especificado no config, Informe e tente novamente ")
+                    return
             except Exception as name_error:
-                self.mensagem(f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
-                self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
-                return
+                self.popup_mensagem(f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
+                self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
             else:
                 try:
-                    if params_dict["conexao"]["server"] == '':
-                        self.mensagem("O valor do server não foi especificado no config")
-                        self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - O valor do server não foi especificado no config, Informe e tente novamente ")
-                        return
-                    elif params_dict["conexao"]["username"] == '':
-                        self.mensagem("O valor do Username não foi especificado no config")
-                        self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - O valor do Username não foi especificado no config, Informe e tente novamente ")
-                        return
-                    elif params_dict["conexao"]["password"] == '':
-                        self.mensagem("O valor do Password não foi especificado no config")
-                        self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - O valor do Password não foi especificado no config, Informe e tente novamente ")
-                        return
-                    elif not params_dict["bases_muro"]:
-                        self.mensagem("O valor do Base_Muro não foi especificado no config")
-                        self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - O valor do Base_Muro não foi especificado no config, Informe e tente novamente ")
-                        return
+                    # Carregar config
+                    self.infos_config['server'] = params_dict["conexao"]["server"]
+                    self.infos_config['username'] = params_dict["conexao"]["username"]
+                    self.infos_config['password'] = params_dict["conexao"]["password"]
+                    self.infos_config['database_update_br'] = params_dict["database_update_br"]
+                    self.infos_config['database_update_mx'] = params_dict["database_update_mx"]
+                    self.infos_config['database_update_pt'] = params_dict["database_update_pt"]
+                    self.infos_config['database_update_md'] = params_dict["database_update_md"]
+                    self.infos_config['bases_muro'] = params_dict["bases_muro"]
                 except Exception as name_error:
-                        self.mensagem(f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
-                        self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
+                    self.popup_mensagem(f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
+                    self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
                 else:
+                    self.infos_config['status'] = True
+                    # Limpando strings vazias na base muro
+                    limpa_muro_tam = len(self.infos_config['bases_muro'])
+                    for num in range(0, limpa_muro_tam, +1):
+                        if '' in self.infos_config['bases_muro']:
+                            self.infos_config['bases_muro'].remove('')
+                            continue
+                        else:
+                            break
                     try:
-                        # Carregar config
-                        self.infos_config['server'] = params_dict["conexao"]["server"]
-                        self.infos_config['username'] = params_dict["conexao"]["username"]
-                        self.infos_config['password'] = params_dict["conexao"]["password"]
-                        self.infos_config['database_update_br'] = params_dict["database_update_br"]
-                        self.infos_config['database_update_mx'] = params_dict["database_update_mx"]
-                        self.infos_config['database_update_pt'] = params_dict["database_update_pt"]
-                        self.infos_config['database_update_md'] = params_dict["database_update_md"]
-                        self.infos_config['bases_muro'] = params_dict["bases_muro"]
+                        self.infos_config['server_principal'] = (
+                            params_dict)["configs_restaurar_download"]["server_principal"]
+                        self.infos_config['username_principal'] = (
+                            params_dict)["configs_restaurar_download"]["username_principal"]
+                        self.infos_config['password_principal'] = (
+                            params_dict)["configs_restaurar_download"]["password_principal"]
                     except Exception as name_error:
-                        self.mensagem(f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
-                        self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
-                    else:
-                        self.infos_config['status'] = True
-                        # Limpando strings vazias na base muro
-                        limpa_muro_tam = len(self.infos_config['bases_muro'])
-                        for num in range(0, limpa_muro_tam, +1):
-                            if '' in self.infos_config['bases_muro']:
-                                self.infos_config['bases_muro'].remove('')
-                                continue
-                            else:
-                                break
-                        try:
-                            self.infos_config['server_principal'] = params_dict["configs_restaurar_download"]["server_principal"]
-                            self.infos_config['username_principal'] = params_dict["configs_restaurar_download"]["username_principal"]
-                            self.infos_config['password_principal'] = params_dict["configs_restaurar_download"]["password_principal"]
-                        except Exception as name_error:
-                            self.mensagem(f"O config esta estava desatualizado, foram inseridas as novas tags no config:\n {name_error}")
-                            self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - O config esta estava desatualizado, foram inseridas as novas tags no config, configure elas para usar as rotinas {self.nomes['arquivo_download_backup']} e {self.nomes['arquivo_restaurar_banco']}: {name_error}")
-                            self.infos_config['server_principal'] = ""
-                            self.infos_config['username_principal'] = ""
-                            self.infos_config['password_principal'] = ""
-                            atualizar_config = open(f"{self.nomes['diretorio_config']}\\{self.config_selecionado}", "w")
-                            bases_utilizadas = str(f"{self.infos_config['bases_muro']}")
-                            bases_utilizadas = bases_utilizadas.replace("'", '"')
-                            server_utilizado = self.infos_config['server']
-                            if "\\" in server_utilizado:
-                                server_utilizado = server_utilizado.replace('\\', '\\\\')
-                            config_atualizado = f"""{{
+                        self.popup_mensagem(f"O config esta estava desatualizado, foram inseridas as novas tags no config:\n {name_error}")
+                        self.escrever_arquivo_log(
+                            self.nomes['arquivo_base_muro'], f"INFO - O config esta estava desatualizado, foram inseridas as novas tags no config, configure elas para usar as rotinas {self.nomes['arquivo_download_backup']} e {self.nomes['arquivo_restaurar_banco']}: {name_error}")
+                        self.infos_config['server_principal'] = ""
+                        self.infos_config['username_principal'] = ""
+                        self.infos_config['password_principal'] = ""
+                        bases_utilizadas = str(f"{self.infos_config['bases_muro']}")
+                        bases_utilizadas = bases_utilizadas.replace("'", '"')
+                        server_utilizado = self.infos_config['server']
+                        if "\\" in server_utilizado:
+                            server_utilizado = server_utilizado.replace('\\', '\\\\')
+                        config_atualizado = f"""{{
     "database_update_br": "{self.infos_config['database_update_br']}",
     "database_update_mx": "{self.infos_config['database_update_mx']}",
     "database_update_pt": "{self.infos_config['database_update_pt']}",
@@ -1139,22 +1107,20 @@ background_color_fonte = {self.color_default_fonte}""")
         "password_principal": ""
     }}
 }}"""
-                            atualizar_config.write(config_atualizado)
-                            atualizar_config.close()
-                        try:
-                            self.infos_config['redis_qa'] = params_dict["redis_qa"]
-                        except Exception as name_error:
-                            self.mensagem(f"O config esta estava desatualizado, foram inseridas as novas tags no config:\n {name_error}")
-                            self.arquivo_principal.write(
-                                f"\n{data_hora_atual()} - INFO - O config esta estava desatualizado, foram inseridas as novas tags no config, configure elas para usar as rotinas {self.nomes['arquivo_download_backup']} e {self.nomes['arquivo_restaurar_banco']}: {name_error}")
-                            self.infos_config['redis_qa'] = ""
-                            atualizar_config = open(f"{self.nomes['diretorio_config']}\\{self.config_selecionado}", "w")
-                            bases_utilizadas = str(f"{self.infos_config['bases_muro']}")
-                            bases_utilizadas = bases_utilizadas.replace("'", '"')
-                            server_utilizado = self.infos_config['server']
-                            if "\\" in server_utilizado:
-                                server_utilizado = server_utilizado.replace('\\', '\\\\')
-                            config_atualizado = f"""{{
+                        self.escrever_arquivo_config(self.config_selecionado, config_atualizado)
+        try:
+            self.infos_config['redis_qa'] = params_dict["redis_qa"]
+        except Exception as name_error:
+            self.popup_mensagem(
+                f"O config esta estava desatualizado, foram inseridas as novas tags no config:\n {name_error}")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - O config esta estava desatualizado, foram inseridas as novas tags no config, configure elas para usar as rotinas {self.nomes['arquivo_download_backup']} e {self.nomes['arquivo_restaurar_banco']}: {name_error}")
+            self.infos_config['redis_qa'] = ""
+            bases_utilizadas = str(f"{self.infos_config['bases_muro']}")
+            bases_utilizadas = bases_utilizadas.replace("'", '"')
+            server_utilizado = self.infos_config['server']
+            if "\\" in server_utilizado:
+                server_utilizado = server_utilizado.replace('\\', '\\\\')
+            config_atualizado = f"""{{
     "database_update_br": "{self.infos_config['database_update_br']}",
     "database_update_mx": "{self.infos_config['database_update_mx']}",
     "database_update_pt": "{self.infos_config['database_update_pt']}",
@@ -1170,38 +1136,37 @@ background_color_fonte = {self.color_default_fonte}""")
         "username_principal": "{self.infos_config['username_principal']}",
         "password_principal": "{self.infos_config['password_principal']}"
     }},
-	"redis_qa": [
-		{{
-		"nome_redis": "",
-		"ip": "",
-		"port": ""
-		}},
-		{{
-		"nome_redis": "",
-		"ip": "",
-		"port": ""
-		}}
-	]
+    "redis_qa": [
+        {{
+        "nome_redis": "",
+        "ip": "",
+        "port": ""
+        }},
+        {{
+        "nome_redis": "",
+        "ip": "",
+        "port": ""
+        }}
+    ]
 }}"""
-                            atualizar_config.write(config_atualizado)
-                            atualizar_config.close()
-            if self.infos_config['status']:
-                self.atualizar_config_default(self.config_selecionado)
-                self.trocar_tela_menu()
-            else:
-                self.trocar_tela_config()
+            self.escrever_arquivo_log(self.config_selecionado, config_atualizado)
+        if self.infos_config['status']:
+            self.atualizar_config_default(self.config_selecionado)
+            self.trocar_tela_menu()
+        else:
+            self.trocar_tela_config()
 
-            return self.infos_config
+        return self.infos_config
 
-    def insrir_campos_arquivo_existente(self, app, coluna):
-        self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Tela - Escolher Arquivo Existente")
+    def inserir_campos_arquivo_existente(self, app, coluna):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Escolher Arquivo Existente")
         opcoes = []
 
         # listar os arquivos de dentro da pasta
         try:
             arquivos_diretorio = os.listdir(self.nomes['pasta_config'])
         except Exception as name_error:
-            self.mensagem(f"Não foi possivel acessar a pasta config: {name_error}")
+            self.popup_mensagem(f"Não foi possivel acessar a pasta config: {name_error}")
             return
         else:
             loop = True
@@ -1219,24 +1184,24 @@ background_color_fonte = {self.color_default_fonte}""")
                             opcoes.append(f"{itens_arquivos}")
                         break
                     else:
-                        self.mensagem(f"Não existe arquivos .json na pasta config")
+                        self.popup_mensagem(f"Não existe arquivos .json na pasta config")
                         return
                 else:
-                    self.mensagem(f"Não existe arquivos na pasta config")
+                    self.popup_mensagem(f"Não existe arquivos na pasta config")
                     return
 
         self.button_config_existente.config(state="disabled")
-        self.button_config_novo.config(state="active" , fg = self.infos_config_prog["background_color_fonte"])
-        self.limpar_linha(5,1)
-        self.limpar_linha(6,1)
-        self.limpar_linha(7,1)
-        self.limpar_linha(10,2)
-        self.infos_config_prog['escolha_manual']= True
+        self.button_config_novo.config(state="active", fg=self.infos_config_prog["background_color_fonte"])
+        self.limpar_linha(5, 1)
+        self.limpar_linha(6, 1)
+        self.limpar_linha(7, 1)
+        self.limpar_linha(10, 2)
+        self.infos_config_prog['escolha_manual'] = True
 
         self.label_lista_arquivos = Label(
             text="Lista de arquivos:",
             bg=self.infos_config_prog["background_color_fundo"],
-            fg = self.infos_config_prog["background_color_fonte"]
+            fg=self.infos_config_prog["background_color_fonte"]
         )
         self.combobox = Combobox(
             app,
@@ -1254,60 +1219,60 @@ background_color_fonte = {self.color_default_fonte}""")
         if len(opcoes) > 0:
             self.combobox.set(opcoes[0])
         self.label_lista_arquivos.grid(row=5, column=coluna, pady=(10, 0), sticky="WS")
-        self.combobox.grid(row=6, column=coluna, pady =(0, 10), sticky="WEN")
+        self.combobox.grid(row=6, column=coluna, pady=(0, 10), sticky="WEN")
         self.button_nav_escolher.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
 
     def criar_config(self):
-        self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Tela - Criação de config ")
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Criação de config ")
         nome_escolhido = self.entry.get()
         if nome_escolhido == self.placeholder_text or nome_escolhido == "":
-            self.mensagem("O campo nome deverá ser preenchido")
+            self.popup_mensagem("O campo nome deverá ser preenchido")
             return
         else:
 
             nome_config = nome_escolhido + ".json"
 
             if os.path.exists(f"{self.nomes['diretorio_config']}\\{nome_config}"):
-                self.mensagem("Já existe um arquivo .json com o mesmo nome\nInforme outro nome para o arquivo config")
+                self.popup_mensagem(
+                    "Já existe um arquivo .json com o mesmo nome\nInforme outro nome para o arquivo config")
             else:
-                arquivo_config = open(f"{self.nomes['diretorio_config']}\\{nome_config}", "a")
-                arquivo_config.write("""{
+                arquivo_config = ("""{{
     "database_update_br": "",
     "database_update_mx": "",
     "database_update_pt": "",
     "database_update_md": "",
     "bases_muro": [],
-    "conexao": {
+    "conexao": {{
         "server": "",
         "username": "",
         "password": ""
-    },
-    "configs_restaurar_download": {
+    }},
+    "configs_restaurar_download": {{
         "server_principal": "",
         "username_principal": "",
         "password_principal": ""
-    },
-	"redis_qa": [
-		{
-		"nome_redis": "",
-		"ip": "",
-		"port": ""
-		},
-		{
-		"nome_redis": "",
-		"ip": "",
-		"port": ""
-		}
-	]
-}""")
-                arquivo_config.close()
-                self.mensagem("Novo config criado com sucesso")
-                self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Novo config criado com sucesso, configure e selecione para ser utilizado ")
+    }},
+    "redis_qa": [
+        {{
+        "nome_redis": "",
+        "ip": "",
+        "port": ""
+        }},
+        {{
+        "nome_redis": "",
+        "ip": "",
+        "port": ""
+        }}
+    ]
+}}""")
+                self.escrever_arquivo_config(nome_config, arquivo_config)
+                self.popup_mensagem("Novo config criado com sucesso")
+                self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Novo config criado com sucesso, configure e selecione para ser utilizado {nome_config}")
 
-    def insrir_campos_arquivo_novo(self, app, coluna):
-        self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Tela - Criar Arquivo config")
+    def inserir_campos_arquivo_novo(self, app, coluna):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Criar Arquivo config")
         self.button_config_novo.config(state="disabled")
-        self.button_config_existente.config(state="active", fg = self.infos_config_prog["background_color_fonte"])
+        self.button_config_existente.config(state="active", fg=self.infos_config_prog["background_color_fonte"])
         self.limpar_linha(5, 1)
         self.limpar_linha(6, 1)
         self.limpar_linha(7, 1)
@@ -1327,27 +1292,26 @@ background_color_fonte = {self.color_default_fonte}""")
         self.button_nav_criar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
 
     def restaurar_banco(self):
-        self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Tela - Restaurar Backup")
         self.button_restaurar_inicio.config(state='disabled')
         self.button_restaurar_voltar.config(state='disabled')
         self.entry.config(state='disabled')
         self.button_menu_sair.config(state='disabled')
-        pula_linha = validar_linha(self.nomes['arquivo_restaurar_banco'])
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Restaurar Backup")
         cnxnrs = ''
         cursorrs = ''
 
         nome_banco_restaurado = self.entry.get()
 
         if nome_banco_restaurado == self.placeholder_text or nome_banco_restaurado == "":
-            self.escrever("- O campo acima deverá ser preenchido")
+            self.escrever_no_input("- O campo acima deverá ser preenchido")
             self.button_restaurar_inicio.config(state='active')
             self.button_restaurar_voltar.config(state='active')
             self.entry.config(state='normal')
             self.button_menu_sair.config(state='active')
             return
         else:
-            self.arquivo_restauracao.write(f"{pula_linha}{data_hora_atual()} - INFO - Inserido o nome do banco apresentado no discord: {nome_banco_restaurado} ")
-            self.arquivo_restauracao.write(f"\n{data_hora_atual()} - INFO - Escolhido o servidor: {self.infos_config['server']} ")
+            self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Inserido o nome do banco apresentado no discord: {nome_banco_restaurado} ")
+            self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Escolhido o servidor: {self.infos_config['server']} ")
 
             comando_criar_device = f"""USE [master];
 EXEC Sp_addumpdevice'disk','{nome_banco_restaurado}','G:\\Backup\\Eventual\\{nome_banco_restaurado}.bak';"""
@@ -1398,25 +1362,27 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                 cursorrs.execute(comando_criar_device)
                 result_criar_device = cursorrs.messages
             except (Exception or pyodbc.DatabaseError) as err:
-                self.escrever("- Falha ao tentar executar o comando de criação de device de backup " + str(err))
-                self.arquivo_restauracao.write(f"\n{data_hora_atual()} - ERRO - Falha ao tentar executar o comando de criação de device de backup: {err} ")
+                self.escrever_no_input(
+                    "- Falha ao tentar executar o comando de criação de device de backup " + str(err))
+                self.escrever_arquivo_log(
+                    self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando de criação de device de backup: {err} ")
             else:
                 cursorrs.commit()
-                self.escrever(f"- Sucesso ao realizar Criar Device de Backup")
-                self.arquivo_restauracao.write(f"\n{data_hora_atual()} - INFO - Sucesso ao realizar Criar Device de Backup ")
+                self.escrever_no_input(f"- Sucesso ao realizar Criar Device de Backup")
+                self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Sucesso ao realizar Criar Device de Backup ")
                 status_etapa1 = True
                 for incs in range(len(result_criar_device)):
                     separados = result_criar_device[0][1].split("]")
                     mensagem = separados[3]
-                    self.arquivo_restauracao.write(f"\n{data_hora_atual()} - INFO - Comando(Criação Device) -  Mensagem SQL: {mensagem} ")
+                    self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Comando(Criação Device) -  Mensagem SQL: {mensagem} ")
 
             if status_etapa1:
                 try:
                     cursorrs = cnxnrs.cursor()
                     cursorrs.execute(comando_restaurar_banco)
                 except (Exception or pyodbc.DatabaseError) as err:
-                    self.escrever("- Falha ao tentar executar o comando de restauração de banco: " + str(err))
-                    self.arquivo_restauracao.write(f"\n{data_hora_atual()} - ERRO - Falha ao tentar executar o comando de restauração de banco: {err} ")
+                    self.escrever_no_input("- Falha ao tentar executar o comando de restauração de banco: " + str(err))
+                    self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando de restauração de banco: {err} ")
                 else:
                     mensagens = []
                     posicao = 3
@@ -1430,36 +1396,37 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                         else:
                             break
                     cursorrs.commit()
-                    self.escrever(f"- Sucesso ao realizar a restauração do banco")
-                    self.arquivo_restauracao.write(f"\n{data_hora_atual()} - INFO - Sucesso ao realizar a restauração do banco ")
+                    self.escrever_no_input(f"- Sucesso ao realizar a restauração do banco")
+                    self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Sucesso ao realizar a restauração do banco ")
 
                     tam = len(mensagens) - 3
                     for incs in range(posicao):
-                        self.escrever(f"- Comando(Restauração DB) -  Mensagem SQL: {mensagens[tam]}  ")
-                        self.arquivo_restauracao.write(f"\n{data_hora_atual()} - INFO - Comando(Restauração DB) -  Mensagem SQL: {mensagens[tam]} ")
+                        self.escrever_no_input(f"- Comando(Restauração DB) -  Mensagem SQL: {mensagens[tam]}  ")
+                        self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Comando(Restauração DB) -  Mensagem SQL: {mensagens[tam]} ")
                         tam += 1
 
                     try:
                         cursorrs.execute(comando_ativar_banco)
                         result_ativar_banco = cursorrs.messages
                     except (Exception or pyodbc.DatabaseError) as err:
-                        self.escrever("- Falha ao tentar executar o comando de Ativação do banco: " + str(err))
-                        self.arquivo_restauracao.write(f"\n{data_hora_atual()} - ERRO - Falha ao tentar executar o comando de Ativação do banco: {err} ")
+                        self.escrever_no_input("- Falha ao tentar executar o comando de Ativação do banco: " + str(err))
+                        self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando de Ativação do banco: {err} ")
                     else:
                         tam_result = len(result_ativar_banco) - 1
                         while tam_result < len(result_ativar_banco):
                             separados = result_ativar_banco[tam_result][1].split("]")
                             mensagem = separados[3]
-                            self.escrever(f"- Comando(Ativação DB) -  Mensagem SQL: {mensagem}  ")
-                            self.arquivo_restauracao.write(f"\n{data_hora_atual()} - INFO - Comando(Ativação DB) -  Mensagem SQL: {mensagem} ")
+                            self.escrever_no_input(f"- Comando(Ativação DB) -  Mensagem SQL: {mensagem}  ")
+                            self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Comando(Ativação DB) -  Mensagem SQL: {mensagem} ")
                             tam_result += 1
 
                         try:
                             cursorrs.execute(comando_checar_banco)
                             result_check = cursorrs.messages
                         except (Exception or pyodbc.DatabaseError) as err:
-                            self.escrever("- Falha ao tentar executar o comando de checagem do banco: " + str(err))
-                            self.arquivo_restauracao.write(f"\n{data_hora_atual()} - ERRO - Falha ao tentar executar o comando de checagem do banco: {err} ")
+                            self.escrever_no_input(
+                                "- Falha ao tentar executar o comando de checagem do banco: " + str(err))
+                            self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando de checagem do banco: {err} ")
                         else:
                             looping = True
                             tam_result = len(result_check) - 2
@@ -1467,8 +1434,8 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                                 if tam_result < len(result_check):
                                     separados = result_check[tam_result][1].split("]")
                                     mensagem = separados[3]
-                                    self.escrever(f"- Comando(Checagem DB) - Mensagem SQL: {mensagem}")
-                                    self.arquivo_restauracao.write(f"\n{data_hora_atual()} - INFO - Comando(Checagem DB) - Mensagem SQL: {mensagem} ")
+                                    self.escrever_no_input(f"- Comando(Checagem DB) - Mensagem SQL: {mensagem}")
+                                    self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Comando(Checagem DB) - Mensagem SQL: {mensagem} ")
                                     tam_result += 1
                                 else:
                                     looping = False
@@ -1476,62 +1443,65 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                                 cursorrs.execute(comando_excluir_device)
                                 result_excluir_device = cursorrs.messages
                             except (Exception or pyodbc.DatabaseError) as err:
-                                self.escrever("- Falha ao tentar executar o comando de checagem do banco: " + str(err))
-                                self.arquivo_restauracao.write(f"\n{data_hora_atual()} - ERRO - Falha ao tentar executar o comando de checagem do banco: {err} ")
+                                self.escrever_no_input(
+                                    "- Falha ao tentar executar o comando de checagem do banco: " + str(err))
+                                self.escrever_arquivo_log(
+                                    self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando de checagem do banco: {err} ")
                             else:
                                 for incs in range(len(result_excluir_device)):
                                     separados = result_excluir_device[0][1].split("]")
                                     mensagem = separados[3]
-                                    self.escrever(f"- Comando(Exclusão Device) -  Mensagem SQL: {mensagem}  ")
-                                    self.arquivo_restauracao.write(f"\n{data_hora_atual()} - INFO - Comando(Exclusão Device) -  Mensagem SQL: {mensagem} ")
+                                    self.escrever_no_input(f"- Comando(Exclusão Device) -  Mensagem SQL: {mensagem}  ")
+                                    self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Comando(Exclusão Device) -  Mensagem SQL: {mensagem} ")
 
                                 try:
                                     cursorrs.execute(comando_primeiro_script)
                                     associar_owner = cursorrs.messages
                                 except (Exception or pyodbc.DatabaseError) as err:
-                                    self.escrever("- Falha ao tentar executar o comando de associação do Owner: " + str(err))
-                                    self.arquivo_restauracao.write(f"\n{data_hora_atual()} - ERRO - Falha ao tentar executar o comando de associação do Owner:  {err} ")
+                                    self.escrever_no_input(
+                                        "- Falha ao tentar executar o comando de associação do Owner: " + str(err))
+                                    self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando de associação do Owner:  {err} ")
                                 else:
                                     separados = associar_owner[0][1].split("]")
                                     mensagem = separados[3]
-                                    self.escrever(f"- Comando(Associar Owner) - Mensagem SQL: {mensagem}")
-                                    self.arquivo_restauracao.write(f"\n{data_hora_atual()} - INFO - Comando(Script Associar Owner) - Mensagem SQL: {mensagem} ")
+                                    self.escrever_no_input(f"- Comando(Associar Owner) - Mensagem SQL: {mensagem}")
+                                    self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Comando(Script Associar Owner) - Mensagem SQL: {mensagem} ")
 
                                     try:
                                         cursorrs.execute(comando_segundo_script)
                                         compatibilidade = cursorrs.messages
                                     except (Exception or pyodbc.DatabaseError) as err:
-                                        self.escrever("- Falha ao tentar executar o comando " + str(err))
-                                        self.arquivo_restauracao.write(f"\n{data_hora_atual()} - ERRO - Falha ao tentar executar o comando: {err} ")
+                                        self.escrever_no_input("- Falha ao tentar executar o comando " + str(err))
+                                        self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando: {err} ")
                                     else:
                                         separados = compatibilidade[0][1].split("]")
                                         mensagem = separados[3]
-                                        self.escrever(f"- Comando(Compatibilidade) - Mensagem SQL: {mensagem}")
-                                        self.arquivo_restauracao.write(f"\n{data_hora_atual()} - INFO - Comando(Script Compatibilidade) - Mensagem SQL: {mensagem} ")
+                                        self.escrever_no_input(f"- Comando(Compatibilidade) - Mensagem SQL: {mensagem}")
+                                        self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Comando(Script Compatibilidade) - Mensagem SQL: {mensagem} ")
                 cursorrs.close()
 
-        self.escrever("- Processo finalizado")
-        self.arquivo_restauracao.write(f"\n{data_hora_atual()} - INFO - Processo finalizado")
-        self.arquivo_restauracao.close()
+        self.escrever_no_input("- Processo finalizado")
+        self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Processo finalizado")
         self.entry.config(state='normal')
         self.button_restaurar_inicio.config(state='active')
         self.button_restaurar_voltar.config(state='active')
         self.button_menu_sair.config(state='active')
 
     def download_backup(self):
-        self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Tela - Download Backup ")
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Download Backup ")
         self.button_download_inicio.config(state='disabled')
         self.button_download_voltar.config(state='disabled')
         self.button_menu_sair.config(state='disabled')
 
         self.entry.config(state='disabled')
-        pula_linha = validar_linha(self.nomes['arquivo_download_backup'])
-        self.arquivo_download.write(f"{pula_linha}{data_hora_atual()} - INFO - Inicio da operação Download Backup ")
+        self.escrever_arquivo_log(self.nomes['arquivo_download_backup'],
+                                  f"INFO - Inicio da operação Download Backup ")
         endereco_download = self.entry.get()
-        self.arquivo_download.write(f"\n{data_hora_atual()} - INFO - Inserida a URL de Download: {endereco_download} ")
+        self.escrever_arquivo_log(self.nomes['arquivo_download_backup'],
+                                  f"INFO - Inserida a URL de Download: {endereco_download} ")
 
         if endereco_download == self.placeholder_text or endereco_download == "":
-            self.escrever("- O campo acima deverá ser preenchido")
+            self.escrever_no_input("- O campo acima deverá ser preenchido")
             self.button_download_inicio.config(state='active')
             self.button_download_voltar.config(state='active')
             self.entry.config(state='normal')
@@ -1547,32 +1517,33 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                 cursorrp1.execute(comando)
                 result = cursorrp1.fetchall()
             except (Exception or pyodbc.DatabaseError) as err:
-                self.escrever("- Falha ao tentar executar o comando " + str(err))
-                self.arquivo_download.write(f"\n{data_hora_atual()} - ERRO - Falha ao tentar executar o comando: {err} ")
+                self.escrever_no_input("- Falha ao tentar executar o comando " + str(err))
+                self.escrever_arquivo_log(self.nomes['arquivo_download_backup'], f"ERRO - Falha ao tentar executar o comando: {err} ")
             else:
                 cursorrp1.commit()
 
-                self.arquivo_download.write(f"\n{data_hora_atual()} - INFO - Sucesso ao realizar Download do backup ")
-                self.arquivo_download.write(f"\n{data_hora_atual()} - INFO - Resultado:")
+                self.escrever_arquivo_log(self.nomes['arquivo_download_backup'],
+                                          f"INFO - Sucesso ao realizar Download do backup ")
+                self.escrever_arquivo_log(self.nomes['arquivo_download_backup'],
+                                          f"INFO - Resultado:")
 
                 for incs in range(len(result)):
                     semi_separado = (str(result[incs])).split("'")
                     if len(semi_separado) > 1:
                         separado = semi_separado[1].split("(")
                         limpo = separado[0]
-                        self.escrever('- ' + str(limpo))
-                        self.arquivo_download.write(f"\n{data_hora_atual()} - INFO - {limpo}")
+                        self.escrever_no_input('- ' + str(limpo))
+                        self.escrever_arquivo_log(self.nomes['arquivo_download_backup'], f"INFO - {limpo}")
 
                     else:
                         limpo = semi_separado[0]
-                        self.escrever("- " + str(limpo))
-                        self.arquivo_download.write(f"\n{data_hora_atual()} - INFO - {limpo}")
+                        self.escrever_no_input("- " + str(limpo))
+                        self.escrever_arquivo_log(self.nomes['arquivo_download_backup'], f"INFO - {limpo}")
 
                 cursorrp1.close()
 
-        self.escrever("- Processo finalizado")
-        self.arquivo_download.write(f"\n{data_hora_atual()} - INFO - Processo finalizado ")
-        self.arquivo_download.close()
+        self.escrever_no_input("- Processo finalizado")
+        self.escrever_arquivo_log(self.nomes['arquivo_download_backup'], f"INFO - Processo finalizado ")
         self.entry.config(state='normal')
         self.button_download_inicio.config(state='active')
         self.button_download_voltar.config(state='active')
@@ -1582,11 +1553,12 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.button_atualizacao_inicio.config(state='disabled')
         self.button_atualizacao_voltar.config(state='disabled')
         self.button_menu_sair.config(state='disabled')
-        pula_linha = validar_linha(self.nomes['arquivo_redis'])
-        self.arquivo_redis.write(f"{pula_linha}{data_hora_atual()} - INFO - Inicio da operação Limpar todos Redis ")
+        self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"INFO - Inicio da operação Limpar todos Redis ")
         for red_atual in self.infos_config['redis_qa']:
-            self.escrever(f"- Iniciado processo no Redis {red_atual['nome_redis']}")
-            self.arquivo_redis.write(f"\n{data_hora_atual()} - INFO - Iniciado processo no Redis {red_atual['nome_redis']} ")
+            self.escrever_no_input(
+                f"- Iniciado processo no Redis {red_atual['nome_redis']}")
+            self.escrever_arquivo_log(self.nomes['arquivo_redis'],
+                                      f"INFO - Iniciado processo no Redis {red_atual['nome_redis']} ")
             redis_host = red_atual['ip']  # ou o endereço do seu servidor Redis
             redis_port = red_atual['port']  # ou a porta que o seu servidor Redis está ouvindo
 
@@ -1597,28 +1569,29 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                 # Executando o comando FLUSHALL
                 redis_client.flushall()
             except Exception as err:
-                self.escrever(f"- Processo finalizado com falha: {err}")
-                self.arquivo_redis.write(f"\n{data_hora_atual()} - INFO - Processo finalizado com falha: {err}")
+                self.escrever_no_input(f"- Processo finalizado com falha: {err}")
+                self.escrever_arquivo_log(
+                    self.nomes['arquivo_redis'], f"INFO - Processo finalizado com falha: {err}")
             else:
-                self.escrever(f"- FLUSHALL executado com sucesso no redis")
-                self.arquivo_redis.write(f"\n{data_hora_atual()} - INFO - FLUSHALL executado com sucesso no redis")
-        self.escrever("- Processo finalizado")
-        self.arquivo_redis.write(f"\n{data_hora_atual()} - INFO - Processo finalizado ")
+                self.escrever_no_input(f"- FLUSHALL executado com sucesso no redis")
+                self.escrever_arquivo_log(
+                    self.nomes['arquivo_redis'], f"INFO - FLUSHALL executado com sucesso no redis")
+        self.escrever_no_input("- Processo finalizado")
+        self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"INFO - Processo finalizado ")
         self.button_atualizacao_inicio.config(state='active')
         self.button_atualizacao_voltar.config(state='active')
         self.button_menu_sair.config(state='active')
-        self.arquivo_redis.close()
 
     def limpar_redis_especifico(self):
         self.combobox.config(state='disabled')
         self.button_redis_inicio.config(state='disabled')
         self.button_redis_voltar.config(state='disabled')
         self.button_menu_sair.config(state='disabled')
-        pula_linha = validar_linha(self.nomes['arquivo_redis'])
-        self.arquivo_redis.write(f"{pula_linha}{data_hora_atual()} - INFO - Inicio da operação Limpar Redis especifico")
+        self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"INFO - Inicio da operação Limpar Redis especifico")
         redis_selecionado = self.combobox.get()
-        self.escrever(f"- Iniciado processo no Redis {redis_selecionado}")
-        self.arquivo_redis.write(f"\n{data_hora_atual()} - INFO - Iniciado processo no Redis {redis_selecionado} ")
+        self.escrever_no_input(f"- Iniciado processo no Redis {redis_selecionado}")
+        self.escrever_arquivo_log(
+            self.nomes['arquivo_redis'], f"INFO - Iniciado processo no Redis {redis_selecionado} ")
         todos_valores_redis = self.infos_config["redis_qa"]
         for redis_unico in todos_valores_redis:
             if redis_unico["nome_redis"] == redis_selecionado:
@@ -1633,18 +1606,17 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             # Executando o comando FLUSHALL
             redis_client.flushall()
         except Exception as err:
-            self.escrever(f"- Processo finalizado com falha: {err}")
-            self.arquivo_redis.write(f"\n{data_hora_atual()} - INFO - Processo finalizado com falha: {err}")
+            self.escrever_no_input(f"- Processo finalizado com falha: {err}")
+            self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"INFO - Processo finalizado com falha: {err}")
         else:
-            self.escrever(f"- FLUSHALL executado com sucesso no redis")
-            self.arquivo_redis.write(f"\n{data_hora_atual()} - INFO - FLUSHALL executado com sucesso no redis")
-        self.escrever("- Processo finalizado")
-        self.arquivo_redis.write(f"\n{data_hora_atual()} - INFO - Processo finalizado ")
+            self.escrever_no_input(f"- FLUSHALL executado com sucesso no redis")
+            self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"INFO - FLUSHALL executado com sucesso no redis")
+        self.escrever_no_input("- Processo finalizado")
+        self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"INFO - Processo finalizado ")
         self.button_redis_inicio.config(state='active')
         self.button_redis_voltar.config(state='active')
         self.combobox.config(state='active')
         self.button_menu_sair.config(state='active')
-        self.arquivo_redis.close()
 
     def gerador_nif(self, linhas):
         self.combobox.config(state='disabled')
@@ -1656,16 +1628,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         contador = int(linhas)
 
         while contador:
-            soma = 0
-            string_soma = ''
-            soma_digitos = 0
             lista = []
-            etapa1_cpf = 0
-            etapa2_cpf = 0
-            etapa3_cpf = 0
-            etapa4_cpf = 0
-            etapa5_cpf = 0
-            etapa6_cpf = 0
             n1 = 2
             n2 = random.randrange(0, 9, 1)
             n3 = random.randrange(0, 9, 1)
@@ -1675,7 +1638,6 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             n7 = random.randrange(0, 9, 1)
             n8 = random.randrange(0, 9, 1)
 
-            print(f"{n1} {n2} {n3} {n4} {n5} {n6} {n7} {n8}")
             soma1 = (n1 * 9) + (n2 * 8) + (n3 * 7) + (n4 * 6) + (n5 * 5) + (n6 * 4) + (n7 * 3) + (n8 * 2)
             etapa1_nif = math.floor(soma1/11)
             etapa2_nif = soma1 - etapa1_nif * 11
@@ -1687,14 +1649,14 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             nif_gerado = str(n1) + str(n2) + str(n3) + str(n4) + str(n5) + str(n6) + str(n7) + str(n8) + str(dig1_nif)
             lista.append(nif_gerado)
             contador -= 1
-            self.escrever(lista[0])
+            self.escrever_no_input(lista[0])
         self.combobox.config(state='active')
         self.entry.config(state='normal')
         self.button_gerador_inicio.config(state='active')
         self.button_gerador_voltar.config(state='active')
         self.button_menu_sair.config(state='active')
         self.button_gerador_limpar.config(state='active')
-        self.escrever(f"- Processo finalizado com sucesso")
+        self.escrever_no_input(f"- Processo finalizado com sucesso")
 
     def gerador_cnpj(self, linhas):
         self.combobox.config(state='disabled')
@@ -1706,16 +1668,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         contador = int(linhas)
 
         while contador:
-            soma = 0
-            string_soma = ''
-            soma_digitos = 0
             lista = []
-            etapa1_cpf = 0
-            etapa2_cpf = 0
-            etapa3_cpf = 0
-            etapa4_cpf = 0
-            etapa5_cpf = 0
-            etapa6_cpf = 0
             n1 = random.randrange(0, 9, 1)
             n2 = random.randrange(0, 9, 1)
             n3 = random.randrange(0, 9, 1)
@@ -1729,7 +1682,6 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             n11 = 0
             n12 = random.randrange(0, 9, 1)
 
-            print(f"{n1} {n2} {n3} {n4} {n5} {n6} {n7} {n8} {n9} {n10} {n11} {n12}")
             soma1 = (n1 * 5) + (n2 * 4) + (n3 * 3) + (n4 * 2) + (n5 * 9) + (n6 * 8) + (n7 * 7) + (n8 * 6) + (n9 * 5) + (n10 * 4) + (n11 * 3) + (n12 * 2)
             etapa1_cnpj = math.floor(soma1/11)
             etapa2_cnpj = math.floor(etapa1_cnpj * 11)
@@ -1745,14 +1697,14 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             cnpj_gerado = str(n1) + str(n2) + str(n3) + str(n4) + str(n5) + str(n6) + str(n7) + str(n8) + str(n9) + str(n10) + str(n11) + str(n12) + str(dig1_cnpj) + str(dig2_cnpj)
             lista.append(cnpj_gerado)
             contador -= 1
-            self.escrever(lista[0])
+            self.escrever_no_input(lista[0])
         self.combobox.config(state='active')
         self.entry.config(state='normal')
         self.button_gerador_inicio.config(state='active')
         self.button_gerador_voltar.config(state='active')
         self.button_menu_sair.config(state='active')
         self.button_gerador_limpar.config(state='active')
-        self.escrever(f"- Processo finalizado com sucesso")
+        self.escrever_no_input(f"- Processo finalizado com sucesso")
 
     def gerador_cpf(self, linhas):
         self.combobox.config(state='disabled')
@@ -1764,16 +1716,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         contador = int(linhas)
 
         while contador:
-            soma = 0
-            string_soma = ''
-            soma_digitos = 0
             lista = []
-            etapa1_cpf = 0
-            etapa2_cpf = 0
-            etapa3_cpf = 0
-            etapa4_cpf = 0
-            etapa5_cpf = 0
-            etapa6_cpf = 0
             n1 = random.randrange(0, 9, 1)
             n2 = random.randrange(0, 9, 1)
             n3 = random.randrange(0, 9, 1)
@@ -1784,7 +1727,6 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             n8 = random.randrange(0, 9, 1)
             n9 = random.randrange(0, 9, 1)
 
-            print(f"{n1} {n2} {n3} {n4} {n5} {n6} {n7} {n8} {n9}")
             soma1 = (n1 * 10) + (n2 * 9) + (n3 * 8) + (n4 * 7) + (n5 * 6) + (n6 * 5) + (n7 * 4) + (n8 * 3) + (n9 * 2)
             etapa1_cpf = math.floor(soma1/11)
             etapa2_cpf = math.floor(etapa1_cpf*11)
@@ -1800,14 +1742,14 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             cpf_gerado = str(n1) + str(n2) + str(n3) + str(n4) + str(n5) + str(n6) + str(n7) + str(n8) + str(n9) + str(dig1_cpf) + str(dig2_cpf)
             lista.append(cpf_gerado)
             contador -= 1
-            self.escrever(lista[0])
+            self.escrever_no_input(lista[0])
         self.combobox.config(state='active')
         self.entry.config(state='normal')
         self.button_gerador_inicio.config(state='active')
         self.button_gerador_voltar.config(state='active')
         self.button_menu_sair.config(state='active')
         self.button_gerador_limpar.config(state='active')
-        self.escrever(f"- Processo finalizado com sucesso")
+        self.escrever_no_input(f"- Processo finalizado com sucesso")
 
     def gerador_cei(self, linhas):
         self.combobox.config(state='disabled')
@@ -1831,7 +1773,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             n9 = random.randrange(0, 9, 1)
             n10 = random.randrange(0, 9, 1)
             n11 = 8
-            print(f"{n1}{n2}{n3}{n4}{n5}{n6}{n7}{n8}{n9}{n10}{n11}")
+
             soma = (n1 * 7) + (n2 * 4) + (n3 * 1) + (n4 * 8) + (n5 * 5) + (n6 * 2) + (n7 * 1) + (n8 * 6) + (n9 * 3) + (n10 * 7) + (n11 * 4)
             string_soma = str(soma)
             soma_digitos = int(string_soma[len(string_soma) - 1]) + int(string_soma[len(string_soma) - 2])
@@ -1849,14 +1791,14 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             cei_gerado = str(n1) + str(n2) + str(n3) + str(n4) + str(n5) + str(n6) + str(n7) + str(n8) + str(n9) + str(n10) + str(n11) + str(etapa6)
             lista.append(cei_gerado)
             contador -= 1
-            self.escrever(lista[0])
+            self.escrever_no_input(lista[0])
         self.combobox.config(state='active')
         self.entry.config(state='normal')
         self.button_gerador_inicio.config(state='active')
         self.button_gerador_voltar.config(state='active')
         self.button_menu_sair.config(state='active')
         self.button_gerador_limpar.config(state='active')
-        self.escrever(f"- Processo finalizado com sucesso")
+        self.escrever_no_input(f"- Processo finalizado com sucesso")
 
     def gerador_pis(self, linhas):
         self.combobox.config(state='disabled')
@@ -1865,8 +1807,6 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.button_gerador_voltar.config(state='disabled')
         self.button_menu_sair.config(state='disabled')
         self.button_gerador_limpar.config(state='disabled')
-        quant = 0
-        fase2 = []
         divisor = 11
         contador = int(linhas)
 
@@ -1888,14 +1828,12 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
 
             # Fase 3 - Soma
             fase3 = sum(fase2)
-            # Fase 5 - Divisão
-            fase5 = fase3 / divisor
             # Fase 6 - Resto da Divisão
             fase6 = fase3 % divisor
             # Fase 7 - Validador
-            if (divisor - fase6 == 10):
+            if divisor - fase6 == 10:
                 fase7 = 0
-            elif(divisor - fase6 == 11):
+            elif divisor - fase6 == 11:
                 fase7 = 0
             else:
                 fase7 = divisor - fase6
@@ -1906,40 +1844,43 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             # Guardando os Pis gerados em um Array
             lista.append(pis_gerado)
             contador -= 1
-            self.escrever(lista[0])
+            self.escrever_no_input(lista[0])
         self.combobox.config(state='active')
         self.entry.config(state='normal')
         self.button_gerador_inicio.config(state='active')
         self.button_gerador_voltar.config(state='active')
         self.button_menu_sair.config(state='active')
         self.button_gerador_limpar.config(state='active')
-        self.escrever(f"- Processo finalizado com sucesso")
+        self.escrever_no_input(f"- Processo finalizado com sucesso")
 
     def menu_gerador_documentos(self):
         selecao_combobox = self.combobox.get()
         quant_insirada = self.entry.get()
-        if quant_insirada != self.placeholder_text and quant_insirada != "":
-            match selecao_combobox:
-                case "PIS":
-                    self.iniciar_processo_gerar_pis(quant_insirada)
-                case "CPF":
-                    self.iniciar_processo_gerar_cpf(quant_insirada)
-                case "CNPJ":
-                    self.iniciar_processo_gerar_cnpj(quant_insirada)
-                case "CEI":
-                    self.iniciar_processo_gerar_cei(quant_insirada)
-                case "NIF":
-                    self.iniciar_processo_gerar_nif(quant_insirada)
-                case _:
-                    self.escrever(f"- Função não implementada")
-
-
+        tam_quant_insirada = int(len(quant_insirada))
+        if quant_insirada.isdigit():
+            if quant_insirada != self.placeholder_text and quant_insirada != "":
+                match selecao_combobox:
+                    case "PIS":
+                        self.iniciar_processo_gerar_pis(quant_insirada)
+                    case "CPF":
+                        self.iniciar_processo_gerar_cpf(quant_insirada)
+                    case "CNPJ":
+                        self.iniciar_processo_gerar_cnpj(quant_insirada)
+                    case "CEI":
+                        self.iniciar_processo_gerar_cei(quant_insirada)
+                    case "NIF":
+                        self.iniciar_processo_gerar_nif(quant_insirada)
+                    case _:
+                        self.escrever_no_input(f"- Função não implementada")
+            else:
+                self.escrever_no_input(f"- Insira a quantidade de registros para serem gerados")
+                return
         else:
-            self.escrever(f"- Insira a quantidade de registros para serem gerados")
+            self.escrever_no_input(f"- Insira somente digitos na caixa de input")
+            self.entry.delete(0, tam_quant_insirada)
             return
 
     def menu_restaurar_banco(self):
-        self.arquivo_restauracao = open(f"{self.nomes['diretorio_log']}\\{self.nomes['arquivo_restaurar_banco']}.txt", "a")
         self.infos_config['status'] = True
         while True:
             if self.infos_config['status']:
@@ -1948,20 +1889,18 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                         self.iniciar_processo_restaurar()
                         break
                     else:
-                        self.escrever(f"- A tag de server_principal parece estar vazia")
-                        self.arquivo_restauracao.write(f"\n{data_hora_atual()} - INFO - A tag de server_principal parece estar vazia, preencha e recarregue o config novamente ")
+                        self.escrever_no_input(f"- A tag de server_principal parece estar vazia")
+                        self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - A tag de server_principal parece estar vazia, preencha e recarregue o config novamente ")
                         self.infos_config['status'] = False
                 except (Exception or pyodbc.DatabaseError) as err:
-                    self.escrever(f"- Falha ao tentar ler o arquivo {err}")
-                    self.arquivo_restauracao.write(f"\n{data_hora_atual()} - ERRO - Falha ao tentar ler o arquivo, corrija e tente novamente: {err} ")
+                    self.escrever_no_input(f"- Falha ao tentar ler o arquivo {err}")
+                    self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar ler o arquivo, corrija e tente novamente: {err} ")
                     self.infos_config['status'] = False
             else:
-                self.escrever(f"- Processo finalizado")
-                self.arquivo_restauracao.close()
+                self.escrever_no_input(f"- Processo finalizado")
                 break
 
     def menu_redis_todos(self):
-        self.arquivo_redis = open(f"{self.nomes['diretorio_log']}\\{self.nomes['arquivo_redis']}.txt", "a")
         self.infos_config['status'] = True
         while True:
             if self.infos_config['status']:
@@ -1970,21 +1909,18 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                         self.iniciar_processo_limpar_redis_todos()
                         break
                     else:
-                        self.escrever(f"- A tag de redis_qa parece estar vazia")
-                        self.arquivo_redis.write(f"\n{data_hora_atual()} - INFO - A tag de redis_qa parece estar vazia, preencha e recarregue o config novamente ")
+                        self.escrever_no_input(f"- A tag de redis_qa parece estar vazia")
+                        self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"INFO - A tag de redis_qa parece estar vazia, preencha e recarregue o config novamente ")
                         self.infos_config['status'] = False
                 except (Exception or pyodbc.DatabaseError) as err:
-                    self.escrever(f"- Falha ao tentar ler o arquivo {err}")
-                    self.arquivo_redis.write(f"\n{data_hora_atual()} - ERRO - Falha ao tentar ler o arquivo, corrija e tente novamente: {err} ")
+                    self.escrever_no_input(f"- Falha ao tentar ler o arquivo {err}")
+                    self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"ERRO - Falha ao tentar ler o arquivo, corrija e tente novamente: {err} ")
                     self.infos_config['status'] = False
-                    self.arquivo_redis.close()
             else:
-                self.escrever(f"- Processo finalizado")
-                self.arquivo_redis.close()
+                self.escrever_no_input(f"- Processo finalizado")
                 break
 
     def menu_redis_especifico(self):
-        self.arquivo_redis = open(f"{self.nomes['diretorio_log']}\\{self.nomes['arquivo_redis']}.txt", "a")
         self.infos_config['status'] = True
         while True:
             if self.infos_config['status']:
@@ -1993,21 +1929,18 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                         self.iniciar_processo_limpar_redis_especifico()
                         break
                     else:
-                        self.escrever(f"- A tag de redis_qa parece estar vazia")
-                        self.arquivo_redis.write(f"\n{data_hora_atual()} - INFO - A tag de redis_qa parece estar vazia, preencha e recarregue o config novamente ")
+                        self.escrever_no_input(f"- A tag de redis_qa parece estar vazia")
+                        self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"INFO - A tag de redis_qa parece estar vazia, preencha e recarregue o config novamente ")
                         self.infos_config['status'] = False
                 except (Exception or pyodbc.DatabaseError) as err:
-                    self.escrever(f"- Falha ao tentar ler o arquivo {err}")
-                    self.arquivo_redis.write(f"\n{data_hora_atual()} - ERRO - Falha ao tentar ler o arquivo, corrija e tente novamente: {err} ")
+                    self.escrever_no_input(f"- Falha ao tentar ler o arquivo {err}")
+                    self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"ERRO - Falha ao tentar ler o arquivo, corrija e tente novamente: {err} ")
                     self.infos_config['status'] = False
-                    self.arquivo_redis.close()
             else:
-                self.escrever(f"- Processo finalizado")
-                self.arquivo_redis.close()
+                self.escrever_no_input(f"- Processo finalizado")
                 break
 
     def menu_download_backup(self):
-        self.arquivo_download = open(f"{self.nomes['diretorio_log']}\\{self.nomes['arquivo_download_backup']}.txt", "a")
         self.infos_config['status'] = True
         while True:
             if self.infos_config['status']:
@@ -2016,182 +1949,187 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                         self.iniciar_processo_download()
                         break
                     else:
-                        self.escrever(f"- A tag de server_principal parece estar vazia")
-                        self.arquivo_download.write(f"\n{data_hora_atual()} - INFO - A tag de server_principal parece estar vazia, preencha e recarregue o config novamente ")
+                        self.escrever_no_input(f"- A tag de server_principal parece estar vazia")
+                        self.escrever_arquivo_log(self.nomes['arquivo_download_backup'], f"INFO - A tag de server_principal parece estar vazia, preencha e recarregue o config novamente ")
                         self.infos_config['status'] = False
                 except (Exception or pyodbc.DatabaseError) as err:
-                    self.escrever(f"- Falha ao tentar ler o arquivo {err}")
-                    self.arquivo_download.write(f"\n{data_hora_atual()} - ERRO - Falha ao tentar ler o arquivo, corrija e tente novamente: {err} ")
+                    self.escrever_no_input(f"- Falha ao tentar ler o arquivo {err}")
+                    self.escrever_arquivo_log(self.nomes['arquivo_download_backup'], f"ERRO - Falha ao tentar ler o arquivo, corrija e tente novamente: {err} ")
                     self.infos_config['status'] = False
             else:
-                self.escrever(f"- Processo finalizado")
-                self.arquivo_download.close()
+                self.escrever_no_input(f"- Processo finalizado")
                 break
 
     def iniciar_processo_gerar_nif(self, linhas):
-        self.escrever(f"- Processo iniciado - Gerador de NIF")
+        self.escrever_no_input(f"- Processo iniciado - Gerador de NIF")
         # Criar uma nova thread para executar o processo demorado
         try:
             self.thread = threading.Thread(target=self.gerador_nif, args=[linhas])
             self.thread.start()
         except threading.excepthook as error:
-            self.escrever(f"- Processo finalizado com falha \n {error}")
+            self.escrever_no_input(f"- Processo finalizado com falha \n {error}")
 
     def iniciar_processo_gerar_cnpj(self, linhas):
-        self.escrever(f"- Processo iniciado - Gerador de CNPJ")
+        self.escrever_no_input(f"- Processo iniciado - Gerador de CNPJ")
         # Criar uma nova thread para executar o processo demorado
         try:
             self.thread = threading.Thread(target=self.gerador_cnpj, args=[linhas])
             self.thread.start()
         except threading.excepthook as error:
-            self.escrever(f"- Processo finalizado com falha \n {error}")
+            self.escrever_no_input(f"- Processo finalizado com falha \n {error}")
 
     def iniciar_processo_gerar_cpf(self, linhas):
-        self.escrever(f"- Processo iniciado - Gerador de CPF")
+        self.escrever_no_input(f"- Processo iniciado - Gerador de CPF")
         # Criar uma nova thread para executar o processo demorado
         try:
             self.thread = threading.Thread(target=self.gerador_cpf, args=[linhas])
             self.thread.start()
         except threading.excepthook as error:
-            self.escrever(f"- Processo finalizado com falha \n {error}")
+            self.escrever_no_input(f"- Processo finalizado com falha \n {error}")
 
     def iniciar_processo_gerar_cei(self, linhas):
-        self.escrever(f"- Processo iniciado - Gerador de CEI")
+        self.escrever_no_input(f"- Processo iniciado - Gerador de CEI")
         # Criar uma nova thread para executar o processo demorado
         try:
             self.thread = threading.Thread(target=self.gerador_cei, args=[linhas])
             self.thread.start()
         except threading.excepthook as error:
-            self.escrever(f"- Processo finalizado com falha \n {error}")
+            self.escrever_no_input(f"- Processo finalizado com falha \n {error}")
 
     def iniciar_processo_gerar_pis(self, linhas):
-        self.escrever(f"- Processo iniciado - Gerador de PIS")
+        self.escrever_no_input(f"- Processo iniciado - Gerador de PIS")
         # Criar uma nova thread para executar o processo demorado
         try:
             self.thread = threading.Thread(target=self.gerador_pis, args=[linhas])
             self.thread.start()
         except threading.excepthook as error:
-            self.escrever(f"- Processo finalizado com falha \n {error}")
+            self.escrever_no_input(f"- Processo finalizado com falha \n {error}")
 
     def iniciar_processo_limpar_redis_especifico(self):
-        self.escrever(f"- Processo iniciado")
+        self.escrever_no_input(f"- Processo iniciado")
         # Criar uma nova thread para executar o processo demorado
         try:
             self.thread = threading.Thread(target=self.limpar_redis_especifico)
             self.thread.start()
         except threading.excepthook as error:
-            self.escrever(f"- Processo finalizado com falha \n {error}")
+            self.escrever_no_input(f"- Processo finalizado com falha \n {error}")
 
     def iniciar_processo_limpar_redis_todos(self):
-        self.escrever(f"- Processo iniciado")
+        self.escrever_no_input(f"- Processo iniciado")
         # Criar uma nova thread para executar o processo demorado
         try:
             self.thread = threading.Thread(target=self.limpar_todos_redis)
             self.thread.start()
         except threading.excepthook as error:
-            self.escrever(f"- Processo finalizado com falha \n {error}")
+            self.escrever_no_input(f"- Processo finalizado com falha \n {error}")
 
     def iniciar_processo_atualizacao(self):
-        self.escrever(f"- Processo iniciado")
+        self.escrever_no_input(f"- Processo iniciado")
         # Criar uma nova thread para executar o processo demorado
         try:
             self.thread = threading.Thread(target=self.buscar_versions)
             self.thread.start()
         except threading.excepthook as error:
-            self.escrever(f"Processo finalizado com falha \n {error}")
+            self.escrever_no_input(f"Processo finalizado com falha \n {error}")
 
     def iniciar_processo_replicar(self):
-        self.escrever(f"- Processo iniciado")
+        self.escrever_no_input(f"- Processo iniciado")
         # Criar uma nova thread para executar o processo demorado
         try:
             self.thread = threading.Thread(target=self.replicar_version)
             self.thread.start()
         except threading.excepthook as error:
-            self.escrever(f"Processo finalizado com falha \n {error}")
+            self.escrever_no_input(f"Processo finalizado com falha \n {error}")
 
     def iniciar_processo_download(self):
-        self.escrever(f"- Processo iniciado")
+        self.escrever_no_input(f"- Processo iniciado")
         # Criar uma nova thread para executar o processo demorado
         try:
             self.thread = threading.Thread(target=self.download_backup)
             self.thread.start()
         except threading.excepthook as error:
-            self.escrever(f"Processo finalizado com falha \n {error}")
+            self.escrever_no_input(f"Processo finalizado com falha \n {error}")
 
     def iniciar_processo_restaurar(self):
-        self.escrever(f"- Processo iniciado")
+        self.escrever_no_input(f"- Processo iniciado")
         # Criar uma nova thread para executar o processo demorado
         try:
             self.thread = threading.Thread(target=self.restaurar_banco)
             self.thread.start()
         except threading.excepthook as error:
-            self.escrever(f"Processo finalizado com falha \n {error}")
+            self.escrever_no_input(f"Processo finalizado com falha \n {error}")
 
     def iniciar_processo_manipula_banco(self):
-        self.escrever(f"- Processo iniciado")
+        self.escrever_no_input(f"- Processo iniciado")
         # Criar uma nova thread para executar o processo demorado
         try:
             self.thread = threading.Thread(target=self.manipular_banco_muro)
             self.thread.start()
         except threading.excepthook as error:
-            self.escrever(f"Processo finalizado com falha \n {error}")
+            self.escrever_no_input(f"Processo finalizado com falha \n {error}")
 
     def trocar_tela_geradores(self, app):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Geradores de Documentos")
         peso_linha = 0
-        self.app.rowconfigure(1, weight= 1)
-        self.app.rowconfigure(2, weight= peso_linha)
-        self.app.rowconfigure(3, weight= peso_linha)
-        self.app.rowconfigure(4, weight= peso_linha)
-        self.app.rowconfigure(5, weight= peso_linha)
-        self.app.rowconfigure(6, weight= peso_linha)
-        self.app.rowconfigure(7, weight= peso_linha)
+        self.app.rowconfigure(1, weight=1)
+        self.app.rowconfigure(2, weight=peso_linha)
+        self.app.rowconfigure(3, weight=peso_linha)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(6, weight=peso_linha)
+        self.app.rowconfigure(7, weight=peso_linha)
         self.app.rowconfigure(8, weight=peso_linha)
-        self.app.rowconfigure(9, weight= 1)
+        self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
         self.tela_geradores(app, self.version, self.coluna)
 
     def trocar_tela_redis_especifico(self, app):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Limpar redis Especifico")
         peso_linha = 0
-        self.app.rowconfigure(1, weight= 1)
-        self.app.rowconfigure(2, weight= 1)
-        self.app.rowconfigure(3, weight= peso_linha)
-        self.app.rowconfigure(4, weight= peso_linha)
-        self.app.rowconfigure(9, weight= 1)
+        self.app.rowconfigure(1, weight=1)
+        self.app.rowconfigure(2, weight=1)
+        self.app.rowconfigure(3, weight=peso_linha)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
         self.tela_limpar_redis_especifico(app, self.version, self.coluna)
 
     def trocar_tela_redis_todos(self, app):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Limpar todos os redis")
         peso_linha = 0
-        self.app.rowconfigure(1, weight= 1)
-        self.app.rowconfigure(2, weight= 1)
-        self.app.rowconfigure(3, weight= peso_linha)
-        self.app.rowconfigure(4, weight= peso_linha)
-        self.app.rowconfigure(9, weight= 1)
+        self.app.rowconfigure(1, weight=1)
+        self.app.rowconfigure(2, weight=1)
+        self.app.rowconfigure(3, weight=peso_linha)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
         self.tela_limpar_redis_todos(app, self.version, self.coluna)
 
     def trocar_tela_ferramentas(self):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Ferramentas")
         peso_linha = 0
-        self.app.rowconfigure(1, weight= 1)
-        self.app.rowconfigure(2, weight= 1)
-        self.app.rowconfigure(3, weight= peso_linha)
-        self.app.rowconfigure(4, weight= peso_linha)
+        self.app.rowconfigure(1, weight=1)
+        self.app.rowconfigure(2, weight=1)
+        self.app.rowconfigure(3, weight=peso_linha)
+        self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(5, weight=peso_linha)
-        self.app.rowconfigure(9, weight= 1)
+        self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
         self.tela_ferramentas(self.app, self.version, self.coluna)
 
     def trocar_tela_ferramentas_bancos(self, app):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Ferramentas de banco")
         peso_linha = 0
-        self.app.rowconfigure(1, weight= 1)
-        self.app.rowconfigure(2, weight= 1)
-        self.app.rowconfigure(3, weight= peso_linha)
-        self.app.rowconfigure(4, weight= peso_linha)
-        self.app.rowconfigure(9, weight= 1)
+        self.app.rowconfigure(1, weight=1)
+        self.app.rowconfigure(2, weight=1)
+        self.app.rowconfigure(3, weight=peso_linha)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
         self.tela_ferramentas_bancos(app, self.version, self.coluna)
 
     def trocar_tela_ferramentas_redis(self, app):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Ferramentas de Redis")
         peso_linha = 0
         self.app.rowconfigure(1, weight=1)
         self.app.rowconfigure(2, weight=1)
@@ -2202,74 +2140,81 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.tela_ferramentas_redis(app, self.version, self.coluna)
 
     def trocar_tela_menu(self):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Menu")
         peso_linha = 0
-        self.app.rowconfigure(1, weight= 1)
-        self.app.rowconfigure(2, weight= 1)
-        self.app.rowconfigure(3, weight= peso_linha)
-        self.app.rowconfigure(4, weight= peso_linha)
-        self.app.rowconfigure(9, weight= 1)
+        self.app.rowconfigure(1, weight=1)
+        self.app.rowconfigure(2, weight=1)
+        self.app.rowconfigure(3, weight=peso_linha)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
         self.tela_menu(self.app, self.version, self.coluna)
 
     def trocar_tela_busca_muro(self, app):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Busca Muro")
         peso_linha = 0
-        self.app.rowconfigure(1, weight= 1)
-        self.app.rowconfigure(2, weight= 1)
-        self.app.rowconfigure(3, weight= peso_linha)
-        self.app.rowconfigure(4, weight= peso_linha)
-        self.app.rowconfigure(9, weight= 1)
+        self.app.rowconfigure(1, weight=1)
+        self.app.rowconfigure(2, weight=1)
+        self.app.rowconfigure(3, weight=peso_linha)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
         self.tela_busca_muro(app, self.version, self.coluna)
 
     def trocar_tela_download_backup(self, app):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Download Backup")
         peso_linha = 0
-        self.app.rowconfigure(1, weight= 1)
-        self.app.rowconfigure(2, weight= 1)
-        self.app.rowconfigure(3, weight= peso_linha)
-        self.app.rowconfigure(4, weight= peso_linha)
-        self.app.rowconfigure(9, weight= 1)
+        self.app.rowconfigure(1, weight=1)
+        self.app.rowconfigure(2, weight=1)
+        self.app.rowconfigure(3, weight=peso_linha)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
         self.tela_download_backup(app, self.version, self.coluna)
 
     def trocar_tela_restaurar_backup(self, app):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Restaurar Backup")
         peso_linha = 0
-        self.app.rowconfigure(1, weight= 1)
-        self.app.rowconfigure(2, weight= 1)
-        self.app.rowconfigure(3, weight= peso_linha)
-        self.app.rowconfigure(4, weight= peso_linha)
-        self.app.rowconfigure(9, weight= 1)
+        self.app.rowconfigure(1, weight=1)
+        self.app.rowconfigure(2, weight=1)
+        self.app.rowconfigure(3, weight=peso_linha)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
         self.tela_restaurar_backup(app, self.version, self.coluna)
 
     def trocar_tela_buscar_versions(self, app):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Buscar Versions")
         peso_linha = 0
-        self.app.rowconfigure(1, weight= 1)
-        self.app.rowconfigure(2, weight= 1)
-        self.app.rowconfigure(3, weight= peso_linha)
-        self.app.rowconfigure(4, weight= peso_linha)
-        self.app.rowconfigure(9, weight= 1)
+        self.app.rowconfigure(1, weight=1)
+        self.app.rowconfigure(2, weight=1)
+        self.app.rowconfigure(3, weight=peso_linha)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
         self.tela_buscar_versions(app, self.version, self.coluna)
 
     def trocar_tela_replicar_version(self, app):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Replicar Versions")
         peso_linha = 0
-        self.app.rowconfigure(1, weight= 1)
-        self.app.rowconfigure(2, weight= 1)
-        self.app.rowconfigure(3, weight= peso_linha)
-        self.app.rowconfigure(4, weight= peso_linha)
-        self.app.rowconfigure(9, weight= 1)
+        self.app.rowconfigure(1, weight=1)
+        self.app.rowconfigure(2, weight=1)
+        self.app.rowconfigure(3, weight=peso_linha)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
         self.tela_replicar_version_muro(app, self.version, self.coluna)
 
     def trocar_tela_alterar_aparencia(self):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Alterar Aparencia")
         peso_linha = 0
-        self.app.rowconfigure(1, weight= 1)
-        self.app.rowconfigure(2, weight= 1)
-        self.app.rowconfigure(3, weight= peso_linha)
-        self.app.rowconfigure(4, weight= peso_linha)
-        self.app.rowconfigure(5, weight= peso_linha)
-        self.app.rowconfigure(6, weight= peso_linha)
-        self.app.rowconfigure(9, weight= 1)
+        self.app.rowconfigure(1, weight=1)
+        self.app.rowconfigure(2, weight=1)
+        self.app.rowconfigure(3, weight=peso_linha)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(6, weight=peso_linha)
+        self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
         self.tela_alterar_aparencia(self.app, self.version, self.coluna)
 
@@ -2284,7 +2229,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                     opcoes.append(red_nome["nome_redis"])
 
         else:
-            self.mensagem(f"Não existe arquivos .json na pasta config")
+            self.popup_mensagem(f"Não existe arquivos .json na pasta config")
             return
 
         self.label_lista_redis = Label(
@@ -2319,7 +2264,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         if len(opcoes) > 0:
             self.combobox.set(opcoes[0])
         self.label_lista_redis.grid(row=3, column=coluna, columnspan=1, pady=(10, 0), sticky="WS")
-        self.combobox.grid(row=4, column=coluna, columnspan=1, pady =(0, 10), sticky="WEN")
+        self.combobox.grid(row=4, column=coluna, columnspan=1, pady=(0, 10), sticky="WEN")
         self.caixa_texto(5, 6, coluna, "Saida:")
         self.button_redis_inicio.grid(row=7, column=coluna, pady=(10, 0))
         self.button_redis_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
@@ -2376,7 +2321,8 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         )
         self.limpar_linha(10, 2)
         self.escrever_titulos(self.app, titulo, 2, coluna)
-        self.input_placeholder(3, 4, coluna, " Insira o nome do banco desejado (KAIROS_BASE_123456789)", "Nome do banco:")
+        self.input_placeholder(
+            3, 4, coluna, " Insira o nome do banco desejado (KAIROS_BASE_123456789)", "Nome do banco:")
         self.caixa_texto(5, 6, coluna, "Saida:")
         self.button_restaurar_inicio.grid(row=7, column=coluna, pady=(10, 0))
         self.button_restaurar_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
@@ -2629,7 +2575,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
     def tela_geradores(self, app, version, coluna):
         titulo = "Geradores"
         app.title("MSS - " + version + " - " + titulo)
-        opcoes = ["PIS", "CEI", "CPF", "CNPJ", "NIF",]
+        opcoes = ["PIS", "CEI", "CPF", "CNPJ", "NIF"]
 
         self.combobox = Combobox(
             app,
@@ -2665,7 +2611,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.limpar_linha(10, 2)
         self.combobox.set(opcoes[0])
         self.escrever_titulos(self.app, titulo, 2, coluna)
-        self.combobox.grid(row=3, column=coluna, pady =(0, 10), sticky="SWE")
+        self.combobox.grid(row=3, column=coluna, pady=(0, 10), sticky="SWE")
         self.input_placeholder(4, 5, coluna, " Insira a quantidade de números que serão gerados", "Quantidade:")
         self.caixa_texto(6, 7, coluna, "Saida:")
         self.button_gerador_inicio.grid(row=8, column=coluna, pady=(10, 0), sticky="E")
@@ -2710,7 +2656,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.button_menu_restaurar.grid(row=5, column=coluna)
 
     def tela_config(self, app, version, coluna):
-        self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Tela - CONFIGURAÇÃO")
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Tela - CONFIGURAÇÃO")
         titulo = "CONFIGURAÇÃO"
         app.title("MSS - " + version + " - " + titulo)
 
@@ -2721,7 +2667,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             height=2,
             bg=self.infos_config_prog["background_color_titulos"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.insrir_campos_arquivo_existente(app, coluna)
+            command=lambda: self.inserir_campos_arquivo_existente(app, coluna)
         )
         self.button_config_novo = Button(
             app,
@@ -2730,7 +2676,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             height=2,
             bg=self.infos_config_prog["background_color_titulos"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.insrir_campos_arquivo_novo(app, coluna)
+            command=lambda: self.inserir_campos_arquivo_novo(app, coluna)
         )
         self.limpar_linha(10, 2)
         self.escrever_titulos(self.app, titulo, 2, coluna)
@@ -2738,22 +2684,22 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.button_config_novo.grid(row=4, column=coluna, sticky="WE")
 
     def tela_alterar_aparencia(self, app, version, coluna):
-        self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Tela - CONFIGURAÇÃO")
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Tela - CONFIGURAÇÃO")
         titulo = "ALTERAR APARENCIA"
         app.title("MSS - " + version + " - " + titulo)
-        placeholder_color = "Insira a cor em Hexadecimal"
         tam_width = 5
+        valores_input = self.ler_arquivo_config()
 
         self.label_background_fundo = Label(
             app,
             text="Cor do fundo",
             font=('Arial', 12),
             bg=self.infos_config_prog["background_color_fundo"],
-            fg = self.infos_config_prog["background_color_fonte"]
+            fg=self.infos_config_prog["background_color_fonte"]
         )
         self.entry_background_fundo = Entry(
             self.app,
-            width = 10
+            width=10
         )
         self.button_background_fundo = Button(
             app,
@@ -2773,7 +2719,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         )
         self.entry_background_titulos = Entry(
             self.app,
-            width = 10
+            width=10
         )
         self.button_background_titulos = Button(
             app,
@@ -2793,7 +2739,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         )
         self.entry_background_botoes = Entry(
             self.app,
-            width = 10
+            width=10
         )
         self.button_background_botoes = Button(
             app,
@@ -2813,7 +2759,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         )
         self.entry_background_botoes_navs = Entry(
             self.app,
-            width = 10
+            width=10
         )
         self.button_background_botoes_navs = Button(
             app,
@@ -2829,11 +2775,11 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             text="Cor das fontes",
             font=('Arial', 12,),
             bg=self.infos_config_prog["background_color_fundo"],
-            fg = self.infos_config_prog["background_color_fonte"]
+            fg=self.infos_config_prog["background_color_fonte"]
         )
         self.entry_background_fonte = Entry(
             self.app,
-            width = 10
+            width=10
         )
         self.button_background_fonte = Button(
             app,
@@ -2846,7 +2792,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         )
         self.button_nav_salvar = Button(
             app,
-            text="Criar",
+            text="Salvar",
             name="button_criar",
             width=15,
             height=2,
@@ -2873,6 +2819,11 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.entry_background_fonte.grid(row=7, column=coluna, sticky="EN")
         self.button_background_fonte.grid(row=7, column=2, sticky="WS")
         self.button_nav_salvar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
+        self.entry_background_fundo.insert(0, valores_input[0])
+        self.entry_background_titulos.insert(0, valores_input[1])
+        self.entry_background_botoes.insert(0, valores_input[2])
+        self.entry_background_botoes_navs.insert(0, valores_input[3])
+        self.entry_background_fonte.insert(0, valores_input[4])
 
     def botoes_navs(self, app):
         self.button_menu_sair = Button(
@@ -2899,8 +2850,8 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
 
     def estruturar_tela(self):
         self.app.configure(bg=self.infos_config_prog["background_color_fundo"])
-        self.app.rowconfigure(0, weight= 0)
-        self.app.rowconfigure(10, weight= 0)
+        self.app.rowconfigure(0, weight=0)
+        self.app.rowconfigure(10, weight=0)
         self.remover_widget(self.app, '*', '*')
         self.menu_cascata()
         self.texto_config_selecionado(self.app)
@@ -2908,11 +2859,11 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
 
     def trocar_tela_config(self):
         peso_linha = 0
-        self.app.rowconfigure(1, weight= 1)
-        self.app.rowconfigure(2, weight= 1)
-        self.app.rowconfigure(3, weight= peso_linha)
-        self.app.rowconfigure(4, weight= peso_linha)
-        self.app.rowconfigure(9, weight= 1)
+        self.app.rowconfigure(1, weight=1)
+        self.app.rowconfigure(2, weight=1)
+        self.app.rowconfigure(3, weight=peso_linha)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
         self.tela_config(self.app, self.version, self.coluna)
 
@@ -2928,11 +2879,9 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.peso_ultima_linha = 1
         self.peso_coluna = 1
 
-        self.app.columnconfigure(0, weight= self.peso_coluna)
-        self.app.columnconfigure(1, weight= self.peso_coluna)
-        self.app.columnconfigure(2, weight= self.peso_coluna)
-
-
+        self.app.columnconfigure(0, weight=self.peso_coluna)
+        self.app.columnconfigure(1, weight=self.peso_coluna)
+        self.app.columnconfigure(2, weight=self.peso_coluna)
         return self.app
 
     def main(self):
@@ -2943,14 +2892,12 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         pos_hei = self.app.winfo_screenheight()
         self.metade_wid = int((pos_wid / 2) - (self.largura / 2))
         self.metade_hei = int((pos_hei / 2) - (self.altura / 2))
-        validar_diretorio(self.nomes, self.mensagem)
-
-        # Criar o arquivo de log pricipal
-        self.arquivo_principal = open(f"{self.nomes['diretorio_log']}\\{self.nomes['arquivo_base_muro']}.txt", "a")
-        pula_linha = validar_linha(self.nomes['arquivo_base_muro'])
+        validar_diretorio(self.nomes, self.popup_mensagem)
 
         # Data/hora inicio do programa
-        self.arquivo_principal.write(f"{pula_linha}{data_hora_atual()} - INFO - Programa iniciado")
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Programa iniciado")
+        # Versão atual do programa
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Versão:  {self.version}")
         self.app = self.tela()
         self.app.protocol("WM_DELETE_WINDOW", self.finalizar)
         self.validar_atual_config()
@@ -2971,11 +2918,9 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                 self.trocar_tela_config()
 
         except Exception as error:
-            self.mensagem(f"Erro ao acessar arquivo de configuração default")
+            self.popup_mensagem(f"Erro ao acessar arquivo de configuração default {error}")
             self.trocar_tela_config()
 
-        # Versão atual do programa
-        self.arquivo_principal.write(f"\n{data_hora_atual()} - INFO - Versão:  {self.version}")
         self.app.mainloop()
 
 
