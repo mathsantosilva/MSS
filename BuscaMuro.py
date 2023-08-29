@@ -145,7 +145,7 @@ def validar_diretorio(nomes, popup_mensagem):
 
 
 class Aplicativo:
-    version = "3.2.0"
+    version = "3.3.0"
     coluna = 1
     widget = []
     nomes = dict()
@@ -161,6 +161,11 @@ class Aplicativo:
     nomes['arquivo_validar'] = 'buscar_versions'
     nomes['arquivo_redis'] = 'limpeza_redis'
     nomes['arquivo_config_default'] = 'prog.conf'
+    nomes['arquivo_doc_pis'] = 'PIS_gerados'
+    nomes['arquivo_doc_cpf'] = 'CPFs_gerados'
+    nomes['arquivo_doc_cnpj'] = 'CNPJs_gerados'
+    nomes['arquivo_doc_cei'] = 'CEIs_gerados'
+    nomes['arquivo_doc_nif'] = 'NIFs_gerados'
 
     def __init__(self):
         self.color_default = "#F0F0F0"
@@ -1615,13 +1620,14 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.combobox.config(state='active')
         self.button_menu_sair.config(state='active')
 
-    def gerador_nif(self, linhas):
+    def gerador_nif(self, linhas, checkbox_arquivo):
         self.combobox.config(state='disabled')
         self.entry.config(state='disabled')
         self.button_gerador_inicio.config(state='disabled')
         self.button_gerador_voltar.config(state='disabled')
         self.button_menu_sair.config(state='disabled')
         self.button_gerador_limpar.config(state='disabled')
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Rotina - Gerador NIF")
         contador = int(linhas)
 
         while contador:
@@ -1647,6 +1653,8 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             lista.append(nif_gerado)
             contador -= 1
             self.escrever_no_input(lista[0])
+            if checkbox_arquivo:
+                self.escrever_arquivo_log(self.nomes['arquivo_doc_nif'], lista[0])
         self.combobox.config(state='active')
         self.entry.config(state='normal')
         self.button_gerador_inicio.config(state='active')
@@ -1655,13 +1663,14 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.button_gerador_limpar.config(state='active')
         self.escrever_no_input(f"- Processo finalizado com sucesso")
 
-    def gerador_cnpj(self, linhas):
+    def gerador_cnpj(self, linhas, checkbox_mascara, checkbox_arquivo):
         self.combobox.config(state='disabled')
         self.entry.config(state='disabled')
         self.button_gerador_inicio.config(state='disabled')
         self.button_gerador_voltar.config(state='disabled')
         self.button_menu_sair.config(state='disabled')
         self.button_gerador_limpar.config(state='disabled')
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Rotina - Gerador CNPJ")
         contador = int(linhas)
 
         while contador:
@@ -1691,10 +1700,18 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             etapa6_cnpj = math.floor(soma2 - etapa5_cnpj)
             dig2_cnpj = 0 if 11 - etapa6_cnpj > 9 else 11 - etapa6_cnpj
 
+            #  XX.XXX.XXX/XXXX-XX;
+            # Fase 8 - montando o cnpj
             cnpj_gerado = str(n1) + str(n2) + str(n3) + str(n4) + str(n5) + str(n6) + str(n7) + str(n8) + str(n9) + str(n10) + str(n11) + str(n12) + str(dig1_cnpj) + str(dig2_cnpj)
+            if checkbox_mascara:
+                cnpj_gerado = cnpj_gerado[0:2] + "." + cnpj_gerado[2:5] + "." + cnpj_gerado[5:8] + "/" + cnpj_gerado[8:12] + "-" + cnpj_gerado[12:14]
             lista.append(cnpj_gerado)
+
             contador -= 1
             self.escrever_no_input(lista[0])
+
+            if checkbox_arquivo:
+                self.escrever_arquivo_log(self.nomes['arquivo_doc_cnpj'], lista[0])
         self.combobox.config(state='active')
         self.entry.config(state='normal')
         self.button_gerador_inicio.config(state='active')
@@ -1703,13 +1720,14 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.button_gerador_limpar.config(state='active')
         self.escrever_no_input(f"- Processo finalizado com sucesso")
 
-    def gerador_cpf(self, linhas):
+    def gerador_cpf(self, linhas, checkbox_mascara, checkbox_arquivo):
         self.combobox.config(state='disabled')
         self.entry.config(state='disabled')
         self.button_gerador_inicio.config(state='disabled')
         self.button_gerador_voltar.config(state='disabled')
         self.button_menu_sair.config(state='disabled')
         self.button_gerador_limpar.config(state='disabled')
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Rotina - Gerador CPF")
         contador = int(linhas)
 
         while contador:
@@ -1736,10 +1754,17 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             etapa6_cpf = math.floor(soma2 - etapa5_cpf)
             dig2_cpf = 0 if 11 - etapa6_cpf > 9 else 11 - etapa6_cpf
 
+            # XXX.XXX.XXX-XX
+            # Fase 8 - montando o cpf
             cpf_gerado = str(n1) + str(n2) + str(n3) + str(n4) + str(n5) + str(n6) + str(n7) + str(n8) + str(n9) + str(dig1_cpf) + str(dig2_cpf)
+            if checkbox_mascara:
+                cpf_gerado = cpf_gerado[0:3] + "." + cpf_gerado[3:6] + "." + cpf_gerado[6:9] + "-" + cpf_gerado[9:11]
             lista.append(cpf_gerado)
             contador -= 1
             self.escrever_no_input(lista[0])
+
+            if checkbox_arquivo:
+                self.escrever_arquivo_log(self.nomes['arquivo_doc_cpf'], lista[0])
         self.combobox.config(state='active')
         self.entry.config(state='normal')
         self.button_gerador_inicio.config(state='active')
@@ -1748,13 +1773,14 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.button_gerador_limpar.config(state='active')
         self.escrever_no_input(f"- Processo finalizado com sucesso")
 
-    def gerador_cei(self, linhas):
+    def gerador_cei(self, linhas, checkbox_mascara, checkbox_arquivo):
         self.combobox.config(state='disabled')
         self.entry.config(state='disabled')
         self.button_gerador_inicio.config(state='disabled')
         self.button_gerador_voltar.config(state='disabled')
         self.button_menu_sair.config(state='disabled')
         self.button_gerador_limpar.config(state='disabled')
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Rotina - Gerador CEI")
         contador = int(linhas)
 
         while contador:
@@ -1785,10 +1811,18 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                 etapa6 = 0
             else:
                 etapa6 = etapa5
+
+            # XX.XXX.XXXXX/XX
+            # Fase 8 - montando o cei
             cei_gerado = str(n1) + str(n2) + str(n3) + str(n4) + str(n5) + str(n6) + str(n7) + str(n8) + str(n9) + str(n10) + str(n11) + str(etapa6)
+            if checkbox_mascara:
+                cei_gerado = cei_gerado[0:2] + "." + cei_gerado[2:5] + "." + cei_gerado[5:10] + "/" + cei_gerado[10:12]
             lista.append(cei_gerado)
             contador -= 1
             self.escrever_no_input(lista[0])
+
+            if checkbox_arquivo:
+                self.escrever_arquivo_log(self.nomes['arquivo_doc_cei'], lista[0])
         self.combobox.config(state='active')
         self.entry.config(state='normal')
         self.button_gerador_inicio.config(state='active')
@@ -1797,13 +1831,14 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.button_gerador_limpar.config(state='active')
         self.escrever_no_input(f"- Processo finalizado com sucesso")
 
-    def gerador_pis(self, linhas):
+    def gerador_pis(self, linhas, checkbox_mascara, checkbox_arquivo):
         self.combobox.config(state='disabled')
         self.entry.config(state='disabled')
         self.button_gerador_inicio.config(state='disabled')
         self.button_gerador_voltar.config(state='disabled')
         self.button_menu_sair.config(state='disabled')
         self.button_gerador_limpar.config(state='disabled')
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Rotina - Gerador PIS")
         divisor = 11
         contador = int(linhas)
 
@@ -1834,14 +1869,21 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                 fase7 = 0
             else:
                 fase7 = divisor - fase6
+
+            # XXX.XXXXX.XX-X
             # Fase 8 - montando o pis
             for pos in basepis:
                 pis_gerado = str(pis_gerado) + str(pos)
             pis_gerado = str(pis_gerado) + str(fase7)
+            if checkbox_mascara:
+                pis_gerado = pis_gerado[0:3] + "." + pis_gerado[3:8] + "." + pis_gerado[8:10] + "-" + pis_gerado[10:11]
             # Guardando os Pis gerados em um Array
             lista.append(pis_gerado)
             contador -= 1
             self.escrever_no_input(lista[0])
+
+            if checkbox_arquivo:
+                self.escrever_arquivo_log(self.nomes['arquivo_doc_pis'], lista[0])
         self.combobox.config(state='active')
         self.entry.config(state='normal')
         self.button_gerador_inicio.config(state='active')
@@ -1853,20 +1895,22 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
     def menu_gerador_documentos(self):
         selecao_combobox = self.combobox.get()
         quant_insirada = self.entry.get()
+        checkbox_mascara = self.valor_checkbox_mascara_num.get()
+        checkbox_arquivo = self.valor_checkbox_gerar_arquivo.get()
         tam_quant_insirada = int(len(quant_insirada))
         if quant_insirada.isdigit():
             if quant_insirada != self.placeholder_text and quant_insirada != "":
                 match selecao_combobox:
-                    case "PIS":
-                        self.iniciar_processo_gerar_pis(quant_insirada)
-                    case "CPF":
-                        self.iniciar_processo_gerar_cpf(quant_insirada)
-                    case "CNPJ":
-                        self.iniciar_processo_gerar_cnpj(quant_insirada)
                     case "CEI":
-                        self.iniciar_processo_gerar_cei(quant_insirada)
+                        self.iniciar_processo_gerar_cei(quant_insirada, checkbox_mascara, checkbox_arquivo)
+                    case "CNPJ":
+                        self.iniciar_processo_gerar_cnpj(quant_insirada, checkbox_mascara, checkbox_arquivo)
+                    case "CPF":
+                        self.iniciar_processo_gerar_cpf(quant_insirada, checkbox_mascara, checkbox_arquivo)
                     case "NIF":
-                        self.iniciar_processo_gerar_nif(quant_insirada)
+                        self.iniciar_processo_gerar_nif(quant_insirada, checkbox_arquivo)
+                    case "PIS":
+                        self.iniciar_processo_gerar_pis(quant_insirada, checkbox_mascara, checkbox_arquivo)
                     case _:
                         self.escrever_no_input(f"- Função não implementada")
             else:
@@ -1957,47 +2001,47 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                 self.escrever_no_input(f"- Processo finalizado")
                 break
 
-    def iniciar_processo_gerar_nif(self, linhas):
+    def iniciar_processo_gerar_nif(self, linhas, checkbox_arquivo):
         self.escrever_no_input(f"- Processo iniciado - Gerador de NIF")
         # Criar uma nova thread para executar o processo demorado
         try:
-            self.thread = threading.Thread(target=self.gerador_nif, args=[linhas])
+            self.thread = threading.Thread(target=self.gerador_nif, args=[linhas, checkbox_arquivo])
             self.thread.start()
         except threading.excepthook as error:
             self.escrever_no_input(f"- Processo finalizado com falha \n {error}")
 
-    def iniciar_processo_gerar_cnpj(self, linhas):
+    def iniciar_processo_gerar_cnpj(self, linhas, checkbox_mascara, checkbox_arquivo):
         self.escrever_no_input(f"- Processo iniciado - Gerador de CNPJ")
         # Criar uma nova thread para executar o processo demorado
         try:
-            self.thread = threading.Thread(target=self.gerador_cnpj, args=[linhas])
+            self.thread = threading.Thread(target=self.gerador_cnpj, args=[linhas, checkbox_mascara, checkbox_arquivo])
             self.thread.start()
         except threading.excepthook as error:
             self.escrever_no_input(f"- Processo finalizado com falha \n {error}")
 
-    def iniciar_processo_gerar_cpf(self, linhas):
+    def iniciar_processo_gerar_cpf(self, linhas, checkbox_mascara, checkbox_arquivo):
         self.escrever_no_input(f"- Processo iniciado - Gerador de CPF")
         # Criar uma nova thread para executar o processo demorado
         try:
-            self.thread = threading.Thread(target=self.gerador_cpf, args=[linhas])
+            self.thread = threading.Thread(target=self.gerador_cpf, args=[linhas, checkbox_mascara, checkbox_arquivo])
             self.thread.start()
         except threading.excepthook as error:
             self.escrever_no_input(f"- Processo finalizado com falha \n {error}")
 
-    def iniciar_processo_gerar_cei(self, linhas):
+    def iniciar_processo_gerar_cei(self, linhas, checkbox_mascara, checkbox_arquivo):
         self.escrever_no_input(f"- Processo iniciado - Gerador de CEI")
         # Criar uma nova thread para executar o processo demorado
         try:
-            self.thread = threading.Thread(target=self.gerador_cei, args=[linhas])
+            self.thread = threading.Thread(target=self.gerador_cei, args=[linhas, checkbox_mascara, checkbox_arquivo])
             self.thread.start()
         except threading.excepthook as error:
             self.escrever_no_input(f"- Processo finalizado com falha \n {error}")
 
-    def iniciar_processo_gerar_pis(self, linhas):
+    def iniciar_processo_gerar_pis(self, linhas, checkbox_mascara, checkbox_arquivo):
         self.escrever_no_input(f"- Processo iniciado - Gerador de PIS")
         # Criar uma nova thread para executar o processo demorado
         try:
-            self.thread = threading.Thread(target=self.gerador_pis, args=[linhas])
+            self.thread = threading.Thread(target=self.gerador_pis, args=[linhas, checkbox_mascara, checkbox_arquivo])
             self.thread.start()
         except threading.excepthook as error:
             self.escrever_no_input(f"- Processo finalizado com falha \n {error}")
@@ -2076,7 +2120,8 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.app.rowconfigure(6, weight=peso_linha)
         self.app.rowconfigure(7, weight=peso_linha)
         self.app.rowconfigure(8, weight=peso_linha)
-        self.app.rowconfigure(9, weight=1)
+        self.app.rowconfigure(9, weight=peso_linha)
+        self.app.rowconfigure(10, weight=1)
         self.estruturar_tela()
         self.tela_geradores(app, self.version, self.coluna)
 
@@ -2572,11 +2617,26 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
     def tela_geradores(self, app, version, coluna):
         titulo = "Geradores"
         app.title("MSS - " + version + " - " + titulo)
-        opcoes = ["PIS", "CEI", "CPF", "CNPJ", "NIF"]
-
+        opcoes = ["CEI", "CNPJ", "CPF", "NIF", "PIS"]
+        self.valor_checkbox_mascara_num = BooleanVar()
+        self.valor_checkbox_gerar_arquivo = BooleanVar()
         self.combobox = Combobox(
             app,
             values=opcoes,
+        )
+        self.checkbox_mascara_num = Checkbutton(
+            app,
+            text='Gerar com mascara',
+            onvalue=True,
+            offvalue=False,
+            variable=self.valor_checkbox_mascara_num
+        )
+        self.checkbox_gerar_arquivo = Checkbutton(
+            app,
+            text='Gerar valores em arquivo txt',
+            onvalue=True,
+            offvalue=False,
+            variable=self.valor_checkbox_gerar_arquivo
         )
         self.button_gerador_inicio = Button(
             app,
@@ -2610,9 +2670,11 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.escrever_titulos(self.app, titulo, 2, coluna)
         self.combobox.grid(row=3, column=coluna, pady=(0, 10), sticky="SWE")
         self.input_placeholder(4, 5, coluna, " Insira a quantidade de números que serão gerados", "Quantidade:")
-        self.caixa_texto(6, 7, coluna, "Saida:")
-        self.button_gerador_inicio.grid(row=8, column=coluna, pady=(10, 0), sticky="E")
-        self.button_gerador_limpar.grid(row=8, column=coluna, pady=(10, 0), sticky="W")
+        self.checkbox_mascara_num.grid(row=5, column=coluna, pady=(25, 0), sticky="W")
+        self.checkbox_gerar_arquivo.grid(row=6, column=coluna, pady=(0, 1), sticky="W")
+        self.caixa_texto(7, 8, coluna, "Saida:")
+        self.button_gerador_inicio.grid(row=9, column=coluna, pady=(10, 0), sticky="E")
+        self.button_gerador_limpar.grid(row=9, column=coluna, pady=(10, 0), sticky="W")
         self.button_gerador_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
 
     def tela_menu(self, app, version, coluna):
@@ -2884,7 +2946,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
     def main(self):
         self.app = Tk()
         self.largura = 450
-        self.altura = 465
+        self.altura = 515
         pos_wid = self.app.winfo_screenwidth()
         pos_hei = self.app.winfo_screenheight()
         self.metade_wid = int((pos_wid / 2) - (self.largura / 2))
