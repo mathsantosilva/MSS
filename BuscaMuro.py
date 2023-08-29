@@ -145,7 +145,7 @@ def validar_diretorio(nomes, popup_mensagem):
 
 
 class Aplicativo:
-    version = "3.1.2"
+    version = "3.2.0"
     coluna = 1
     widget = []
     nomes = dict()
