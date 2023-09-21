@@ -277,10 +277,10 @@ class Aplicativo:
 
     def validar_atual_config(self):
         data = data_atual()
-        if os.path.isfile(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}"):
+        if os.path.isfile(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}.conf"):
             try:
                 config = configparser.ConfigParser()
-                config.read(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}")
+                config.read(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}.conf")
                 self.infos_config_prog["data_ultima_atualizacao"] = ""
                 data_ultima_atualizacao = config.get('ConfiguracoesGerais', 'data_ultima_atualizacao')
                 if data_ultima_atualizacao != '':
@@ -335,7 +335,7 @@ class Aplicativo:
     def atualizar_config_default(self, config_setado):
         try:
             config = configparser.ConfigParser()
-            config.read(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}")
+            config.read(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}.conf")
             config.set('ConfiguracoesGerais', 'config_default', config_setado)
             self.salvar_alteracoes_config(config)
             self.infos_config_prog['config_default'] = config_setado
@@ -346,7 +346,7 @@ class Aplicativo:
         data = data_atual()
         try:
             config = configparser.ConfigParser()
-            config.read(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}")
+            config.read(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}.conf")
             config.set('ConfiguracoesGerais', 'data_ultima_atualizacao', data)
             self.salvar_alteracoes_config(config)
         except Exception as error:
@@ -372,7 +372,7 @@ class Aplicativo:
 
         try:
             config = configparser.ConfigParser()
-            config.read(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}")
+            config.read(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}.conf")
             config.set('ConfiguracoesAparencia', 'background_color_fundo', backg_fundo)
             config.set('ConfiguracoesAparencia', 'background_color_titulos', backg_titulos)
             config.set('ConfiguracoesAparencia', 'background_color_botoes', backg_botoes)
@@ -398,7 +398,7 @@ class Aplicativo:
 
         try:
             config = configparser.ConfigParser()
-            config.read(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}")
+            config.read(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}.conf")
             config.set('ConfiguracoesAparencia', 'background_color_fundo', backg_fundo)
             config.set('ConfiguracoesAparencia', 'background_color_titulos', backg_titulos)
             config.set('ConfiguracoesAparencia', 'background_color_botoes', backg_botoes)
@@ -435,7 +435,7 @@ background_color_fonte = {self.color_default_fonte}"""
 
     def salvar_alteracoes_config(self, config):
         try:
-            with open(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}", 'w') as config_file:
+            with open(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}.conf", 'w') as config_file:
                 config.write(config_file)
         except Exception as error:
             self.popup_mensagem(f"Erro ao atualizar o arquivo config: {error}")
@@ -3395,7 +3395,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.atualizador()
 
         try:
-            if os.path.isfile(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}"):
+            if os.path.isfile(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}.conf"):
                 self.ler_arquivo_config()
                 if self.infos_config_prog['config_default'] != "":
                     self.infos_config_prog['escolha_manual'] = False
