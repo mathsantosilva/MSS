@@ -151,7 +151,7 @@ class Aplicativo:
     nomes['arquivo_connection_strings'] = 'connection_strings'
     nomes['arquivo_validar'] = 'buscar_versions'
     nomes['arquivo_redis'] = 'limpeza_redis'
-    nomes['arquivo_config_default'] = 'prog.conf'
+    nomes['arquivo_config_default'] = 'prog'
     nomes['arquivo_doc_pis'] = 'PIS_gerados'
     nomes['arquivo_doc_cpf'] = 'CPFs_gerados'
     nomes['arquivo_doc_cnpj'] = 'CNPJs_gerados'
@@ -231,8 +231,8 @@ class Aplicativo:
         self.arquivo_log.write(f"{pula_linha}{data_hora_atual()} - {texto}")
         self.arquivo_log.close()
 
-    def escrever_arquivo_config(self, nome_arquivo, texto):
-        self.arquivo_config = open(f"{self.nomes['diretorio_config']}\\{nome_arquivo}.json", "a")
+    def escrever_arquivo_config(self, nome_arquivo, texto, extensao):
+        self.arquivo_config = open(f"{self.nomes['diretorio_config']}\\{nome_arquivo}.{extensao}", "a")
         self.arquivo_config.write(texto)
         self.arquivo_config.close()
 
@@ -309,7 +309,7 @@ class Aplicativo:
             self.infos_config_prog["background_color_botoes_navs"] = self.color_default_navs
             self.infos_config_prog["background_color_fonte"] = self.color_default_fonte
             config = configparser.ConfigParser()
-            config.read(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}")
+            config.read(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}.conf")
             config_default = config.get('ConfiguracoesGerais', 'config_default')
             background_color_fundo = config.get('ConfiguracoesAparencia', 'background_color_fundo')
             background_color_titulos = config.get('ConfiguracoesAparencia', 'background_color_titulos')
@@ -431,7 +431,7 @@ background_color_titulos = {self.color_default}
 background_color_botoes = {self.color_default}
 background_color_botoes_navs = {self.color_default_navs}
 background_color_fonte = {self.color_default_fonte}"""
-        self.escrever_arquivo_config(self.nomes['arquivo_config_default'], arquivo_config)
+        self.escrever_arquivo_config(self.nomes['arquivo_config_default'], arquivo_config, "conf")
 
     def salvar_alteracoes_config(self, config):
         try:
@@ -1095,7 +1095,7 @@ background_color_fonte = {self.color_default_fonte}"""
         "password_principal": ""
     }}
 }}"""
-                        self.escrever_arquivo_config(self.config_selecionado, config_atualizado)
+                        self.escrever_arquivo_config(self.config_selecionado, config_atualizado, "json")
         try:
             self.infos_config['redis_qa'] = params_dict["redis_qa"]
         except Exception as name_error:
@@ -1253,7 +1253,7 @@ background_color_fonte = {self.color_default_fonte}"""
         }}
     ]
 }}""")
-                self.escrever_arquivo_config(nome_config, arquivo_config)
+                self.escrever_arquivo_config(nome_config, arquivo_config, "json")
                 self.popup_mensagem("Novo config criado com sucesso")
                 self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Novo config criado com sucesso, configure e selecione para ser utilizado {nome_config}")
 
