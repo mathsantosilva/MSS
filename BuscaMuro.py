@@ -37,7 +37,6 @@ def comparar_tags(tag1, tag2):
 
     return 0
 
-
 def pesquisar_maior_tag(username, repository, tag_atual, popup_mensagem):
     github = Github()
     tags = []
@@ -61,7 +60,6 @@ def pesquisar_maior_tag(username, repository, tag_atual, popup_mensagem):
 
         return maior_tag
 
-
 def realizar_download(maior_tag, popup_mensagem):
     try:
         caminho = f"https://github.com/mathsantosilva/MSS/releases/download/{maior_tag}/BuscaMuro.exe"
@@ -80,7 +78,6 @@ def realizar_download(maior_tag, popup_mensagem):
             arquivo.write(response.content)
             arquivo.close()
 
-
 def executar_comando_batch(dir_atual):
     comando = f"""@echo off
 chcp 65001
@@ -98,20 +95,16 @@ exit
     arquivo.close()
     subprocess.Popen(['start', 'cmd', '/k', 'C:/MSS_temp/script_temp.bat'], shell=True, text=True)
 
-
 def fechar_janela(msg):
     msg.destroy()
-
 
 def data_hora_atual():
     data_hora = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     return data_hora
 
-
 def data_atual():
     data_hora = datetime.datetime.now().strftime("%d-%m-%Y")
     return data_hora
-
 
 def validar_linha(nome):
     with open(f"Log\\{nome}.txt", "r") as arquivo_insp:
@@ -124,7 +117,6 @@ def validar_linha(nome):
         pula_linha = "\n"
 
     return pula_linha
-
 
 def validar_diretorio(nomes, popup_mensagem):
     # Criar diretorio log
@@ -143,9 +135,8 @@ def validar_diretorio(nomes, popup_mensagem):
         popup_mensagem(
             f"\n{data_hora_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_config']}: {error} ")
 
-
 class Aplicativo:
-    version = "3.3.0"
+    version = "3.4.0"
     coluna = 1
     widget = []
     nomes = dict()
@@ -222,6 +213,17 @@ class Aplicativo:
     def finalizar(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Programa finalizado")
         sys.exit(200)
+
+    def limpar_string(self, documento_inserido):
+        lista_limpa = []
+        lista_suja = documento_inserido.split(",")
+        for item in lista_suja:
+            sem_mascara = item.replace(".", "")
+            sem_mascara = sem_mascara.replace(",", "")
+            sem_mascara = sem_mascara.replace("-", "")
+            sem_mascara = sem_mascara.replace("/", "")
+            lista_limpa.append(sem_mascara)
+        return lista_limpa
 
     def escrever_arquivo_log(self, nome_arquivo, texto):
         self.arquivo_log = open(f"{self.nomes['diretorio_log']}\\{nome_arquivo}.txt", "a")
@@ -588,11 +590,11 @@ background_color_fonte = {self.color_default_fonte}"""
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Validar atualização")
 
         self.escrever_arquivo_log(self.nomes['arquivo_validar'], f"INFO - Inicio da validação do banco update ")
-
+        self.escrever_no_input(f"\n- Iniciando consulta no banco update")
         for num in range(tam_base_muro):
             database_update = self.valida_banco_update(num)
 
-            self.escrever_no_input(f"\n- Iniciando consulta no banco update")
+
             try:
                 cnxnrp = pyodbc.connect(
                     f"DRIVER=SQL Server;SERVER={self.infos_config['server']};DATABASE={database_update};ENCRYPT=not;UID={self.infos_config['username']};PWD={self.infos_config['password']}")
@@ -604,13 +606,12 @@ background_color_fonte = {self.color_default_fonte}"""
                 self.escrever_no_input(f"- Falha ao tentar consultar banco de update: {err}")
                 self.escrever_arquivo_log(self.nomes['arquivo_validar'], f"ERRO - Falha ao tentar consultar banco de muro update: {err}")
             else:
-                self.escrever_no_input(f"- Sucesso ao consulta: {database_update}")
                 self.escrever_arquivo_log(
                     self.nomes['arquivo_validar'], f"INFO - Sucesso ao consulta no banco de update")
 
                 if len(result) > 0:
                     for n in range(len(result)):
-                        self.escrever_no_input(f"- Version: {result[n][0]} - Quantidade: {result[n][1]}")
+                        self.escrever_no_input(f"- {database_update[-2:]} - Version: {result[n][0]} - Quant: {result[n][1]}")
                         self.escrever_arquivo_log(self.nomes['arquivo_validar'], f"INFO - Version: {result[n][0]} - Quantidade: {result[n][1]}")
                 else:
                     self.escrever_no_input(f"- Não foram retornados registros no banco: {database_update}")
@@ -619,8 +620,6 @@ background_color_fonte = {self.color_default_fonte}"""
 
             if num < 4:
                 num += 1
-            self.escrever_no_input(f"\n- Concluído a parte {num}, de um total de {tam_base_muro}. ")
-            self.escrever_arquivo_log(self.nomes['arquivo_validar'], f"INFO - Concluído a parte {num}, de um total de {tam_base_muro}. ")
             continue
 
         self.escrever_no_input(f"- Fim da operação de consulta")
@@ -639,7 +638,6 @@ background_color_fonte = {self.color_default_fonte}"""
         cursor1 = ''
         status_consulta = False
 
-        self.escrever_no_input(f"- Inicio da operação Buscar Bancos")
         self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], "INFO - Inicio da operação Busca muro ")
 
         versao_databases = self.entry.get()
@@ -657,7 +655,6 @@ background_color_fonte = {self.color_default_fonte}"""
                 self.nomes['arquivo_busca_bancos'], "INFO - Version para downgrade: {versao_databases} ")
 
             # Pegar a lista de bancos da instancia
-            self.escrever_no_input(f"\n- Iniciando a busca dos bancos na instância: {self.infos_config['server']} ")
             self.escrever_arquivo_log(
                 self.nomes['arquivo_busca_bancos'], f"INFO - Iniciando a busca dos bancos na instância: {self.infos_config['server']} ")
 
@@ -673,7 +670,7 @@ background_color_fonte = {self.color_default_fonte}"""
             else:
                 cursor1.commit()
 
-                self.escrever_no_input(f"- Quantidade de bancos encontrados: {len(lista_string_instancia)}")
+                self.escrever_no_input(f"- Quantidade de bancos encontrados na instância: {len(lista_string_instancia)}")
                 self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Quantidade de bancos encontrados: {len(lista_string_instancia)} ")
                 status_consulta = True
 
@@ -682,7 +679,6 @@ background_color_fonte = {self.color_default_fonte}"""
                 # Iniciando processo banco muro.
                 for num in range(len(self.infos_config['bases_muro'])):
 
-                    self.escrever_no_input(f"\n- Iniciando o processo no banco: {self.infos_config['bases_muro'][num]}")
                     self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Iniciando o processo no banco: {self.infos_config['bases_muro'][num]} ")
 
                     # Configurando as Variáveis
@@ -712,7 +708,7 @@ background_color_fonte = {self.color_default_fonte}"""
                     else:
                         cursor1.commit()
 
-                        self.escrever_no_input(f"- Quantidade de registros encontrados: {len(lista_connection_string)}")
+                        self.escrever_no_input(f"\n- Quantidade de registros encontrados: {len(lista_connection_string)}")
                         self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Quantidade de registros encontrados: {len(lista_connection_string)} ")
 
                     # separar o nome do banco nas connection strings
@@ -738,7 +734,6 @@ background_color_fonte = {self.color_default_fonte}"""
                         continue
 
                     # Comparar bancos "strings"
-                    self.escrever_no_input("\n- Iniciando a comparação dos bancos")
                     self.escrever_arquivo_log(
                         self.nomes['arquivo_busca_bancos'], f"INFO - Iniciando a comparação dos bancos ")
                     for comparar in range(len(lista_banco_instancia)):
@@ -766,10 +761,8 @@ background_color_fonte = {self.color_default_fonte}"""
                         continue
 
                     database_update = self.valida_banco_update(num)
-                    self.escrever_no_input(f"\n- Iniciando a limpeza dos bancos update`s")
                     if len(string_limpa) > 0:
                         # Limpeza base muro UPDATE
-                        self.escrever_no_input(f"- limpando o banco: {database_update}")
                         self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'],
                                                   f"INFO - limpando o banco: {database_update} ")
                         try:
@@ -780,15 +773,13 @@ background_color_fonte = {self.color_default_fonte}"""
                             self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"ERRO - Falha ao tentar zerar o banco de muro update {err} ")
                         else:
                             cursor1.commit()
-                            self.escrever_no_input(f"- banco {database_update} zerado com sucesso")
+                            self.escrever_no_input(f"- banco {database_update} zerado")
                             self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Banco {database_update} zerado com sucesso ")
                     else:
                         self.escrever_no_input("- Não foi realizada a limpeza no banco: " + database_update)
                         self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Não foi realizada a limpeza no banco: {database_update} ")
 
                     # Inserindo as connections strings no banco muro update
-                    self.escrever_no_input(
-                        f"\n- Iniciando o processo de inserção: {database_update}")
                     self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Iniciando o processo de inserção:  {database_update} ")
                     if len(string_limpa) > 0:
                         try:
@@ -808,7 +799,7 @@ background_color_fonte = {self.color_default_fonte}"""
                             self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"ERRO - Falha ao tentar inserir registros no banco update {err} ")
                         else:
                             cursor1.commit()
-                            self.escrever_no_input("- Sucesso ao inserir connection Strings no Banco de muro Update  ")
+                            self.escrever_no_input("- Sucesso ao inserir registros no Banco")
                             self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Sucesso ao inserir connection Strings no Banco de muro Update ")
 
                             # Logando as connection string
@@ -827,8 +818,6 @@ background_color_fonte = {self.color_default_fonte}"""
                         self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Não a registros para serem inseridos no banco: {database_update} ")
                     if num < 4:
                         num += 1
-                    self.escrever_no_input(
-                        f"\n- Concluído a parte {num}, de um total de {len(self.infos_config['bases_muro'])}.")
                     self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Concluído a parte {num}, de um total de {len(self.infos_config['bases_muro'])}. ")
                     continue
                 cursor1.close()
@@ -836,7 +825,7 @@ background_color_fonte = {self.color_default_fonte}"""
                 self.escrever_no_input(f"- Erro na primeira etapa das buscas, o processo foi interrompido.")
                 self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Erro na primeira etapa das buscas, o processo foi interrompido. ")
 
-            self.escrever_no_input(f"- Fim da operação Busca muro")
+            self.escrever_no_input(f"\n- Fim da operação Busca muro")
             self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Fim da operação Busca muro")
             self.entry.config(state='normal')
             self.button_busca_inicio.config(state='active')
@@ -850,7 +839,6 @@ background_color_fonte = {self.color_default_fonte}"""
         tam_base_muro = len(self.infos_config['bases_muro'])
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Replicar version ")
 
-        self.escrever_no_input(f"- Inicio da operação replicar version")
         self.escrever_arquivo_log(self.nomes['arquivo_replicar_version'], f"INFO - Inicio da operação replicar version")
 
         for num in range(len(self.infos_config['bases_muro'])):
@@ -928,12 +916,10 @@ background_color_fonte = {self.color_default_fonte}"""
             if num < 4:
                 num += 1
 
-            self.escrever_no_input(
-                f"\n- Concluído a parte {num}, de um total de {tam_base_muro}.")
             self.escrever_arquivo_log(self.nomes['arquivo_replicar_version'], f"INFO - Concluído a parte {num}, de um total de {tam_base_muro}.")
             continue
 
-        self.escrever_no_input(f"- Fim da operação replicar version")
+        self.escrever_no_input(f"\n- Fim da operação replicar version")
         self.escrever_arquivo_log(self.nomes['arquivo_replicar_version'], f"INFO - Fim da operação replicar version")
         self.button_replicar_inicio.config(state='active')
         self.button_replicar_voltar.config(state='active')
@@ -1620,6 +1606,320 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.combobox.config(state='active')
         self.button_menu_sair.config(state='active')
 
+    def validador_nif(self, documento_inserido):
+        self.combobox.config(state='disabled')
+        self.entry.config(state='disabled')
+        self.button_gerador_inicio.config(state='disabled')
+        self.button_gerador_voltar.config(state='disabled')
+        self.button_menu_sair.config(state='disabled')
+        self.button_gerador_limpar.config(state='disabled')
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Rotina - Gerador NIF")
+        lista_sem_mascara = self.limpar_string(documento_inserido)
+        for doc in lista_sem_mascara:
+            tam_documento = len(doc)
+            sem_digitos_validadores = doc[0:tam_documento - 1]
+            digitos_validadores = doc[tam_documento - 1:tam_documento]
+
+            basenif = []
+            pos_alga = 0
+            algarismonif = [9, 8, 7, 6, 5, 4, 3, 2]
+            tam_alga1 = len(algarismonif)
+            fase2 = []
+            fase4 = []
+
+            for num_alg in str(sem_digitos_validadores):
+                basenif.append(num_alg)
+
+            # Fase 2 - multiplicação primeiro digito
+            for pos in basenif:
+                if pos_alga == tam_alga1:
+                    pos_alga = 0
+                fase2.append(int(pos) * int(algarismonif[pos_alga]))
+                pos_alga += 1
+
+            # Fase 3 - Soma primeiro digito
+            fase3 = sum(fase2)
+
+            etapa1_nif = math.floor(fase3/11)
+            etapa2_nif = fase3 - etapa1_nif * 11
+            if etapa2_nif == 1 or etapa2_nif == 0:
+                dig1_nif = 0
+            else:
+                dig1_nif = 11 - etapa2_nif
+
+            if dig1_nif == int(digitos_validadores):
+                status_checagem = "Verdadeiro"
+            else:
+                status_checagem = "Falso"
+            self.escrever_no_input(f"- NIF - {doc} - {status_checagem}")
+
+
+        self.combobox.config(state='active')
+        self.entry.config(state='normal')
+        self.button_gerador_inicio.config(state='active')
+        self.button_gerador_voltar.config(state='active')
+        self.button_menu_sair.config(state='active')
+        self.button_gerador_limpar.config(state='active')
+
+    def validador_cnpj(self, documento_inserido):
+        self.combobox.config(state='disabled')
+        self.entry.config(state='disabled')
+        self.button_gerador_inicio.config(state='disabled')
+        self.button_gerador_voltar.config(state='disabled')
+        self.button_menu_sair.config(state='disabled')
+        self.button_gerador_limpar.config(state='disabled')
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Rotina - Gerador CNPJ")
+        lista_sem_mascara = self.limpar_string(documento_inserido)
+        for doc in lista_sem_mascara:
+            tam_documento = len(doc)
+            sem_digitos_validadores = doc[0:tam_documento - 2]
+            digitos_validadores = doc[tam_documento - 2:tam_documento]
+
+            basecnpj = []
+            pos_alga = 0
+            algarismocnpj1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+            algarismocnpj2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3]
+            tam_alga1 = len(algarismocnpj1)
+            tam_alga2 = len(algarismocnpj2)
+            fase2 = []
+            fase4 = []
+
+            for num_alg in str(sem_digitos_validadores):
+                basecnpj.append(num_alg)
+
+            # Fase 2 - multiplicação primeiro digito
+            for pos in basecnpj:
+                if pos_alga == tam_alga1:
+                    pos_alga = 0
+                fase2.append(int(pos) * int(algarismocnpj1[pos_alga]))
+                pos_alga += 1
+
+            # Fase 3 - Soma primeiro digito
+            fase3 = sum(fase2)
+
+            etapa1_cnpj = math.floor(fase3/11)
+            etapa2_cnpj = math.floor(etapa1_cnpj * 11)
+            etapa3_cnpj = math.floor(fase3 - etapa2_cnpj)
+            dig1_cnpj = 0 if 11 - etapa3_cnpj > 9 else 11 - etapa3_cnpj
+
+            # Fase 4 - multiplicação segundo digito
+            for pos in basecnpj:
+                if pos_alga == tam_alga2:
+                    pos_alga = 0
+                fase4.append(int(pos) * int(algarismocnpj2[pos_alga]))
+                pos_alga += 1
+
+            fase4.append(dig1_cnpj * 2)
+
+            # Fase 5 - Soma primeiro digito
+            fase5 = sum(fase4)
+
+            etapa4_cnpj = math.floor(fase5/11)
+            etapa5_cnpj = math.floor(etapa4_cnpj*11)
+            etapa6_cnpj = math.floor(fase5 - etapa5_cnpj)
+            dig2_cnpj = 0 if 11 - etapa6_cnpj > 9 else 11 - etapa6_cnpj
+
+            digitos_gerados = str(dig1_cnpj) + str(dig2_cnpj)
+
+            if int(digitos_gerados) == int(digitos_validadores):
+                status_checagem = "Verdadeiro"
+            else:
+                status_checagem = "Falso"
+            self.escrever_no_input(f"- CNPJ - {doc} - {status_checagem}")
+
+
+        self.combobox.config(state='active')
+        self.entry.config(state='normal')
+        self.button_gerador_inicio.config(state='active')
+        self.button_gerador_voltar.config(state='active')
+        self.button_menu_sair.config(state='active')
+        self.button_gerador_limpar.config(state='active')
+
+    def validador_cpf(self, documento_inserido):
+        self.combobox.config(state='disabled')
+        self.entry.config(state='disabled')
+        self.button_gerador_inicio.config(state='disabled')
+        self.button_gerador_voltar.config(state='disabled')
+        self.button_menu_sair.config(state='disabled')
+        self.button_gerador_limpar.config(state='disabled')
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Rotina - Gerador CPF")
+        lista_sem_mascara = self.limpar_string(documento_inserido)
+        for doc in lista_sem_mascara:
+            tam_documento = len(doc)
+            sem_digitos_validadores = doc[0:tam_documento - 2]
+            digitos_validadores = doc[tam_documento - 2:tam_documento]
+            divisor = 11
+
+            basecpf = []
+            pos_alga = 0
+            algarismocpf1 = [10, 9, 8, 7, 6, 5, 4, 3, 2]
+            algarismocpf2 = [11, 10, 9, 8, 7, 6, 5, 4, 3]
+            tam_alga1 = len(algarismocpf1)
+            tam_alga2 = len(algarismocpf2)
+            fase2 = []
+            fase4 = []
+
+            for num_alg in str(sem_digitos_validadores):
+                basecpf.append(num_alg)
+
+            # Fase 2 - multiplicação primeiro digito
+            for pos in basecpf:
+                if pos_alga == tam_alga1:
+                    pos_alga = 0
+                fase2.append(int(pos) * int(algarismocpf1[pos_alga]))
+                pos_alga += 1
+
+            # Fase 3 - Soma primeiro digito
+            fase3 = sum(fase2)
+
+            etapa1_cpf = math.floor(fase3/11)
+            etapa2_cpf = math.floor(etapa1_cpf*11)
+            etapa3_cpf = math.floor(fase3 - etapa2_cpf)
+            dig1_cpf = 0 if 11 - etapa3_cpf > 9 else 11 - etapa3_cpf
+
+            pos_alga = 0
+            # Fase 4 - multiplicação segundo digito
+            for pos in basecpf:
+                if pos_alga == tam_alga2:
+                    pos_alga = 0
+                fase4.append(int(pos) * int(algarismocpf2[pos_alga]))
+                pos_alga += 1
+
+            fase4.append(dig1_cpf * 2)
+            # Fase 5 - Soma segundo digito
+            fase5 = sum(fase4)
+
+            etapa4_cpf = math.floor(fase5/11)
+            etapa5_cpf = math.floor(etapa4_cpf*11)
+            etapa6_cpf = math.floor(fase5 - etapa5_cpf)
+            dig2_cpf = 0 if 11 - etapa6_cpf > 9 else 11 - etapa6_cpf
+
+            digitos_gerados = str(dig1_cpf) + str(dig2_cpf)
+
+            if digitos_gerados == digitos_validadores:
+                status_checagem = "Verdadeiro"
+            else:
+                status_checagem = "Falso"
+            self.escrever_no_input(f"- CPF - {doc} - {status_checagem}")
+
+        self.combobox.config(state='active')
+        self.entry.config(state='normal')
+        self.button_gerador_inicio.config(state='active')
+        self.button_gerador_voltar.config(state='active')
+        self.button_menu_sair.config(state='active')
+        self.button_gerador_limpar.config(state='active')
+
+    def validador_cei(self, documento_inserido):
+        self.combobox.config(state='disabled')
+        self.entry.config(state='disabled')
+        self.button_gerador_inicio.config(state='disabled')
+        self.button_gerador_voltar.config(state='disabled')
+        self.button_menu_sair.config(state='disabled')
+        self.button_gerador_limpar.config(state='disabled')
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Rotina - Gerador CEI")
+        lista_sem_mascara = self.limpar_string(documento_inserido)
+        for doc in lista_sem_mascara:
+            tam_documento = len(doc)
+            sem_digitos_validadores = doc[0:tam_documento - 1]
+            digitos_validadores = doc[tam_documento - 1:tam_documento]
+            basecei = []
+            pos_alga = 0
+            algarismopis = [7, 4, 1, 8, 5, 2, 1, 6, 3, 7, 4]
+            tam_alga = len(algarismopis)
+            fase2 = []
+
+
+            for num_alg in str(sem_digitos_validadores):
+                basecei.append(num_alg)
+            # Fase 2 - multiplicação
+            for pos in basecei:
+                if pos_alga == tam_alga:
+                    pos_alga = 0
+                fase2.append(int(pos) * int(algarismopis[pos_alga]))
+                pos_alga += 1
+
+            soma = sum(fase2)
+            string_soma = str(soma)
+            soma_digitos = int(string_soma[len(string_soma) - 1]) + int(string_soma[len(string_soma) - 2])
+            etapa1 = math.floor(soma_digitos / 10)
+            if etapa1 == 1:
+                etapa1 = 0
+            etapa2 = (soma_digitos % 10)
+            etapa3 = etapa2 + etapa1
+            etapa4 = (etapa3 % 10)
+            etapa5 = math.floor(10 - (etapa4 % 10))
+            if etapa5 == 10:
+                etapa6 = 0
+            else:
+                etapa6 = etapa5
+            if etapa6 == int(digitos_validadores):
+                status_checagem = "Verdadeiro"
+            else:
+                status_checagem = "Falso"
+            self.escrever_no_input(f"- CEI - {doc} - {status_checagem}")
+
+        self.combobox.config(state='active')
+        self.entry.config(state='normal')
+        self.button_gerador_inicio.config(state='active')
+        self.button_gerador_voltar.config(state='active')
+        self.button_menu_sair.config(state='active')
+        self.button_gerador_limpar.config(state='active')
+
+    def validador_pis(self, documento_inserido):
+        self.combobox.config(state='disabled')
+        self.entry.config(state='disabled')
+        self.button_gerador_inicio.config(state='disabled')
+        self.button_gerador_voltar.config(state='disabled')
+        self.button_menu_sair.config(state='disabled')
+        self.button_gerador_limpar.config(state='disabled')
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Rotina - Gerador PIS")
+        lista_sem_mascara = self.limpar_string(documento_inserido)
+        for doc in lista_sem_mascara:
+            tam_documento = len(doc)
+            sem_digitos_validadores = doc[0:tam_documento - 1]
+            digitos_validadores = doc[tam_documento - 1:tam_documento]
+            divisor = 11
+
+            basepis = []
+            pos_alga = 0
+            algarismopis = [3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+            tam_alga = len(algarismopis)
+            fase2 = []
+
+            for num_alg in str(sem_digitos_validadores):
+                basepis.append(num_alg)
+            # Fase 2 - multiplicação
+            for pos in basepis:
+                if pos_alga == tam_alga:
+                    pos_alga = 0
+                fase2.append(int(pos) * int(algarismopis[pos_alga]))
+                pos_alga += 1
+
+            # Fase 3 - Soma
+            fase3 = sum(fase2)
+            # Fase 6 - Resto da Divisão
+            fase6 = fase3 % divisor
+            # Fase 7 - Validador
+            if divisor - fase6 == 10:
+                fase7 = 0
+            elif divisor - fase6 == 11:
+                fase7 = 0
+            else:
+                fase7 = divisor - fase6
+
+            if fase7 == int(digitos_validadores):
+                status_checagem = "Verdadeiro"
+            else:
+                status_checagem = "Falso"
+            self.escrever_no_input(f"- Pis - {doc} - {status_checagem}")
+
+        self.combobox.config(state='active')
+        self.entry.config(state='normal')
+        self.button_gerador_inicio.config(state='active')
+        self.button_gerador_voltar.config(state='active')
+        self.button_menu_sair.config(state='active')
+        self.button_gerador_limpar.config(state='active')
+
     def gerador_nif(self, linhas, checkbox_arquivo):
         self.combobox.config(state='disabled')
         self.entry.config(state='disabled')
@@ -1921,6 +2221,27 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             self.entry.delete(0, tam_quant_insirada)
             return
 
+    def menu_validador_documentos(self):
+        selecao_combobox = self.combobox.get()
+        documento_inserido = self.entry.get()
+        if documento_inserido != self.placeholder_text and documento_inserido != "":
+            match selecao_combobox:
+                case "CEI":
+                    self.iniciar_processo_validar_cei(documento_inserido)
+                case "CNPJ":
+                    self.iniciar_processo_validar_cnpj(documento_inserido)
+                case "CPF":
+                    self.iniciar_processo_validar_cpf(documento_inserido)
+                case "NIF":
+                    self.iniciar_processo_validar_nif(documento_inserido)
+                case "PIS":
+                    self.iniciar_processo_validar_pis(documento_inserido)
+                case _:
+                    self.escrever_no_input(f"- Função não implementada")
+        else:
+            self.escrever_no_input(f"- Insira o documento que será validado")
+            return
+
     def menu_restaurar_banco(self):
         self.infos_config['status'] = True
         while True:
@@ -2000,6 +2321,46 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             else:
                 self.escrever_no_input(f"- Processo finalizado")
                 break
+
+    def iniciar_processo_validar_nif(self, documento_inserido):
+        # Criar uma nova thread para executar o processo demorado
+        try:
+            self.thread = threading.Thread(target=self.validador_nif, args=[documento_inserido])
+            self.thread.start()
+        except threading.excepthook as error:
+            self.escrever_no_input(f"- Processo finalizado com falha \n {error}")
+
+    def iniciar_processo_validar_cnpj(self, documento_inserido):
+        # Criar uma nova thread para executar o processo demorado
+        try:
+            self.thread = threading.Thread(target=self.validador_cnpj, args=[documento_inserido])
+            self.thread.start()
+        except threading.excepthook as error:
+            self.escrever_no_input(f"- Processo finalizado com falha \n {error}")
+
+    def iniciar_processo_validar_cpf(self, documento_inserido):
+        # Criar uma nova thread para executar o processo demorado
+        try:
+            self.thread = threading.Thread(target=self.validador_cpf, args=[documento_inserido])
+            self.thread.start()
+        except threading.excepthook as error:
+            self.escrever_no_input(f"- Processo finalizado com falha \n {error}")
+
+    def iniciar_processo_validar_cei(self, documento_inserido):
+        # Criar uma nova thread para executar o processo demorado
+        try:
+            self.thread = threading.Thread(target=self.validador_cei, args=[documento_inserido])
+            self.thread.start()
+        except threading.excepthook as error:
+            self.escrever_no_input(f"- Processo finalizado com falha \n {error}")
+
+    def iniciar_processo_validar_pis(self, documento_inserido):
+        # Criar uma nova thread para executar o processo demorado
+        try:
+            self.thread = threading.Thread(target=self.validador_pis, args=[documento_inserido])
+            self.thread.start()
+        except threading.excepthook as error:
+            self.escrever_no_input(f"- Processo finalizado com falha \n {error}")
 
     def iniciar_processo_gerar_nif(self, linhas, checkbox_arquivo):
         self.escrever_no_input(f"- Processo iniciado - Gerador de NIF")
@@ -2108,6 +2469,22 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             self.thread.start()
         except threading.excepthook as error:
             self.escrever_no_input(f"Processo finalizado com falha \n {error}")
+
+    def trocar_tela_validadores(self, app):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Validadores de Documentos")
+        peso_linha = 0
+        self.app.rowconfigure(1, weight=1)
+        self.app.rowconfigure(2, weight=peso_linha)
+        self.app.rowconfigure(3, weight=peso_linha)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(6, weight=peso_linha)
+        self.app.rowconfigure(7, weight=peso_linha)
+        self.app.rowconfigure(8, weight=peso_linha)
+        self.app.rowconfigure(9, weight=peso_linha)
+        self.app.rowconfigure(10, weight=1)
+        self.estruturar_tela()
+        self.tela_validadores(app, self.version, self.coluna)
 
     def trocar_tela_geradores(self, app):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Geradores de Documentos")
@@ -2598,6 +2975,15 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_geradores(app)
         )
+        self.button_menu_ferramentas_validadores = Button(
+            app,
+            text="Validador de documentos",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_validadores(app)
+        )
         self.button_menu_Voltar = Button(
             app,
             text="Voltar",
@@ -2612,6 +2998,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.button_menu_ferramentas.grid(row=3, column=coluna)
         self.button_menu_ferramentas_redis.grid(row=4, column=coluna)
         self.button_menu_ferramentas_geradores.grid(row=5, column=coluna)
+        self.button_menu_ferramentas_validadores.grid(row=6, column=coluna)
         self.button_menu_Voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
 
     def tela_geradores(self, app, version, coluna):
@@ -2640,7 +3027,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         )
         self.button_gerador_inicio = Button(
             app,
-            text="Iniciar",
+            text="Criar",
             width=25,
             height=2,
             bg=self.infos_config_prog["background_color_botoes"],
@@ -2672,6 +3059,51 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.input_placeholder(4, 5, coluna, " Insira a quantidade de números que serão gerados", "Quantidade:")
         self.checkbox_mascara_num.grid(row=5, column=coluna, pady=(25, 0), sticky="W")
         self.checkbox_gerar_arquivo.grid(row=6, column=coluna, pady=(0, 1), sticky="W")
+        self.caixa_texto(7, 8, coluna, "Saida:")
+        self.button_gerador_inicio.grid(row=9, column=coluna, pady=(10, 0), sticky="E")
+        self.button_gerador_limpar.grid(row=9, column=coluna, pady=(10, 0), sticky="W")
+        self.button_gerador_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
+
+    def tela_validadores(self, app, version, coluna):
+        titulo = "Validadores"
+        app.title("MSS - " + version + " - " + titulo)
+        opcoes = ["CEI", "CNPJ", "CPF", "NIF", "PIS"]
+        self.combobox = Combobox(
+            app,
+            values=opcoes,
+        )
+        self.button_gerador_inicio = Button(
+            app,
+            text="Validar",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.menu_validador_documentos()
+        )
+        self.button_gerador_limpar = Button(
+            app,
+            text="Limpar",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.limpar_caixa_texto()
+        )
+        self.button_gerador_voltar = Button(
+            app,
+            text="Voltar",
+            width=15,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_ferramentas()
+        )
+        self.limpar_linha(10, 2)
+        self.combobox.set(opcoes[0])
+        self.escrever_titulos(self.app, titulo, 2, coluna)
+        self.combobox.grid(row=3, column=coluna, pady=(0, 10), sticky="SWE")
+        self.input_placeholder(4, 5, coluna, " Insira o documento para ser validado", "Documento:")
         self.caixa_texto(7, 8, coluna, "Saida:")
         self.button_gerador_inicio.grid(row=9, column=coluna, pady=(10, 0), sticky="E")
         self.button_gerador_limpar.grid(row=9, column=coluna, pady=(10, 0), sticky="W")
