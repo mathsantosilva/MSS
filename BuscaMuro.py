@@ -1,5 +1,5 @@
 # coding: utf-8
-import datetime
+from datetime import datetime
 import json
 import os
 import re
@@ -99,11 +99,11 @@ def fechar_janela(msg):
     msg.destroy()
 
 def data_hora_atual():
-    data_hora = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    data_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     return data_hora
 
 def data_atual():
-    data_hora = datetime.datetime.now().strftime("%d-%m-%Y")
+    data_hora = datetime.now().strftime("%d-%m-%Y")
     return data_hora
 
 def validar_linha(nome):
@@ -136,7 +136,7 @@ def validar_diretorio(nomes, popup_mensagem):
             f"\n{data_hora_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_config']}: {error} ")
 
 class Aplicativo:
-    version = "3.4.0"
+    version = "3.4.1"
     coluna = 1
     widget = []
     nomes = dict()
@@ -277,12 +277,14 @@ class Aplicativo:
 
     def validar_atual_config(self):
         data = data_atual()
+        data = datetime.strptime(data, "%d-%m-%Y")
         if os.path.isfile(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}.conf"):
             try:
                 config = configparser.ConfigParser()
                 config.read(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}.conf")
                 self.infos_config_prog["data_ultima_atualizacao"] = ""
                 data_ultima_atualizacao = config.get('ConfiguracoesGerais', 'data_ultima_atualizacao')
+                data_ultima_atualizacao = datetime.strptime(data_ultima_atualizacao, "%d-%m-%Y")
                 if data_ultima_atualizacao != '':
                     if data_ultima_atualizacao < data:
                         self.infos_config_prog["atualizar"] = True
