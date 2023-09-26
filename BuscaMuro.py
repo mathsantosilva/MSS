@@ -136,7 +136,7 @@ def validar_diretorio(nomes, popup_mensagem):
             f"\n{data_hora_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_config']}: {error} ")
 
 class Aplicativo:
-    version = "3.4.1"
+    version = "3.4.2"
     coluna = 1
     widget = []
     nomes = dict()
@@ -222,6 +222,7 @@ class Aplicativo:
             sem_mascara = sem_mascara.replace(",", "")
             sem_mascara = sem_mascara.replace("-", "")
             sem_mascara = sem_mascara.replace("/", "")
+            sem_mascara = sem_mascara.strip()
             lista_limpa.append(sem_mascara)
         return lista_limpa
 
@@ -715,10 +716,16 @@ background_color_fonte = {self.color_default_fonte}"""
 
                     # separar o nome do banco nas connection strings
                     for i in range(len(lista_connection_string)):
+
                         guarda_string_cs.append(lista_connection_string[i].CONNECTION_STRING)
                         string_separada = guarda_string_cs[i].split(";")
-                        catalog = string_separada[1]
-                        nome_banco = catalog.split("=")[1]
+                        try:
+                            catalog = string_separada[1]
+                            nome_banco = catalog.split("=")[1]
+                        except:
+                            catalog = string_separada
+                            nome_banco = str(catalog).split("=")
+
                         lista_nome_banco.append(nome_banco)
                         continue
 
@@ -1618,43 +1625,45 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Rotina - Gerador NIF")
         lista_sem_mascara = self.limpar_string(documento_inserido)
         for doc in lista_sem_mascara:
-            tam_documento = len(doc)
-            sem_digitos_validadores = doc[0:tam_documento - 1]
-            digitos_validadores = doc[tam_documento - 1:tam_documento]
+            if doc.isdigit():
+                tam_documento = len(doc)
+                sem_digitos_validadores = doc[0:tam_documento - 1]
+                digitos_validadores = doc[tam_documento - 1:tam_documento]
 
-            basenif = []
-            pos_alga = 0
-            algarismonif = [9, 8, 7, 6, 5, 4, 3, 2]
-            tam_alga1 = len(algarismonif)
-            fase2 = []
-            fase4 = []
+                basenif = []
+                pos_alga = 0
+                algarismonif = [9, 8, 7, 6, 5, 4, 3, 2]
+                tam_alga1 = len(algarismonif)
+                fase2 = []
+                fase4 = []
 
-            for num_alg in str(sem_digitos_validadores):
-                basenif.append(num_alg)
+                for num_alg in str(sem_digitos_validadores):
+                    basenif.append(num_alg)
 
-            # Fase 2 - multiplicação primeiro digito
-            for pos in basenif:
-                if pos_alga == tam_alga1:
-                    pos_alga = 0
-                fase2.append(int(pos) * int(algarismonif[pos_alga]))
-                pos_alga += 1
+                # Fase 2 - multiplicação primeiro digito
+                for pos in basenif:
+                    if pos_alga == tam_alga1:
+                        pos_alga = 0
+                    fase2.append(int(pos) * int(algarismonif[pos_alga]))
+                    pos_alga += 1
 
-            # Fase 3 - Soma primeiro digito
-            fase3 = sum(fase2)
+                # Fase 3 - Soma primeiro digito
+                fase3 = sum(fase2)
 
-            etapa1_nif = math.floor(fase3/11)
-            etapa2_nif = fase3 - etapa1_nif * 11
-            if etapa2_nif == 1 or etapa2_nif == 0:
-                dig1_nif = 0
+                etapa1_nif = math.floor(fase3 / 11)
+                etapa2_nif = fase3 - etapa1_nif * 11
+                if etapa2_nif == 1 or etapa2_nif == 0:
+                    dig1_nif = 0
+                else:
+                    dig1_nif = 11 - etapa2_nif
+
+                if dig1_nif == int(digitos_validadores):
+                    status_checagem = "Verdadeiro"
+                else:
+                    status_checagem = "Falso"
+                self.escrever_no_input(f"- NIF - {doc} - {status_checagem}")
             else:
-                dig1_nif = 11 - etapa2_nif
-
-            if dig1_nif == int(digitos_validadores):
-                status_checagem = "Verdadeiro"
-            else:
-                status_checagem = "Falso"
-            self.escrever_no_input(f"- NIF - {doc} - {status_checagem}")
-
+                self.escrever_no_input(f"- Documento invalido")
 
         self.combobox.config(state='active')
         self.entry.config(state='normal')
@@ -1673,63 +1682,64 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Rotina - Gerador CNPJ")
         lista_sem_mascara = self.limpar_string(documento_inserido)
         for doc in lista_sem_mascara:
-            tam_documento = len(doc)
-            sem_digitos_validadores = doc[0:tam_documento - 2]
-            digitos_validadores = doc[tam_documento - 2:tam_documento]
+            if doc.isdigit():
+                tam_documento = len(doc)
+                sem_digitos_validadores = doc[0:tam_documento - 2]
+                digitos_validadores = doc[tam_documento - 2:tam_documento]
 
-            basecnpj = []
-            pos_alga = 0
-            algarismocnpj1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
-            algarismocnpj2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3]
-            tam_alga1 = len(algarismocnpj1)
-            tam_alga2 = len(algarismocnpj2)
-            fase2 = []
-            fase4 = []
+                basecnpj = []
+                pos_alga = 0
+                algarismocnpj1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+                algarismocnpj2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3]
+                tam_alga1 = len(algarismocnpj1)
+                tam_alga2 = len(algarismocnpj2)
+                fase2 = []
+                fase4 = []
 
-            for num_alg in str(sem_digitos_validadores):
-                basecnpj.append(num_alg)
+                for num_alg in str(sem_digitos_validadores):
+                    basecnpj.append(num_alg)
 
-            # Fase 2 - multiplicação primeiro digito
-            for pos in basecnpj:
-                if pos_alga == tam_alga1:
-                    pos_alga = 0
-                fase2.append(int(pos) * int(algarismocnpj1[pos_alga]))
-                pos_alga += 1
+                # Fase 2 - multiplicação primeiro digito
+                for pos in basecnpj:
+                    if pos_alga == tam_alga1:
+                        pos_alga = 0
+                    fase2.append(int(pos) * int(algarismocnpj1[pos_alga]))
+                    pos_alga += 1
 
-            # Fase 3 - Soma primeiro digito
-            fase3 = sum(fase2)
+                # Fase 3 - Soma primeiro digito
+                fase3 = sum(fase2)
 
-            etapa1_cnpj = math.floor(fase3/11)
-            etapa2_cnpj = math.floor(etapa1_cnpj * 11)
-            etapa3_cnpj = math.floor(fase3 - etapa2_cnpj)
-            dig1_cnpj = 0 if 11 - etapa3_cnpj > 9 else 11 - etapa3_cnpj
+                etapa1_cnpj = math.floor(fase3 / 11)
+                etapa2_cnpj = math.floor(etapa1_cnpj * 11)
+                etapa3_cnpj = math.floor(fase3 - etapa2_cnpj)
+                dig1_cnpj = 0 if 11 - etapa3_cnpj > 9 else 11 - etapa3_cnpj
 
-            # Fase 4 - multiplicação segundo digito
-            for pos in basecnpj:
-                if pos_alga == tam_alga2:
-                    pos_alga = 0
-                fase4.append(int(pos) * int(algarismocnpj2[pos_alga]))
-                pos_alga += 1
+                # Fase 4 - multiplicação segundo digito
+                for pos in basecnpj:
+                    if pos_alga == tam_alga2:
+                        pos_alga = 0
+                    fase4.append(int(pos) * int(algarismocnpj2[pos_alga]))
+                    pos_alga += 1
 
-            fase4.append(dig1_cnpj * 2)
+                fase4.append(dig1_cnpj * 2)
 
-            # Fase 5 - Soma primeiro digito
-            fase5 = sum(fase4)
+                # Fase 5 - Soma primeiro digito
+                fase5 = sum(fase4)
 
-            etapa4_cnpj = math.floor(fase5/11)
-            etapa5_cnpj = math.floor(etapa4_cnpj*11)
-            etapa6_cnpj = math.floor(fase5 - etapa5_cnpj)
-            dig2_cnpj = 0 if 11 - etapa6_cnpj > 9 else 11 - etapa6_cnpj
+                etapa4_cnpj = math.floor(fase5 / 11)
+                etapa5_cnpj = math.floor(etapa4_cnpj * 11)
+                etapa6_cnpj = math.floor(fase5 - etapa5_cnpj)
+                dig2_cnpj = 0 if 11 - etapa6_cnpj > 9 else 11 - etapa6_cnpj
 
-            digitos_gerados = str(dig1_cnpj) + str(dig2_cnpj)
+                digitos_gerados = str(dig1_cnpj) + str(dig2_cnpj)
 
-            if int(digitos_gerados) == int(digitos_validadores):
-                status_checagem = "Verdadeiro"
+                if int(digitos_gerados) == int(digitos_validadores):
+                    status_checagem = "Verdadeiro"
+                else:
+                    status_checagem = "Falso"
+                self.escrever_no_input(f"- CNPJ - {doc} - {status_checagem}")
             else:
-                status_checagem = "Falso"
-            self.escrever_no_input(f"- CNPJ - {doc} - {status_checagem}")
-
-
+                self.escrever_no_input(f"- Documento invalido")
         self.combobox.config(state='active')
         self.entry.config(state='normal')
         self.button_gerador_inicio.config(state='active')
@@ -1747,62 +1757,65 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Rotina - Gerador CPF")
         lista_sem_mascara = self.limpar_string(documento_inserido)
         for doc in lista_sem_mascara:
-            tam_documento = len(doc)
-            sem_digitos_validadores = doc[0:tam_documento - 2]
-            digitos_validadores = doc[tam_documento - 2:tam_documento]
-            divisor = 11
+            if doc.isdigit():
+                tam_documento = len(doc)
+                sem_digitos_validadores = doc[0:tam_documento - 2]
+                digitos_validadores = doc[tam_documento - 2:tam_documento]
+                divisor = 11
 
-            basecpf = []
-            pos_alga = 0
-            algarismocpf1 = [10, 9, 8, 7, 6, 5, 4, 3, 2]
-            algarismocpf2 = [11, 10, 9, 8, 7, 6, 5, 4, 3]
-            tam_alga1 = len(algarismocpf1)
-            tam_alga2 = len(algarismocpf2)
-            fase2 = []
-            fase4 = []
+                basecpf = []
+                pos_alga = 0
+                algarismocpf1 = [10, 9, 8, 7, 6, 5, 4, 3, 2]
+                algarismocpf2 = [11, 10, 9, 8, 7, 6, 5, 4, 3]
+                tam_alga1 = len(algarismocpf1)
+                tam_alga2 = len(algarismocpf2)
+                fase2 = []
+                fase4 = []
 
-            for num_alg in str(sem_digitos_validadores):
-                basecpf.append(num_alg)
+                for num_alg in str(sem_digitos_validadores):
+                    basecpf.append(num_alg)
 
-            # Fase 2 - multiplicação primeiro digito
-            for pos in basecpf:
-                if pos_alga == tam_alga1:
-                    pos_alga = 0
-                fase2.append(int(pos) * int(algarismocpf1[pos_alga]))
-                pos_alga += 1
+                # Fase 2 - multiplicação primeiro digito
+                for pos in basecpf:
+                    if pos_alga == tam_alga1:
+                        pos_alga = 0
+                    fase2.append(int(pos) * int(algarismocpf1[pos_alga]))
+                    pos_alga += 1
 
-            # Fase 3 - Soma primeiro digito
-            fase3 = sum(fase2)
+                # Fase 3 - Soma primeiro digito
+                fase3 = sum(fase2)
 
-            etapa1_cpf = math.floor(fase3/11)
-            etapa2_cpf = math.floor(etapa1_cpf*11)
-            etapa3_cpf = math.floor(fase3 - etapa2_cpf)
-            dig1_cpf = 0 if 11 - etapa3_cpf > 9 else 11 - etapa3_cpf
+                etapa1_cpf = math.floor(fase3 / 11)
+                etapa2_cpf = math.floor(etapa1_cpf * 11)
+                etapa3_cpf = math.floor(fase3 - etapa2_cpf)
+                dig1_cpf = 0 if 11 - etapa3_cpf > 9 else 11 - etapa3_cpf
 
-            pos_alga = 0
-            # Fase 4 - multiplicação segundo digito
-            for pos in basecpf:
-                if pos_alga == tam_alga2:
-                    pos_alga = 0
-                fase4.append(int(pos) * int(algarismocpf2[pos_alga]))
-                pos_alga += 1
+                pos_alga = 0
+                # Fase 4 - multiplicação segundo digito
+                for pos in basecpf:
+                    if pos_alga == tam_alga2:
+                        pos_alga = 0
+                    fase4.append(int(pos) * int(algarismocpf2[pos_alga]))
+                    pos_alga += 1
 
-            fase4.append(dig1_cpf * 2)
-            # Fase 5 - Soma segundo digito
-            fase5 = sum(fase4)
+                fase4.append(dig1_cpf * 2)
+                # Fase 5 - Soma segundo digito
+                fase5 = sum(fase4)
 
-            etapa4_cpf = math.floor(fase5/11)
-            etapa5_cpf = math.floor(etapa4_cpf*11)
-            etapa6_cpf = math.floor(fase5 - etapa5_cpf)
-            dig2_cpf = 0 if 11 - etapa6_cpf > 9 else 11 - etapa6_cpf
+                etapa4_cpf = math.floor(fase5 / 11)
+                etapa5_cpf = math.floor(etapa4_cpf * 11)
+                etapa6_cpf = math.floor(fase5 - etapa5_cpf)
+                dig2_cpf = 0 if 11 - etapa6_cpf > 9 else 11 - etapa6_cpf
 
-            digitos_gerados = str(dig1_cpf) + str(dig2_cpf)
+                digitos_gerados = str(dig1_cpf) + str(dig2_cpf)
 
-            if digitos_gerados == digitos_validadores:
-                status_checagem = "Verdadeiro"
+                if digitos_gerados == digitos_validadores:
+                    status_checagem = "Verdadeiro"
+                else:
+                    status_checagem = "Falso"
+                self.escrever_no_input(f"- CPF - {doc} - {status_checagem}")
             else:
-                status_checagem = "Falso"
-            self.escrever_no_input(f"- CPF - {doc} - {status_checagem}")
+                self.escrever_no_input(f"- Documento invalido")
 
         self.combobox.config(state='active')
         self.entry.config(state='normal')
@@ -1821,44 +1834,48 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Rotina - Gerador CEI")
         lista_sem_mascara = self.limpar_string(documento_inserido)
         for doc in lista_sem_mascara:
-            tam_documento = len(doc)
-            sem_digitos_validadores = doc[0:tam_documento - 1]
-            digitos_validadores = doc[tam_documento - 1:tam_documento]
-            basecei = []
-            pos_alga = 0
-            algarismopis = [7, 4, 1, 8, 5, 2, 1, 6, 3, 7, 4]
-            tam_alga = len(algarismopis)
-            fase2 = []
+            if doc.isdigit():
+                tam_documento = len(doc)
+                sem_digitos_validadores = doc[0:tam_documento - 1]
+                digitos_validadores = doc[tam_documento - 1:tam_documento]
+                basecei = []
+                pos_alga = 0
+                algarismopis = [7, 4, 1, 8, 5, 2, 1, 6, 3, 7, 4]
+                tam_alga = len(algarismopis)
+                fase2 = []
 
 
-            for num_alg in str(sem_digitos_validadores):
-                basecei.append(num_alg)
-            # Fase 2 - multiplicação
-            for pos in basecei:
-                if pos_alga == tam_alga:
-                    pos_alga = 0
-                fase2.append(int(pos) * int(algarismopis[pos_alga]))
-                pos_alga += 1
+                for num_alg in str(sem_digitos_validadores):
+                    basecei.append(num_alg)
+                # Fase 2 - multiplicação
+                for pos in basecei:
+                    if pos_alga == tam_alga:
+                        pos_alga = 0
+                    fase2.append(int(pos) * int(algarismopis[pos_alga]))
+                    pos_alga += 1
 
-            soma = sum(fase2)
-            string_soma = str(soma)
-            soma_digitos = int(string_soma[len(string_soma) - 1]) + int(string_soma[len(string_soma) - 2])
-            etapa1 = math.floor(soma_digitos / 10)
-            if etapa1 == 1:
-                etapa1 = 0
-            etapa2 = (soma_digitos % 10)
-            etapa3 = etapa2 + etapa1
-            etapa4 = (etapa3 % 10)
-            etapa5 = math.floor(10 - (etapa4 % 10))
-            if etapa5 == 10:
-                etapa6 = 0
+                soma = sum(fase2)
+                string_soma = str(soma)
+                soma_digitos = int(string_soma[len(string_soma) - 1]) + int(string_soma[len(string_soma) - 2])
+                etapa1 = math.floor(soma_digitos / 10)
+                if etapa1 == 1:
+                    etapa1 = 0
+                etapa2 = (soma_digitos % 10)
+                etapa3 = etapa2 + etapa1
+                etapa4 = (etapa3 % 10)
+                etapa5 = math.floor(10 - (etapa4 % 10))
+                if etapa5 == 10:
+                    etapa6 = 0
+                else:
+                    etapa6 = etapa5
+                if etapa6 == int(digitos_validadores):
+                    status_checagem = "Verdadeiro"
+                else:
+                    status_checagem = "Falso"
+                self.escrever_no_input(f"- CEI - {doc} - {status_checagem}")
             else:
-                etapa6 = etapa5
-            if etapa6 == int(digitos_validadores):
-                status_checagem = "Verdadeiro"
-            else:
-                status_checagem = "Falso"
-            self.escrever_no_input(f"- CEI - {doc} - {status_checagem}")
+                self.escrever_no_input(f"- Documento invalido")
+
 
         self.combobox.config(state='active')
         self.entry.config(state='normal')
@@ -1877,43 +1894,47 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Rotina - Gerador PIS")
         lista_sem_mascara = self.limpar_string(documento_inserido)
         for doc in lista_sem_mascara:
-            tam_documento = len(doc)
-            sem_digitos_validadores = doc[0:tam_documento - 1]
-            digitos_validadores = doc[tam_documento - 1:tam_documento]
-            divisor = 11
+            if doc.isdigit():
+                tam_documento = len(doc)
+                sem_digitos_validadores = doc[0:tam_documento - 1]
+                digitos_validadores = doc[tam_documento - 1:tam_documento]
+                divisor = 11
 
-            basepis = []
-            pos_alga = 0
-            algarismopis = [3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
-            tam_alga = len(algarismopis)
-            fase2 = []
+                basepis = []
+                pos_alga = 0
+                algarismopis = [3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+                tam_alga = len(algarismopis)
+                fase2 = []
 
-            for num_alg in str(sem_digitos_validadores):
-                basepis.append(num_alg)
-            # Fase 2 - multiplicação
-            for pos in basepis:
-                if pos_alga == tam_alga:
-                    pos_alga = 0
-                fase2.append(int(pos) * int(algarismopis[pos_alga]))
-                pos_alga += 1
+                for num_alg in str(sem_digitos_validadores):
+                    basepis.append(num_alg)
+                # Fase 2 - multiplicação
+                for pos in basepis:
+                    if pos_alga == tam_alga:
+                        pos_alga = 0
+                    fase2.append(int(pos) * int(algarismopis[pos_alga]))
+                    pos_alga += 1
 
-            # Fase 3 - Soma
-            fase3 = sum(fase2)
-            # Fase 6 - Resto da Divisão
-            fase6 = fase3 % divisor
-            # Fase 7 - Validador
-            if divisor - fase6 == 10:
-                fase7 = 0
-            elif divisor - fase6 == 11:
-                fase7 = 0
+                # Fase 3 - Soma
+                fase3 = sum(fase2)
+                # Fase 6 - Resto da Divisão
+                fase6 = fase3 % divisor
+                # Fase 7 - Validador
+                if divisor - fase6 == 10:
+                    fase7 = 0
+                elif divisor - fase6 == 11:
+                    fase7 = 0
+                else:
+                    fase7 = divisor - fase6
+
+                if fase7 == int(digitos_validadores):
+                    status_checagem = "Verdadeiro"
+                else:
+                    status_checagem = "Falso"
+                self.escrever_no_input(f"- Pis - {doc} - {status_checagem}")
             else:
-                fase7 = divisor - fase6
+                self.escrever_no_input(f"- Documento invalido")
 
-            if fase7 == int(digitos_validadores):
-                status_checagem = "Verdadeiro"
-            else:
-                status_checagem = "Falso"
-            self.escrever_no_input(f"- Pis - {doc} - {status_checagem}")
 
         self.combobox.config(state='active')
         self.entry.config(state='normal')
