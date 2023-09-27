@@ -37,7 +37,7 @@ def comparar_tags(tag1, tag2):
 
     return 0
 
-def pesquisar_maior_tag(username, repository, tag_atual, popup_mensagem):
+def pesquisar_maior_tag(username, repository, tag_atual, criar_popup_mensagem):
     github = Github()
     tags = []
     try:
@@ -46,7 +46,7 @@ def pesquisar_maior_tag(username, repository, tag_atual, popup_mensagem):
         for tag_in in tags_on:
             tags.append(tag_in.name)
     except Exception as error:
-        popup_mensagem(f"Erro ao consultar tags para atualização: {error} ")
+        criar_popup_mensagem(f"Erro ao consultar tags para atualização: {error} ")
     else:
         maior_tag = None
         try:
@@ -56,16 +56,16 @@ def pesquisar_maior_tag(username, repository, tag_atual, popup_mensagem):
                         maior_tag = tag
                         break
         except Exception as error:
-            popup_mensagem(f"Erro ao consultar tags para atualização: {error} ")
+            criar_popup_mensagem(f"Erro ao consultar tags para atualização: {error} ")
 
         return maior_tag
 
-def realizar_download(maior_tag, popup_mensagem):
+def realizar_download(maior_tag, criar_popup_mensagem):
     try:
         caminho = f"https://github.com/mathsantosilva/MSS/releases/download/{maior_tag}/BuscaMuro.exe"
         response = requests.get(caminho)
     except Exception as error:
-        popup_mensagem(f"Erro ao consultar tags para atualização: {error} ")
+        criar_popup_mensagem(f"Erro ao consultar tags para atualização: {error} ")
     else:
         try:
             if os.path.exists("C:/MSS_temp"):
@@ -73,7 +73,7 @@ def realizar_download(maior_tag, popup_mensagem):
             else:
                 os.makedirs("C:/MSS_temp")
         except Exception as error:
-            popup_mensagem(f"Erro ao criar/validar a pasta C:/MSS_temp: {error} ")
+            criar_popup_mensagem(f"Erro ao criar/validar a pasta C:/MSS_temp: {error} ")
         with open("C:/MSS_temp/BuscaMuro.exe", "wb") as arquivo:
             arquivo.write(response.content)
             arquivo.close()
@@ -118,13 +118,13 @@ def validar_linha(nome):
 
     return pula_linha
 
-def validar_diretorio(nomes, popup_mensagem):
+def validar_diretorio(nomes, criar_popup_mensagem):
     # Criar diretorio log
     try:
         if not os.path.exists(nomes['diretorio_log']):
             os.makedirs(nomes['diretorio_log'])
     except Exception as error:
-        popup_mensagem(
+        criar_popup_mensagem(
             f"\n{data_hora_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_log']}: {error} ")
 
     # Criar diretorio config
@@ -132,7 +132,7 @@ def validar_diretorio(nomes, popup_mensagem):
         if not os.path.exists(nomes['diretorio_config']):
             os.makedirs(nomes['diretorio_config'])
     except Exception as error:
-        popup_mensagem(
+        criar_popup_mensagem(
             f"\n{data_hora_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_config']}: {error} ")
 
 class Aplicativo:
@@ -242,10 +242,10 @@ class Aplicativo:
             username = "mathsantosilva"
             repository = "MSS"
             tag_atual = self.version
-            maior_tag = pesquisar_maior_tag(username, repository, tag_atual, self.popup_mensagem)
+            maior_tag = pesquisar_maior_tag(username, repository, tag_atual, self.criar_popup_mensagem)
 
             if maior_tag is not None:
-                realizar_download(maior_tag, self.popup_mensagem)
+                realizar_download(maior_tag, self.criar_popup_mensagem)
                 if os.path.exists("C:/MSS_temp"):
                     dir_atual = os.getcwd()
                     executar_comando_batch(dir_atual)
@@ -260,7 +260,7 @@ class Aplicativo:
                     else:
                         return
                 except Exception as error:
-                    self.popup_mensagem(f"Erro ao criar/validar a pasta {self.nomes['diretorio_log']}: {error} ")
+                    self.criar_popup_mensagem(f"Erro ao criar/validar a pasta {self.nomes['diretorio_log']}: {error} ")
         else:
             return
 
@@ -297,7 +297,7 @@ class Aplicativo:
                     self.infos_config_prog["atualizar"] = True
                     self.alterar_ult_busca()
             except Exception as error:
-                self.popup_mensagem(f"Erro ao validar a ultima atualização: {error}")
+                self.criar_popup_mensagem(f"Erro ao validar a ultima atualização: {error}")
                 self.infos_config_prog["atualizar"] = False
         else:
             self.infos_config_prog["atualizar"] = False
@@ -333,7 +333,7 @@ class Aplicativo:
                 self.infos_config_prog["background_color_fonte"] = background_color_fonte
             return background_color_fundo, background_color_titulos, background_color_botoes, background_color_botoes_navs, background_color_fonte
         except Exception as error:
-            self.popup_mensagem(f"Erro ao acessar arquivo de configuração default {error}")
+            self.criar_popup_mensagem(f"Erro ao acessar arquivo de configuração default {error}")
 
     def atualizar_config_default(self, config_setado):
         try:
@@ -343,7 +343,7 @@ class Aplicativo:
             self.salvar_alteracoes_config(config)
             self.infos_config_prog['config_default'] = config_setado
         except Exception as error:
-            self.popup_mensagem(f"Erro ao atualizar o arquivo config: {error}")
+            self.criar_popup_mensagem(f"Erro ao atualizar o arquivo config: {error}")
             
     def alterar_ult_busca(self):
         data = data_atual()
@@ -353,7 +353,7 @@ class Aplicativo:
             config.set('ConfiguracoesGerais', 'data_ultima_atualizacao', data)
             self.salvar_alteracoes_config(config)
         except Exception as error:
-            self.popup_mensagem(f"Erro ao atualizar a data da ultima atualização: {error}")
+            self.criar_popup_mensagem(f"Erro ao atualizar a data da ultima atualização: {error}")
 
     def alterar_background(self):
         backg_fundo = self.entry_background_fundo.get()
@@ -389,7 +389,7 @@ class Aplicativo:
             self.infos_config_prog["background_color_fonte"] = backg_fontes
             self.trocar_tela_menu()
         except Exception as error:
-            self.popup_mensagem(f"Erro ao Alterar o background: {error}")
+            self.criar_popup_mensagem(f"Erro ao Alterar o background: {error}")
 
     def redefinir_background(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Background Redefinido")
@@ -415,7 +415,7 @@ class Aplicativo:
             self.infos_config_prog["background_color_fonte"] = backg_fontes
             self.trocar_tela_menu()
         except Exception as error:
-            self.popup_mensagem(f"Erro ao Alterar o background: {error}")
+            self.criar_popup_mensagem(f"Erro ao Alterar o background: {error}")
 
     def caixa_selecao_de_cor(self, campo):
         color_code = colorchooser.askcolor(title="Escolha uma cor")
@@ -441,7 +441,7 @@ background_color_fonte = {self.color_default_fonte}"""
             with open(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}.conf", 'w') as config_file:
                 config.write(config_file)
         except Exception as error:
-            self.popup_mensagem(f"Erro ao atualizar o arquivo config: {error}")
+            self.criar_popup_mensagem(f"Erro ao atualizar o arquivo config: {error}")
 
     def percorrer_widgets(self, app):
         self.widget.clear()
@@ -495,7 +495,7 @@ background_color_fonte = {self.color_default_fonte}"""
         for widget in widgets:
             widget.destroy()
 
-    def caixa_texto(self, linha_label, linha_texto, coluna, nome):
+    def criar_caixa_texto(self, linha_label, linha_texto, coluna, nome):
         self.nome_campo_caixa = Label(
             text=nome,
             bg=self.infos_config_prog["background_color_fundo"],
@@ -522,7 +522,7 @@ background_color_fonte = {self.color_default_fonte}"""
         self.widtexto.see(END)
         self.widtexto.config(state="disabled")
 
-    def popup_mensagem(self, mensagem):
+    def criar_popup_mensagem(self, mensagem):
         msg = Tk()
         msg.geometry(f"{self.largura}x200+{self.metade_wid}+{self.metade_hei}")
         msg.configure(bg=self.infos_config_prog["background_color_fundo"])
@@ -1008,7 +1008,7 @@ background_color_fonte = {self.color_default_fonte}"""
         elif self.infos_config_prog['escolha_manual'] is False and self.infos_config_prog['config_default'] != "":
             self.config_selecionado = self.infos_config_prog['config_default']
         else:
-            self.popup_mensagem(f"Erro na validação do arquivo config: {self.infos_config_prog['escolha_manual']} e {self.infos_config_prog['config_default']}")
+            self.criar_popup_mensagem(f"Erro na validação do arquivo config: {self.infos_config_prog['escolha_manual']} e {self.infos_config_prog['config_default']}")
 
         # Validando o arquivo de config
         try:
@@ -1017,32 +1017,32 @@ background_color_fonte = {self.color_default_fonte}"""
                 config_json = config_bjt.read().lower()
                 params_dict = json.loads(config_json)
             else:
-                self.popup_mensagem(
+                self.criar_popup_mensagem(
                     f"Não foi possível encontrar um .JSON com esse nome na pasta {self.nomes['diretorio_config']}!")
         except Exception as name_error:
-            self.popup_mensagem(f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
+            self.criar_popup_mensagem(f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
             self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
             return
         else:
             try:
                 if params_dict['conexao']['server'] == '':
-                    self.popup_mensagem("O valor do server não foi especificado no config")
+                    self.criar_popup_mensagem("O valor do server não foi especificado no config")
                     self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - O valor do server não foi especificado no config, Informe e tente novamente ")
                     return
                 elif params_dict["conexao"]["username"] == '':
-                    self.popup_mensagem("O valor do Username não foi especificado no config")
+                    self.criar_popup_mensagem("O valor do Username não foi especificado no config")
                     self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - O valor do Username não foi especificado no config, Informe e tente novamente ")
                     return
                 elif params_dict["conexao"]["password"] == '':
-                    self.popup_mensagem("O valor do Password não foi especificado no config")
+                    self.criar_popup_mensagem("O valor do Password não foi especificado no config")
                     self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - O valor do Password não foi especificado no config, Informe e tente novamente ")
                     return
                 elif not params_dict["bases_muro"]:
-                    self.popup_mensagem("O valor do Base_Muro não foi especificado no config")
+                    self.criar_popup_mensagem("O valor do Base_Muro não foi especificado no config")
                     self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - O valor do Base_Muro não foi especificado no config, Informe e tente novamente ")
                     return
             except Exception as name_error:
-                self.popup_mensagem(f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
+                self.criar_popup_mensagem(f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
                 self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
             else:
                 try:
@@ -1056,7 +1056,7 @@ background_color_fonte = {self.color_default_fonte}"""
                     self.infos_config['database_update_md'] = params_dict["database_update_md"]
                     self.infos_config['bases_muro'] = params_dict["bases_muro"]
                 except Exception as name_error:
-                    self.popup_mensagem(f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
+                    self.criar_popup_mensagem(f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
                     self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
                 else:
                     self.infos_config['status'] = True
@@ -1076,7 +1076,7 @@ background_color_fonte = {self.color_default_fonte}"""
                         self.infos_config['password_principal'] = (
                             params_dict)["configs_restaurar_download"]["password_principal"]
                     except Exception as name_error:
-                        self.popup_mensagem(f"O config esta estava desatualizado, foram inseridas as novas tags no config:\n {name_error}")
+                        self.criar_popup_mensagem(f"O config esta estava desatualizado, foram inseridas as novas tags no config:\n {name_error}")
                         self.escrever_arquivo_log(
                             self.nomes['arquivo_base_muro'], f"INFO - O config esta estava desatualizado, foram inseridas as novas tags no config, configure elas para usar as rotinas {self.nomes['arquivo_download_backup']} e {self.nomes['arquivo_restaurar_banco']}: {name_error}")
                         self.infos_config['server_principal'] = ""
@@ -1108,7 +1108,7 @@ background_color_fonte = {self.color_default_fonte}"""
         try:
             self.infos_config['redis_qa'] = params_dict["redis_qa"]
         except Exception as name_error:
-            self.popup_mensagem(
+            self.criar_popup_mensagem(
                 f"O config esta estava desatualizado, foram inseridas as novas tags no config:\n {name_error}")
             self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - O config esta estava desatualizado, foram inseridas as novas tags no config, configure elas para usar as rotinas {self.nomes['arquivo_download_backup']} e {self.nomes['arquivo_restaurar_banco']}: {name_error}")
             self.infos_config['redis_qa'] = ""
@@ -1163,7 +1163,7 @@ background_color_fonte = {self.color_default_fonte}"""
         try:
             arquivos_diretorio = os.listdir(self.nomes['pasta_config'])
         except Exception as name_error:
-            self.popup_mensagem(f"Não foi possivel acessar a pasta config: {name_error}")
+            self.criar_popup_mensagem(f"Não foi possivel acessar a pasta config: {name_error}")
             return
         else:
             loop = True
@@ -1181,10 +1181,10 @@ background_color_fonte = {self.color_default_fonte}"""
                             opcoes.append(f"{itens_arquivos}")
                         break
                     else:
-                        self.popup_mensagem(f"Não existe arquivos .json na pasta config")
+                        self.criar_popup_mensagem(f"Não existe arquivos .json na pasta config")
                         return
                 else:
-                    self.popup_mensagem(f"Não existe arquivos na pasta config")
+                    self.criar_popup_mensagem(f"Não existe arquivos na pasta config")
                     return
 
         self.button_config_existente.config(state="disabled")
@@ -1223,14 +1223,14 @@ background_color_fonte = {self.color_default_fonte}"""
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Criação de config ")
         nome_escolhido = self.entry.get()
         if nome_escolhido == self.placeholder_text or nome_escolhido == "":
-            self.popup_mensagem("O campo nome deverá ser preenchido")
+            self.criar_popup_mensagem("O campo nome deverá ser preenchido")
             return
         else:
+            nome_escolhido = nome_escolhido.replace(".json", "")
+            nome_config = nome_escolhido
 
-            nome_config = nome_escolhido + ".json"
-
-            if os.path.exists(f"{self.nomes['diretorio_config']}\\{nome_config}"):
-                self.popup_mensagem(
+            if os.path.exists(f"{self.nomes['diretorio_config']}\\{nome_config}.json"):
+                self.criar_popup_mensagem(
                     "Já existe um arquivo .json com o mesmo nome\nInforme outro nome para o arquivo config")
             else:
                 arquivo_config = ("""{{
@@ -1263,7 +1263,7 @@ background_color_fonte = {self.color_default_fonte}"""
     ]
 }}""")
                 self.escrever_arquivo_config(nome_config, arquivo_config, "json")
-                self.popup_mensagem("Novo config criado com sucesso")
+                self.criar_popup_mensagem("Novo config criado com sucesso")
                 self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Novo config criado com sucesso, configure e selecione para ser utilizado {nome_config}")
 
     def inserir_campos_arquivo_novo(self, app, coluna):
@@ -2671,7 +2671,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                     opcoes.append(red_nome["nome_redis"])
 
         else:
-            self.popup_mensagem(f"Não existe arquivos .json na pasta config")
+            self.criar_popup_mensagem(f"Não existe arquivos .json na pasta config")
             return
 
         self.label_lista_redis = Label(
@@ -2707,7 +2707,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             self.combobox.set(opcoes[0])
         self.label_lista_redis.grid(row=3, column=coluna, columnspan=1, pady=(10, 0), sticky="WS")
         self.combobox.grid(row=4, column=coluna, columnspan=1, pady=(0, 10), sticky="WEN")
-        self.caixa_texto(5, 6, coluna, "Saida:")
+        self.criar_caixa_texto(5, 6, coluna, "Saida:")
         self.button_redis_inicio.grid(row=7, column=coluna, pady=(10, 0))
         self.button_redis_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
 
@@ -2735,7 +2735,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         )
         self.limpar_linha(10, 2)
         self.escrever_titulos(self.app, titulo, 2, coluna)
-        self.caixa_texto(3, 4, coluna, "Saida:")
+        self.criar_caixa_texto(3, 4, coluna, "Saida:")
         self.button_atualizacao_inicio.grid(row=5, column=coluna,  pady=(10, 0))
         self.button_atualizacao_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
 
@@ -2765,7 +2765,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.escrever_titulos(self.app, titulo, 2, coluna)
         self.input_placeholder(
             3, 4, coluna, " Insira o nome do banco desejado (KAIROS_BASE_123456789)", "Nome do banco:")
-        self.caixa_texto(5, 6, coluna, "Saida:")
+        self.criar_caixa_texto(5, 6, coluna, "Saida:")
         self.button_restaurar_inicio.grid(row=7, column=coluna, pady=(10, 0))
         self.button_restaurar_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
 
@@ -2794,7 +2794,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.limpar_linha(10, 2)
         self.escrever_titulos(self.app, titulo, 2, coluna)
         self.input_placeholder(3, 4, coluna, "URL DO BACKUP", "Endereço URL:")
-        self.caixa_texto(5, 6, coluna, "Saida:")
+        self.criar_caixa_texto(5, 6, coluna, "Saida:")
         self.button_download_inicio.grid(row=7, column=coluna, pady=(10, 0))
         self.button_download_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
 
@@ -2823,7 +2823,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
 
         self.escrever_titulos(self.app, titulo, 2, coluna)
         self.input_placeholder(3, 4, coluna, "Insira o version para downgrade...", "Version:")
-        self.caixa_texto(5, 6, coluna, "Saida:")
+        self.criar_caixa_texto(5, 6, coluna, "Saida:")
         self.button_busca_inicio.grid(row=7, column=coluna, padx=5, pady=5)
         self.button_busca_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
 
@@ -2851,7 +2851,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         )
 
         self.escrever_titulos(self.app, titulo, 2, coluna)
-        self.caixa_texto(3, 4, coluna, "Saida:")
+        self.criar_caixa_texto(3, 4, coluna, "Saida:")
         self.button_atualizacao_inicio.grid(row=5, column=coluna,  pady=(10, 0))
         self.button_atualizacao_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
 
@@ -2879,7 +2879,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         )
         self.limpar_linha(10, 2)
         self.escrever_titulos(self.app, titulo, 2, coluna)
-        self.caixa_texto(3, 4, coluna, "Saida:")
+        self.criar_caixa_texto(3, 4, coluna, "Saida:")
         self.button_replicar_inicio.grid(row=5, column=coluna,  pady=(10, 0))
         self.button_replicar_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
 
@@ -3082,7 +3082,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.input_placeholder(4, 5, coluna, " Insira a quantidade de números que serão gerados", "Quantidade:")
         self.checkbox_mascara_num.grid(row=5, column=coluna, pady=(25, 0), sticky="W")
         self.checkbox_gerar_arquivo.grid(row=6, column=coluna, pady=(0, 1), sticky="W")
-        self.caixa_texto(7, 8, coluna, "Saida:")
+        self.criar_caixa_texto(7, 8, coluna, "Saida:")
         self.button_gerador_inicio.grid(row=9, column=coluna, pady=(10, 0), sticky="E")
         self.button_gerador_limpar.grid(row=9, column=coluna, pady=(10, 0), sticky="W")
         self.button_gerador_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
@@ -3127,7 +3127,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.escrever_titulos(self.app, titulo, 2, coluna)
         self.combobox.grid(row=3, column=coluna, pady=(0, 10), sticky="SWE")
         self.input_placeholder(4, 5, coluna, " Insira o documento para ser validado", "Documento:")
-        self.caixa_texto(7, 8, coluna, "Saida:")
+        self.criar_caixa_texto(7, 8, coluna, "Saida:")
         self.button_gerador_inicio.grid(row=9, column=coluna, pady=(10, 0), sticky="E")
         self.button_gerador_limpar.grid(row=9, column=coluna, pady=(10, 0), sticky="W")
         self.button_gerador_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
@@ -3406,7 +3406,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         pos_hei = self.app.winfo_screenheight()
         self.metade_wid = int((pos_wid / 2) - (self.largura / 2))
         self.metade_hei = int((pos_hei / 2) - (self.altura / 2))
-        validar_diretorio(self.nomes, self.popup_mensagem)
+        validar_diretorio(self.nomes, self.criar_popup_mensagem)
 
         # Data/hora inicio do programa
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Programa iniciado")
@@ -3432,7 +3432,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
                 self.trocar_tela_config()
 
         except Exception as error:
-            self.popup_mensagem(f"Erro ao acessar arquivo de configuração default {error}")
+            self.criar_popup_mensagem(f"Erro ao acessar arquivo de configuração default {error}")
             self.trocar_tela_config()
 
         self.app.mainloop()
