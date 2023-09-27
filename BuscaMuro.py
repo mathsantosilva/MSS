@@ -285,8 +285,8 @@ class Aplicativo:
                 config.read(f"{self.nomes['diretorio_config']}\\{self.nomes['arquivo_config_default']}.conf")
                 self.infos_config_prog["data_ultima_atualizacao"] = ""
                 data_ultima_atualizacao = config.get('ConfiguracoesGerais', 'data_ultima_atualizacao')
-                data_ultima_atualizacao = datetime.strptime(data_ultima_atualizacao, "%d-%m-%Y")
                 if data_ultima_atualizacao != '':
+                    data_ultima_atualizacao = datetime.strptime(data_ultima_atualizacao, "%d-%m-%Y")
                     if data_ultima_atualizacao < data:
                         self.infos_config_prog["atualizar"] = True
                         self.alterar_ult_busca()
