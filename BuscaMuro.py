@@ -136,7 +136,7 @@ def validar_diretorio(nomes, criar_popup_mensagem):
             f"\n{data_hora_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_config']}: {error} ")
 
 class Aplicativo:
-    version = "3.4.2"
+    version = "3.5.0"
     coluna = 1
     widget = []
     nomes = dict()
@@ -208,11 +208,19 @@ class Aplicativo:
         self.app = None
         self.status_thread = None
         self.app = None
+        threading.excepthook = self.custom_hook
         self.main()
 
     def finalizar(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Programa finalizado")
         sys.exit(200)
+
+    def custom_hook(self,args):
+        print("Teste")
+        self.criar_popup_mensagem("Exceção não tratada: {args.exc_type}, {args.exc_value}")
+
+    def atualizar_bancos_update(self):
+        print("teste654")
 
     def limpar_string(self, documento_inserido):
         lista_limpa = []
@@ -270,6 +278,7 @@ class Aplicativo:
         file_menu = Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="Configuração", menu=file_menu)
         file_menu.add_command(label="Trocar Configuração", command=self.trocar_tela_config)
+        file_menu.add_command(label="Ferramentas banco update", command=self.trocar_tela_atualizacao_banco_update)
 
         help_menu = Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="Aparência", menu=help_menu)
@@ -532,7 +541,7 @@ background_color_fonte = {self.color_default_fonte}"""
         msg.title("MSS - " + self.version + " - ALERTA")
         label_mensagem = Label(
             msg,
-            text=mensagem,
+            text=f"{mensagem}",
             padx=20,
             pady=20,
             bg=self.infos_config_prog["background_color_titulos"]
@@ -644,7 +653,7 @@ background_color_fonte = {self.color_default_fonte}"""
         self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], "INFO - Inicio da operação Busca muro ")
 
         versao_databases = self.entry.get()
-
+        raise Exception('Something bad happened')
         if versao_databases == '' or versao_databases == self.placeholder_text:
             self.escrever_no_input(f"-O campo Version não pode estar em branco")
             self.button_busca_inicio.config(state='active')
@@ -1187,8 +1196,6 @@ background_color_fonte = {self.color_default_fonte}"""
                     self.criar_popup_mensagem(f"Não existe arquivos na pasta config")
                     return
 
-        self.button_config_existente.config(state="disabled")
-        self.button_config_novo.config(state="active", fg=self.infos_config_prog["background_color_fonte"])
         self.limpar_linha(5, 1)
         self.limpar_linha(6, 1)
         self.limpar_linha(7, 1)
@@ -1268,8 +1275,6 @@ background_color_fonte = {self.color_default_fonte}"""
 
     def inserir_campos_arquivo_novo(self, app, coluna):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Criar Arquivo config")
-        self.button_config_novo.config(state="disabled")
-        self.button_config_existente.config(state="active", fg=self.infos_config_prog["background_color_fonte"])
         self.limpar_linha(5, 1)
         self.limpar_linha(6, 1)
         self.limpar_linha(7, 1)
@@ -2487,13 +2492,34 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
     def iniciar_processo_manipula_banco(self):
         self.escrever_no_input(f"- Processo iniciado")
         # Criar uma nova thread para executar o processo demorado
-        try:
-            self.thread = threading.Thread(target=self.manipular_banco_muro)
-            self.thread.start()
-        except threading.excepthook as error:
-            self.escrever_no_input(f"Processo finalizado com falha \n {error}")
+        self.thread = threading.Thread(target=self.manipular_banco_muro)
+        self.thread.start()
 
-    def trocar_tela_validadores(self, app):
+    def trocar_tela_ferramentas_documentos(self):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Ferramentas Documentos")
+        peso_linha = 0
+        self.app.rowconfigure(1, weight=1)
+        self.app.rowconfigure(2, weight=1)
+        self.app.rowconfigure(3, weight=peso_linha)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(9, weight=1)
+        self.estruturar_tela()
+        self.tela_ferramentas_documentos(self.app, self.version, self.coluna)
+
+    def trocar_tela_atualizacao_banco_update(self):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Atualização de banco Update")
+        peso_linha = 0
+        self.app.rowconfigure(1, weight=1)
+        self.app.rowconfigure(2, weight=1)
+        self.app.rowconfigure(3, weight=peso_linha)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(6, weight=peso_linha)
+        self.app.rowconfigure(10, weight=1)
+        self.estruturar_tela()
+        self.tela_ferramentas_banco_update(self.app, self.version, self.coluna)
+
+    def trocar_tela_validadores(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Validadores de Documentos")
         peso_linha = 0
         self.app.rowconfigure(1, weight=1)
@@ -2507,9 +2533,9 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.app.rowconfigure(9, weight=peso_linha)
         self.app.rowconfigure(10, weight=1)
         self.estruturar_tela()
-        self.tela_validadores(app, self.version, self.coluna)
+        self.tela_validadores(self.app, self.version, self.coluna)
 
-    def trocar_tela_geradores(self, app):
+    def trocar_tela_geradores(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Geradores de Documentos")
         peso_linha = 0
         self.app.rowconfigure(1, weight=1)
@@ -2523,9 +2549,9 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.app.rowconfigure(9, weight=peso_linha)
         self.app.rowconfigure(10, weight=1)
         self.estruturar_tela()
-        self.tela_geradores(app, self.version, self.coluna)
+        self.tela_geradores(self.app, self.version, self.coluna)
 
-    def trocar_tela_redis_especifico(self, app):
+    def trocar_tela_redis_especifico(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Limpar redis Especifico")
         peso_linha = 0
         self.app.rowconfigure(1, weight=1)
@@ -2534,9 +2560,9 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
-        self.tela_limpar_redis_especifico(app, self.version, self.coluna)
+        self.tela_limpar_redis_especifico(self.app, self.version, self.coluna)
 
-    def trocar_tela_redis_todos(self, app):
+    def trocar_tela_redis_todos(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Limpar todos os redis")
         peso_linha = 0
         self.app.rowconfigure(1, weight=1)
@@ -2545,7 +2571,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
-        self.tela_limpar_redis_todos(app, self.version, self.coluna)
+        self.tela_limpar_redis_todos(self.app, self.version, self.coluna)
 
     def trocar_tela_ferramentas(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Ferramentas")
@@ -2559,7 +2585,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.estruturar_tela()
         self.tela_ferramentas(self.app, self.version, self.coluna)
 
-    def trocar_tela_ferramentas_bancos(self, app):
+    def trocar_tela_ferramentas_bancos(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Ferramentas de banco")
         peso_linha = 0
         self.app.rowconfigure(1, weight=1)
@@ -2568,9 +2594,9 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
-        self.tela_ferramentas_bancos(app, self.version, self.coluna)
+        self.tela_ferramentas_bancos(self.app, self.version, self.coluna)
 
-    def trocar_tela_ferramentas_redis(self, app):
+    def trocar_tela_ferramentas_redis(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Ferramentas de Redis")
         peso_linha = 0
         self.app.rowconfigure(1, weight=1)
@@ -2579,7 +2605,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
-        self.tela_ferramentas_redis(app, self.version, self.coluna)
+        self.tela_ferramentas_redis(self.app, self.version, self.coluna)
 
     def trocar_tela_menu(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Menu")
@@ -2592,7 +2618,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.estruturar_tela()
         self.tela_menu(self.app, self.version, self.coluna)
 
-    def trocar_tela_busca_muro(self, app):
+    def trocar_tela_busca_muro(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Busca Muro")
         peso_linha = 0
         self.app.rowconfigure(1, weight=1)
@@ -2601,9 +2627,9 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
-        self.tela_busca_muro(app, self.version, self.coluna)
+        self.tela_busca_muro(self.app, self.version, self.coluna)
 
-    def trocar_tela_download_backup(self, app):
+    def trocar_tela_download_backup(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Download Backup")
         peso_linha = 0
         self.app.rowconfigure(1, weight=1)
@@ -2612,9 +2638,9 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
-        self.tela_download_backup(app, self.version, self.coluna)
+        self.tela_download_backup(self.app, self.version, self.coluna)
 
-    def trocar_tela_restaurar_backup(self, app):
+    def trocar_tela_restaurar_backup(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Restaurar Backup")
         peso_linha = 0
         self.app.rowconfigure(1, weight=1)
@@ -2623,9 +2649,9 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
-        self.tela_restaurar_backup(app, self.version, self.coluna)
+        self.tela_restaurar_backup(self.app, self.version, self.coluna)
 
-    def trocar_tela_buscar_versions(self, app):
+    def trocar_tela_buscar_versions(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Buscar Versions")
         peso_linha = 0
         self.app.rowconfigure(1, weight=1)
@@ -2634,9 +2660,9 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
-        self.tela_buscar_versions(app, self.version, self.coluna)
+        self.tela_buscar_versions(self.app, self.version, self.coluna)
 
-    def trocar_tela_replicar_version(self, app):
+    def trocar_tela_replicar_version(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Replicar Versions")
         peso_linha = 0
         self.app.rowconfigure(1, weight=1)
@@ -2645,7 +2671,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
-        self.tela_replicar_version_muro(app, self.version, self.coluna)
+        self.tela_replicar_version_muro(self.app, self.version, self.coluna)
 
     def trocar_tela_alterar_aparencia(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Alterar Aparencia")
@@ -2659,6 +2685,90 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.app.rowconfigure(9, weight=1)
         self.estruturar_tela()
         self.tela_alterar_aparencia(self.app, self.version, self.coluna)
+
+    def tela_ferramentas_documentos(self, app, version, coluna):
+        titulo = "Ferramentas Documentos"
+        app.title("MSS - " + version + " - " + titulo)
+
+        self.button_menu_ferramentas_documentos_geradores = Button(
+            app,
+            text="Geradores de documentos",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_geradores()
+        )
+        self.button_menu_ferramentas_documentos_validadores = Button(
+            app,
+            text="Validadores de documentos",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_validadores()
+        )
+        self.button_menu_ferramentas_documentos_voltar = Button(
+            app,
+            text="Voltar",
+            width=15,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_ferramentas()
+        )
+        self.limpar_linha(10, 2)
+        self.escrever_titulos(self.app, titulo, 2, coluna)
+        self.button_menu_ferramentas_documentos_geradores.grid(row=3, column=coluna)
+        self.button_menu_ferramentas_documentos_validadores.grid(row=4, column=coluna)
+        self.button_menu_ferramentas_documentos_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
+
+    def tela_ferramentas_banco_update(self, app, version, coluna):
+        titulo = "Ferramenta banco Update"
+        app.title("MSS - " + version + " - " + titulo)
+
+        self.button_menu_ferramentas_banco_atualizacao = Button(
+            app,
+            text="Atualização banco Update",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_atualizacao_banco_update()
+        )
+        self.button_menu_ferramentas_banco_criar = Button(
+            app,
+            text="Criar banco update",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_atualizacao_banco_update()
+        )
+        self.button_menu_ferramentas_banco_validador = Button(
+            app,
+            text="Validar atualização banco",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_atualizacao_banco_update()
+        )
+        self.button_menu_ferramentas_banco_voltar = Button(
+            app,
+            text="Voltar",
+            width=15,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_ferramentas()
+        )
+        self.limpar_linha(10, 2)
+        self.escrever_titulos(self.app, titulo, 2, coluna)
+        self.button_menu_ferramentas_banco_atualizacao.grid(row=4, column=coluna)
+        self.button_menu_ferramentas_banco_criar.grid(row=5, column=coluna)
+        self.button_menu_ferramentas_banco_validador.grid(row=6, column=coluna)
+        self.button_menu_ferramentas_banco_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
 
     def tela_limpar_redis_especifico(self, app, version, coluna):
         titulo = "LIMPAR REDIS ESPECIFICOS"
@@ -2699,7 +2809,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas_redis(app)
+            command=lambda: self.trocar_tela_ferramentas_redis()
         )
         self.limpar_linha(10, 2)
         self.escrever_titulos(self.app, titulo, 2, coluna)
@@ -2731,7 +2841,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas_redis(app)
+            command=lambda: self.trocar_tela_ferramentas_redis()
         )
         self.limpar_linha(10, 2)
         self.escrever_titulos(self.app, titulo, 2, coluna)
@@ -2818,7 +2928,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas_bancos(app)
+            command=lambda: self.trocar_tela_ferramentas_bancos()
         )
 
         self.escrever_titulos(self.app, titulo, 2, coluna)
@@ -2847,7 +2957,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas_bancos(app)
+            command=lambda: self.trocar_tela_ferramentas_bancos()
         )
 
         self.escrever_titulos(self.app, titulo, 2, coluna)
@@ -2875,7 +2985,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas_bancos(app)
+            command=lambda: self.trocar_tela_ferramentas_bancos()
         )
         self.limpar_linha(10, 2)
         self.escrever_titulos(self.app, titulo, 2, coluna)
@@ -2894,7 +3004,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             height=2,
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_busca_muro(app)
+            command=lambda: self.trocar_tela_busca_muro()
         )
         self.button_ferramenta_buscar_versions = Button(
             app,
@@ -2903,7 +3013,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             height=2,
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_buscar_versions(app)
+            command=lambda: self.trocar_tela_buscar_versions()
         )
         self.button_ferramenta_replicar_version = Button(
             app,
@@ -2912,7 +3022,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             height=2,
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_replicar_version(app)
+            command=lambda: self.trocar_tela_replicar_version()
         )
         self.button_ferramenta_voltar = Button(
             app,
@@ -2941,7 +3051,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             height=2,
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_redis_todos(app)
+            command=lambda: self.trocar_tela_redis_todos()
         )
         self.button_ferramenta_buscar_versions = Button(
             app,
@@ -2950,7 +3060,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             height=2,
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_redis_especifico(app)
+            command=lambda: self.trocar_tela_redis_especifico()
         )
         self.button_ferramenta_voltar = Button(
             app,
@@ -2978,7 +3088,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             height=2,
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas_bancos(app)
+            command=lambda: self.trocar_tela_ferramentas_bancos()
         )
         self.button_menu_ferramentas_redis = Button(
             app,
@@ -2987,25 +3097,16 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             height=2,
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas_redis(app)
+            command=lambda: self.trocar_tela_ferramentas_redis()
         )
-        self.button_menu_ferramentas_geradores = Button(
+        self.button_menu_ferramentas_documentos = Button(
             app,
-            text="Gerador de documentos",
+            text="Ferramentas documentos",
             width=25,
             height=2,
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_geradores(app)
-        )
-        self.button_menu_ferramentas_validadores = Button(
-            app,
-            text="Validador de documentos",
-            width=25,
-            height=2,
-            bg=self.infos_config_prog["background_color_botoes"],
-            fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_validadores(app)
+            command=lambda: self.trocar_tela_ferramentas_documentos()
         )
         self.button_menu_Voltar = Button(
             app,
@@ -3020,8 +3121,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
         self.escrever_titulos(self.app, titulo, 2, coluna)
         self.button_menu_ferramentas.grid(row=3, column=coluna)
         self.button_menu_ferramentas_redis.grid(row=4, column=coluna)
-        self.button_menu_ferramentas_geradores.grid(row=5, column=coluna)
-        self.button_menu_ferramentas_validadores.grid(row=6, column=coluna)
+        self.button_menu_ferramentas_documentos.grid(row=5, column=coluna)
         self.button_menu_Voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
 
     def tela_geradores(self, app, version, coluna):
@@ -3073,7 +3173,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas()
+            command=lambda: self.trocar_tela_ferramentas_documentos()
         )
         self.limpar_linha(10, 2)
         self.combobox.set(opcoes[0])
@@ -3120,7 +3220,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas()
+            command=lambda: self.trocar_tela_ferramentas_documentos()
         )
         self.limpar_linha(10, 2)
         self.combobox.set(opcoes[0])
@@ -3152,7 +3252,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             height=2,
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_download_backup(app)
+            command=lambda: self.trocar_tela_download_backup()
         )
         self.button_menu_restaurar = Button(
             app,
@@ -3161,7 +3261,7 @@ ALTER DATABASE [{nome_banco_restaurado}] SET COMPATIBILITY_LEVEL = 140;
             height=2,
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_restaurar_backup(app)
+            command=lambda: self.trocar_tela_restaurar_backup()
         )
         self.limpar_linha(10, 2)
         self.escrever_titulos(self.app, titulo, 2, coluna)
