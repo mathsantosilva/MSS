@@ -109,8 +109,8 @@ def data_atual():
     return data_hora
 
 # Processos para arquivos de log
-def validar_linha(nome):
-    with open(f"Log\\{nome}.txt", "r") as arquivo_insp:
+def validar_linha(diretorio, nome):
+    with open(f"{diretorio}\\{nome}.txt", "r") as arquivo_insp:
         conteudo = arquivo_insp.read()
         linhas = conteudo.count("\n") + 1
         caracteres = conteudo.count("")
@@ -138,6 +138,14 @@ def validar_diretorio(nomes, criar_popup_mensagem):
         criar_popup_mensagem(
             f"\n{data_hora_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_config']}: {error} ")
 
+    # Criar diretorio txt
+    try:
+        if not os.path.exists(nomes['diretorio_txt']):
+            os.makedirs(nomes['diretorio_txt'])
+    except Exception as error:
+        criar_popup_mensagem(
+            f"\n{data_hora_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_txt']}: {error} ")
+
 class Aplicativo:
     version = "3.5.0"
     version_json = '2.0'
@@ -145,8 +153,10 @@ class Aplicativo:
     coluna = 1
     widget = []
     nomes = dict()
+    entries = []
     nomes['pasta_config'] = 'Config/'
     nomes['diretorio_log'] = 'Log'
+    nomes['diretorio_txt'] = 'Arquivos'
     nomes['diretorio_config'] = 'Config'
     nomes['arquivo_base_muro'] = 'base_muro'
     nomes['arquivo_busca_bancos'] = 'busca_bancos'
@@ -461,178 +471,7 @@ class Aplicativo:
         self.arquivo_config.write(texto)
         self.arquivo_config.close()
 
-    ''' Metodo antigo
-        def escolher_config_existente(self):
-            params_dict = ''
-            self.infos_config['status'] = False
-    
-            if self.infos_config_prog['escolha_manual']:
-                self.config_selecionado = self.combobox.get()
-            elif self.infos_config_prog['escolha_manual'] is False and self.infos_config_prog['config_default'] != "":
-                self.config_selecionado = self.infos_config_prog['config_default']
-            else:
-                self.criar_popup_mensagem(
-                    f"Erro na validação do arquivo config: {self.infos_config_prog['escolha_manual']} e {self.infos_config_prog['config_default']}")
-    
-            # Validando o arquivo de config
-            try:
-                if os.path.isfile(f"{self.nomes['diretorio_config']}\\{self.config_selecionado}"):
-                    config_bjt = open(f"{self.nomes['diretorio_config']}\\{self.config_selecionado}", "r")
-                    config_json = config_bjt.read().lower()
-                    params_dict = json.loads(config_json)
-                else:
-                    self.criar_popup_mensagem(
-                        f"Não foi possível encontrar um .JSON com esse nome na pasta {self.nomes['diretorio_config']}!")
-            except Exception as name_error:
-                self.criar_popup_mensagem(f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
-                self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                          f"INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
-                return
-            else:
-                try:
-                    if params_dict['conexao']['server'] == '':
-                        self.criar_popup_mensagem("O valor do server não foi especificado no config")
-                        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                                  f"INFO - O valor do server não foi especificado no config, Informe e tente novamente ")
-                        return
-                    elif params_dict["conexao"]["username"] == '':
-                        self.criar_popup_mensagem("O valor do Username não foi especificado no config")
-                        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                                  f"INFO - O valor do Username não foi especificado no config, Informe e tente novamente ")
-                        return
-                    elif params_dict["conexao"]["password"] == '':
-                        self.criar_popup_mensagem("O valor do Password não foi especificado no config")
-                        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                                  f"INFO - O valor do Password não foi especificado no config, Informe e tente novamente ")
-                        return
-                    elif not params_dict["bases_muro"]:
-                        self.criar_popup_mensagem("O valor do Base_Muro não foi especificado no config")
-                        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                                  f"INFO - O valor do Base_Muro não foi especificado no config, Informe e tente novamente ")
-                        return
-                except Exception as name_error:
-                    self.criar_popup_mensagem(
-                        f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
-                    self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                              f"INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
-                else:
-                    try:
-                        # Carregar config
-                        self.infos_config['server'] = params_dict["conexao"]["server"]
-                        self.infos_config['username'] = params_dict["conexao"]["username"]
-                        self.infos_config['password'] = params_dict["conexao"]["password"]
-                        self.infos_config['database_update_br'] = params_dict["database_update_br"]
-                        self.infos_config['database_update_mx'] = params_dict["database_update_mx"]
-                        self.infos_config['database_update_pt'] = params_dict["database_update_pt"]
-                        self.infos_config['database_update_md'] = params_dict["database_update_md"]
-                        self.infos_config['bases_muro'] = params_dict["bases_muro"]
-                    except Exception as name_error:
-                        self.criar_popup_mensagem(
-                            f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
-                        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                                  f"INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
-                    else:
-                        self.infos_config['status'] = True
-                        # Limpando strings vazias na base muro
-                        limpa_muro_tam = len(self.infos_config['bases_muro'])
-                        for num in range(0, limpa_muro_tam, +1):
-                            if '' in self.infos_config['bases_muro']:
-                                self.infos_config['bases_muro'].remove('')
-                                continue
-                            else:
-                                break
-                        try:
-                            self.infos_config['server_principal'] = (params_dict)["configs_restaurar_download"]["server_principal"]
-                            self.infos_config['username_principal'] = (params_dict)["configs_restaurar_download"]["username_principal"]
-                            self.infos_config['password_principal'] = (params_dict)["configs_restaurar_download"]["password_principal"]
-                        except Exception as name_error:
-                            self.criar_popup_mensagem(
-                                f"O config esta estava desatualizado, foram inseridas as novas tags no config:\n {name_error}")
-                            self.escrever_arquivo_log(
-                                self.nomes['arquivo_base_muro'],
-                                f"INFO - O config esta estava desatualizado, foram inseridas as novas tags no config, configure elas para usar as rotinas {self.nomes['arquivo_download_backup']} e {self.nomes['arquivo_restaurar_banco']}: {name_error}")
-                            self.infos_config['server_principal'] = ""
-                            self.infos_config['username_principal'] = ""
-                            self.infos_config['password_principal'] = ""
-                            bases_utilizadas = str(f"{self.infos_config['bases_muro']}")
-                            bases_utilizadas = bases_utilizadas.replace("'", '"')
-                            server_utilizado = self.infos_config['server']
-                            if "\\" in server_utilizado:
-                                server_utilizado = server_utilizado.replace('\\', '\\\\')
-                            config_atualizado = f"""
-    {{
-        "database_update_br": "{self.infos_config['database_update_br']}",
-        "database_update_mx": "{self.infos_config['database_update_mx']}",
-        "database_update_pt": "{self.infos_config['database_update_pt']}",
-        "database_update_md": "{self.infos_config['database_update_md']}",
-        "bases_muro": {bases_utilizadas},
-        "conexao": {{
-            "server": "{server_utilizado}",
-            "username": "{self.infos_config['username']}",
-            "password": "{self.infos_config['password']}"
-        }},
-        "configs_restaurar_download": {{
-            "server_principal": "",
-            "username_principal": "",
-            "password_principal": ""
-        }}
-    }}
-    """
-                            self.escrever_arquivo_config(self.config_selecionado, config_atualizado, "json")
-            try:
-                self.infos_config['redis_qa'] = params_dict["redis_qa"]
-            except Exception as name_error:
-                self.criar_popup_mensagem(
-                    f"O config esta estava desatualizado, foram inseridas as novas tags no config:\n {name_error}")
-                self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                          f"INFO - O config esta estava desatualizado, foram inseridas as novas tags no config, configure elas para usar as rotinas {self.nomes['arquivo_download_backup']} e {self.nomes['arquivo_restaurar_banco']}: {name_error}")
-                self.infos_config['redis_qa'] = ""
-                bases_utilizadas = str(f"{self.infos_config['bases_muro']}")
-                bases_utilizadas = bases_utilizadas.replace("'", '"')
-                server_utilizado = self.infos_config['server']
-                if "\\" in server_utilizado:
-                    server_utilizado = server_utilizado.replace('\\', '\\\\')
-                config_atualizado = f"""
-    {{
-        "database_update_br": "{self.infos_config['database_update_br']}",
-        "database_update_mx": "{self.infos_config['database_update_mx']}",
-        "database_update_pt": "{self.infos_config['database_update_pt']}",
-        "database_update_md": "{self.infos_config['database_update_md']}",
-        "bases_muro": {bases_utilizadas},
-        "conexao": {{
-            "server": "{server_utilizado}",
-            "username": "{self.infos_config['username']}",
-            "password": "{self.infos_config['password']}"
-        }},
-        "configs_restaurar_download": {{
-            "server_principal": "{self.infos_config['server_principal']}",
-            "username_principal": "{self.infos_config['username_principal']}",
-            "password_principal": "{self.infos_config['password_principal']}"
-        }},
-        "redis_qa": [
-            {{
-            "nome_redis": "",
-            "ip": "",
-            "port": ""
-            }},
-            {{
-            "nome_redis": "",
-            "ip": "",
-            "port": ""
-            }}
-        ]
-    }}"""
-                self.escrever_arquivo_log(self.config_selecionado, config_atualizado)
-            if self.infos_config['status']:
-                self.atualizar_config_default(self.config_selecionado)
-                self.trocar_tela_menu()
-            else:
-                self.trocar_tela_config()
-    
-            return self.infos_config
-    '''
-
-    def escolher_config_existente_2(self):
+    def escolher_config_existente(self):
         params_dict = ''
         self.infos_config['status'] = False
 
@@ -749,7 +588,6 @@ class Aplicativo:
             self.trocar_tela_config()
         return self.infos_config
 
-
 # Processos arquivo .config
     def criar_arquivo_config_prog(self):
             arquivo_config = f"""[ConfiguracoesGerais]
@@ -851,6 +689,34 @@ class Aplicativo:
             return
 
 # Subprocessos
+
+    def atualizar_opcoes(self, event):
+        redis_total = dict()
+        red_grupo_atual = ''
+        nome_redis = []
+        grupo_redis_selecionado = self.combobox_redis_grupo.get()
+        for red_grupo_atual in self.infos_config['redis_qa']:
+            try:
+                grupo_redis = red_grupo_atual[grupo_redis_selecionado]
+                chaves = list(red_grupo_atual.keys())
+                redis_parcial = red_grupo_atual[chaves[0]]
+                if redis_parcial[0].get("nome"):
+                    redis_parcial.pop(0)
+                redis_total = list(redis_total) + redis_parcial
+            except Exception as error:
+                continue
+            else:
+                for red in redis_total:
+                    nome_redis.append(red["nome_redis"])
+
+                if "" in nome_redis:
+                    self.combobox_redis['values'] = nome_redis
+                    self.escrever_no_input("- A tag ou Grupo do redis se encontra vazio")
+                    self.escrever_arquivo_log(self.nomes['arquivo_redis'],
+                                              f"ERRO - A tag ou Grupo do redis se encontra vazio")
+                else:
+                    self.combobox_redis['values'] = nome_redis
+                    self.combobox_redis.set(nome_redis[0])
     def criar_dict_conexoes(self):
         grupo_con = dict()
         tam_conexoes = len(self.infos_config['conexoes'])
@@ -866,10 +732,18 @@ class Aplicativo:
             self.infos_config['conexoes'] = grupo_con
 
     def escrever_arquivo_log(self, nome_arquivo, texto):
+        validar_diretorio(self.nomes, self.criar_popup_mensagem)
         self.arquivo_log = open(f"{self.nomes['diretorio_log']}\\{nome_arquivo}.txt", "a")
-        pula_linha = validar_linha(nome_arquivo)
+        pula_linha = validar_linha(self.nomes['diretorio_log'], nome_arquivo)
         self.arquivo_log.write(f"{pula_linha}{data_hora_atual()} - {texto}")
         self.arquivo_log.close()
+
+    def escrever_arquivo_txt(self, nome_arquivo, texto):
+        validar_diretorio(self.nomes, self.criar_popup_mensagem)
+        self.arquivo_txt = open(f"{self.nomes['diretorio_txt']}\\{nome_arquivo}.txt", "a")
+        pula_linha = validar_linha(self.nomes['diretorio_txt'], nome_arquivo)
+        self.arquivo_txt.write(f"{pula_linha}{data_hora_atual()} - {texto}")
+        self.arquivo_txt.close()
 
     def limpar_string(self, documento_inserido):
         lista_limpa = []
@@ -1036,18 +910,25 @@ class Aplicativo:
             self.button_atualizacao_inicio.config(state='disabled')
             self.button_atualizacao_voltar.config(state='disabled')
             self.button_menu_sair.config(state='disabled')
+            server = self.combobox_servidor_version.get()
             tam_base_muro = len(self.infos_config['bases_muro'])
             self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Validar atualização")
 
             self.escrever_arquivo_log(self.nomes['arquivo_validar'], f"INFO - Inicio da validação do banco update ")
             self.escrever_no_input(f"\n- Iniciando consulta no banco update")
+            if server == "":
+                self.escrever_no_input(f"- Deverá ser selecionado o servidor, antes de prosseguir")
+                self.button_atualizacao_inicio.config(state='normal')
+                self.button_atualizacao_voltar.config(state='normal')
+                self.button_menu_sair.config(state='normal')
+                return
+            servidor_selecionado = self.infos_config["conexoes"][server]
             for num in range(tam_base_muro):
                 database_update = self.valida_banco_update(num)
 
-
                 try:
                     cnxnrp = pyodbc.connect(
-                        f"DRIVER=SQL Server;SERVER={self.infos_config['server']};DATABASE={database_update};ENCRYPT=not;UID={self.infos_config['username']};PWD={self.infos_config['password']}")
+                        f"DRIVER=SQL Server;SERVER={servidor_selecionado['server']};DATABASE={database_update};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
                     cursorrp = cnxnrp.cursor()
                     comando = f"select [database_version],  count(database_version) Quantidade from [dbo].[KAIROS_DATABASES] group by [database_version]"
                     cursorrp.execute(comando)
@@ -1074,14 +955,14 @@ class Aplicativo:
 
             self.escrever_no_input(f"- Fim da operação de consulta")
             self.escrever_arquivo_log(self.nomes['arquivo_validar'], f"INFO - Fim da operação Validar atualização")
-            self.button_atualizacao_inicio.config(state='active')
-            self.button_atualizacao_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
+            self.button_atualizacao_inicio.config(state='normal')
+            self.button_atualizacao_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.button_atualizacao_inicio.config(state='active')
-            self.button_atualizacao_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
+            self.button_atualizacao_inicio.config(state='normal')
+            self.button_atualizacao_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
 
     def manipular_banco_muro(self):
         try:
@@ -1097,25 +978,34 @@ class Aplicativo:
             self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], "INFO - Inicio da operação Busca muro ")
 
             versao_databases = self.entry.get()
+            server = self.combobox_servidor.get()
             if versao_databases == '' or versao_databases == self.placeholder_text:
-                self.escrever_no_input(f"-O campo Version não pode estar em branco")
-                self.button_busca_inicio.config(state='active')
-                self.button_busca_voltar.config(state='active')
+                self.escrever_no_input(f"- O campo Version não pode estar em branco")
+                self.button_busca_inicio.config(state='normal')
+                self.button_busca_voltar.config(state='normal')
                 self.entry.config(state='normal')
-                self.button_menu_sair.config(state='active')
+                self.button_menu_sair.config(state='normal')
+                return
+            elif server == "":
+                self.escrever_no_input(f"- Deverá ser selecionado o servidor, antes de prosseguir")
+                self.button_busca_inicio.config(state='normal')
+                self.button_busca_voltar.config(state='normal')
+                self.entry.config(state='normal')
+                self.button_menu_sair.config(state='normal')
                 return
             else:
+                servidor_selecionado = self.infos_config["conexoes"][server]
                 self.escrever_no_input(f"- Version para downgrade: {versao_databases}")
                 self.escrever_arquivo_log(
-                    self.nomes['arquivo_busca_bancos'], "INFO - Version para downgrade: {versao_databases} ")
+                    self.nomes['arquivo_busca_bancos'], f"INFO - Version para downgrade: {versao_databases} ")
 
                 # Pegar a lista de bancos da instancia
                 self.escrever_arquivo_log(
-                    self.nomes['arquivo_busca_bancos'], f"INFO - Iniciando a busca dos bancos na instância: {self.infos_config['server']} ")
+                    self.nomes['arquivo_busca_bancos'], f"INFO - Iniciando a busca dos bancos na instância: {servidor_selecionado["server"]} ")
 
                 try:
                     cnxn1 = pyodbc.connect(
-                        f"DRIVER=SQL Server;SERVER={self.infos_config['server']};ENCRYPT=not;UID={self.infos_config['username']};PWD={self.infos_config['password']}")
+                        f"DRIVER=SQL Server;SERVER={servidor_selecionado["server"]};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
                     cursor1 = cnxn1.cursor()
                     cursor1.execute("SELECT name FROM sys.databases;")
                     lista_string_instancia = cursor1.fetchall()
@@ -1245,7 +1135,7 @@ class Aplicativo:
                         if len(string_limpa) > 0:
                             try:
                                 cnxn1 = pyodbc.connect(
-                                    f"DRIVER=SQL Server;SERVER={self.infos_config['server']};DATABASE={database_update};ENCRYPT=not;UID={self.infos_config['username']};PWD={self.infos_config['password']}")
+                                    f"DRIVER=SQL Server;SERVER={servidor_selecionado["server"]};DATABASE={database_update};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
                                 cursor1 = cnxn1.cursor()
 
                                 cursor1.execute("set identity_insert [dbo].[KAIROS_DATABASES]  on")
@@ -1286,29 +1176,36 @@ class Aplicativo:
                     self.escrever_no_input(f"- Erro na primeira etapa das buscas, o processo foi interrompido.")
                     self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Erro na primeira etapa das buscas, o processo foi interrompido. ")
 
-                self.escrever_no_input(f"\n- Fim da operação Busca muro")
+                self.escrever_no_input(f"- Fim da operação Busca muro")
                 self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Fim da operação Busca muro")
                 self.entry.config(state='normal')
-                self.button_busca_inicio.config(state='active')
-                self.button_busca_voltar.config(state='active')
-                self.button_menu_sair.config(state='active')
+                self.button_busca_inicio.config(state='normal')
+                self.button_busca_voltar.config(state='normal')
+                self.button_menu_sair.config(state='normal')
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
             self.entry.config(state='normal')
-            self.button_busca_inicio.config(state='active')
-            self.button_busca_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
+            self.button_busca_inicio.config(state='normal')
+            self.button_busca_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
 
     def replicar_version(self):
         try:
             self.button_replicar_inicio.config(state='disabled')
             self.button_replicar_voltar.config(state='disabled')
             self.button_menu_sair.config(state='disabled')
+            server = self.combobox_servidor_replicar.get()
             tam_base_muro = len(self.infos_config['bases_muro'])
             self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Replicar version ")
 
             self.escrever_arquivo_log(self.nomes['arquivo_replicar_version'], f"INFO - Inicio da operação replicar version")
-
+            if server == "":
+                self.escrever_no_input(f"- Deverá ser selecionado o servidor, antes de prosseguir")
+                self.button_atualizacao_inicio.config(state='normal')
+                self.button_atualizacao_voltar.config(state='normal')
+                self.button_menu_sair.config(state='normal')
+                return
+            servidor_selecionado = self.infos_config["conexoes"][server]
             for num in range(len(self.infos_config['bases_muro'])):
                 lista_registros_db = []
                 lista_ids = []
@@ -1322,7 +1219,7 @@ class Aplicativo:
 
                 try:
                     cnxnrp1 = pyodbc.connect(
-                        f"DRIVER=SQL Server;SERVER={self.infos_config['server']};DATABASE={database_update};ENCRYPT=not;UID={self.infos_config['username']};PWD={self.infos_config['password']}")
+                        f"DRIVER=SQL Server;SERVER={servidor_selecionado['server']};DATABASE={database_update};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
                     cursorrp1 = cnxnrp1.cursor()
                     cursorrp1.execute(f"SELECT * FROM {database_update}.[dbo].[KAIROS_DATABASES]")
                     lista_registros_db = cursorrp1.fetchall()
@@ -1349,7 +1246,7 @@ class Aplicativo:
 
                     try:
                         cnxnrp2 = pyodbc.connect(
-                            f"DRIVER=SQL Server;SERVER={self.infos_config['server']};DATABASE={self.infos_config['bases_muro'][num]};ENCRYPT=not;UID={self.infos_config['username']};PWD={self.infos_config['password']}")
+                            f"DRIVER=SQL Server;SERVER={servidor_selecionado['server']};DATABASE={database_update};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
                         cursorrp2 = cnxnrp2.cursor()
                         for teste2 in range(tam_busca_realizada):
                             montar_comando = f"update [dbo].[KAIROS_DATABASES] set [DATABASE_VERSION] = {lista_versions[teste2]} where [DATABASE_ID] = {lista_ids[teste2]} and [CONNECTION_STRING] = '{lista_connection_string[teste2]}' "
@@ -1389,15 +1286,15 @@ class Aplicativo:
 
             self.escrever_no_input(f"\n- Fim da operação replicar version")
             self.escrever_arquivo_log(self.nomes['arquivo_replicar_version'], f"INFO - Fim da operação replicar version")
-            self.button_replicar_inicio.config(state='active')
-            self.button_replicar_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
+            self.button_replicar_inicio.config(state='normal')
+            self.button_replicar_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
 
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.button_replicar_inicio.config(state='active')
-            self.button_replicar_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
+            self.button_replicar_inicio.config(state='normal')
+            self.button_replicar_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
 
     def valida_banco_update(self, num):
         database_update = ''
@@ -1468,17 +1365,26 @@ class Aplicativo:
         try:
             self.button_restaurar_inicio.config(state='disabled')
             self.button_restaurar_voltar.config(state='disabled')
-            self.entry.config(state='disabled')
+            self.combobox_servidor_restaurar.config(state='disabled')
             self.button_menu_sair.config(state='disabled')
+
             self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Restaurar Backup")
             cnxnrs = ''
             cursorrs = ''
-
-            nome_bak = self.entry.get()
-            nome_banco_escolhido = self.entry.get()
-            instancia_selecionada = self.combobox.get()
-            caminho_banco_ldf = self.combobox.get()
-            caminho_banco_mdf = self.combobox.get()
+            valores_entries = []
+            caminho_banco_ldf = ''
+            caminho_banco_mdf = ''
+            caminho_ldf_mdf = []
+            server = self.combobox_servidor_restaurar.get()
+            for entry_atual in self.entries:
+                entry_atual.config(state='disabled')
+                valores_entries.append(entry_atual.get())
+            nome_bak = valores_entries[1]
+            nome_banco_escolhido = valores_entries[2]
+            caminho_ldf_mdf = valores_entries[0].split(',')
+            caminho_banco_ldf = caminho_ldf_mdf[0]
+            if len(caminho_ldf_mdf) > 1:
+                caminho_banco_mdf = caminho_ldf_mdf[1]
 
             caminho_eventual = 'G:\\Backup\\Eventual'
             comando_criar_device = f"""
@@ -1513,38 +1419,81 @@ class Aplicativo:
             """
             status_etapa1 = False
 
-            if instancia_selecionada == '':
-                self.escrever_no_input("- Deverá ser escolhida uma instacia para realizar a restauração")
-                self.button_restaurar_inicio.config(state='active')
-                self.button_restaurar_voltar.config(state='active')
-                self.entry.config(state='normal')
-                self.button_menu_sair.config(state='active')
+            if nome_bak == "":
+                self.escrever_no_input("- O campo 'Nome do Backup' deverá ser preenchido")
+                for entry_atual in self.entries:
+                    entry_atual.config(state='normal')
+                self.button_restaurar_inicio.config(state='normal')
+                self.button_restaurar_voltar.config(state='normal')
+                self.combobox_servidor_restaurar.config(state='normal')
+                self.button_menu_sair.config(state='normal')
                 self.escrever_no_input("- Processo finalizado")
                 return
-            elif nome_bak == self.placeholder_text or nome_bak == "":
+            elif nome_banco_escolhido == "":
                 self.escrever_no_input("- O campo 'Nome do banco' deverá ser preenchido")
-                self.button_restaurar_inicio.config(state='active')
-                self.button_restaurar_voltar.config(state='active')
-                self.entry.config(state='normal')
-                self.button_menu_sair.config(state='active')
+                for entry_atual in self.entries:
+                    entry_atual.config(state='normal')
+                self.button_restaurar_inicio.config(state='normal')
+                self.button_restaurar_voltar.config(state='normal')
+                self.combobox_servidor_restaurar.config(state='normal')
+                self.button_menu_sair.config(state='normal')
+                self.escrever_no_input("- Processo finalizado")
+                return
+            elif caminho_banco_ldf == "":
+                self.escrever_no_input("- O Valor de LDF deverá ser preenchido")
+                for entry_atual in self.entries:
+                    entry_atual.config(state='normal')
+                self.button_restaurar_inicio.config(state='normal')
+                self.button_restaurar_voltar.config(state='normal')
+                self.combobox_servidor_restaurar.config(state='normal')
+                self.button_menu_sair.config(state='normal')
+                self.escrever_no_input("- Processo finalizado")
+                return
+            elif caminho_banco_mdf == "":
+                self.escrever_no_input("- O Valor de MDF deverá ser preenchido")
+                for entry_atual in self.entries:
+                    entry_atual.config(state='normal')
+                self.button_restaurar_inicio.config(state='normal')
+                self.button_restaurar_voltar.config(state='normal')
+                self.combobox_servidor_restaurar.config(state='normal')
+                self.button_menu_sair.config(state='normal')
+                self.escrever_no_input("- Processo finalizado")
+                return
+            elif server == "":
+                self.escrever_no_input(f"- Deverá ser selecionado o servidor, antes de prosseguir")
+                for entry_atual in self.entries:
+                    entry_atual.config(state='normal')
+                self.button_restaurar_inicio.config(state='normal')
+                self.button_restaurar_voltar.config(state='normal')
+                self.combobox_servidor_restaurar.config(state='normal')
+                self.button_menu_sair.config(state='normal')
                 self.escrever_no_input("- Processo finalizado")
                 return
             else:
+                servidor_selecionado = self.infos_config["conexoes"][server]
                 self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Inserido o nome do banco apresentado no discord: {nome_bak} ")
-                self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Escolhido o servidor: {instancia_selecionada} ")
+                self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Escolhido o servidor: {servidor_selecionado} ")
 
                 try:
                     cnxnrs = pyodbc.connect(
-                        f"DRIVER=SQL Server;SERVER={self.infos_config['conexoes'][instancia_selecionada]['server']};ENCRYPT=not;UID={self.infos_config['conexoes'][instancia_selecionada]['username']};PWD={self.infos_config['conexoes'][instancia_selecionada]['password']}")
+                        f"DRIVER=SQL Server;SERVER={servidor_selecionado['server']};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
                     cnxnrs.timeout = 12
                     cursorrs = cnxnrs.cursor()
                     cursorrs.execute(comando_criar_device)
                     result_criar_device = cursorrs.messages
-                except (Exception or pyodbc.DatabaseError) as err:
+                except (Exception or pyodbc.DatabaseError) as error:
                     self.escrever_no_input(
-                        "- Falha ao tentar executar o comando de criação de device de backup " + str(err))
+                        "- Falha ao tentar executar o comando de criação de device de backup " + str(error))
                     self.escrever_arquivo_log(
-                        self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando de criação de device de backup: {err} ")
+                        self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando de criação de device de backup: {error} ")
+                    self.escrever_no_input("- Processo finalizado")
+                    self.button_restaurar_inicio.config(state='normal')
+                    self.button_restaurar_voltar.config(state='normal')
+                    for entry_atual in self.entries:
+                        entry_atual.config(state='normal')
+                    self.combobox_servidor_restaurar.config(state='normal')
+                    self.button_menu_sair.config(state='normal')
+                    return
                 else:
                     cursorrs.commit()
                     self.escrever_no_input(f"- Sucesso ao realizar Criar Device de Backup")
@@ -1559,9 +1508,17 @@ class Aplicativo:
                     try:
                         cursorrs = cnxnrs.cursor()
                         cursorrs.execute(comando_restaurar_banco)
-                    except (Exception or pyodbc.DatabaseError) as err:
-                        self.escrever_no_input("- Falha ao tentar executar o comando de restauração de banco: " + str(err))
-                        self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando de restauração de banco: {err} ")
+                    except (Exception or pyodbc.DatabaseError) as error:
+                        self.escrever_no_input("- Falha ao tentar executar o comando de restauração de banco: " + str(error))
+                        self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando de restauração de banco: {error} ")
+                        self.escrever_no_input("- Processo finalizado")
+                        self.button_restaurar_inicio.config(state='normal')
+                        self.button_restaurar_voltar.config(state='normal')
+                        for entry_atual in self.entries:
+                            entry_atual.config(state='normal')
+                        self.combobox_servidor_restaurar.config(state='normal')
+                        self.button_menu_sair.config(state='normal')
+                        return
                     else:
                         mensagens = []
                         posicao = 3
@@ -1587,9 +1544,17 @@ class Aplicativo:
                         try:
                             cursorrs.execute(comando_ativar_banco)
                             result_ativar_banco = cursorrs.messages
-                        except (Exception or pyodbc.DatabaseError) as err:
-                            self.escrever_no_input("- Falha ao tentar executar o comando de Ativação do banco: " + str(err))
-                            self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando de Ativação do banco: {err} ")
+                        except (Exception or pyodbc.DatabaseError) as error:
+                            self.escrever_no_input("- Falha ao tentar executar o comando de Ativação do banco: " + str(error))
+                            self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando de Ativação do banco: {error} ")
+                            self.escrever_no_input("- Processo finalizado")
+                            self.button_restaurar_inicio.config(state='normal')
+                            self.button_restaurar_voltar.config(state='normal')
+                            for entry_atual in self.entries:
+                                entry_atual.config(state='normal')
+                            self.combobox_servidor_restaurar.config(state='normal')
+                            self.button_menu_sair.config(state='normal')
+                            return
                         else:
                             tam_result = len(result_ativar_banco) - 1
                             while tam_result < len(result_ativar_banco):
@@ -1602,10 +1567,18 @@ class Aplicativo:
                             try:
                                 cursorrs.execute(comando_checar_banco)
                                 result_check = cursorrs.messages
-                            except (Exception or pyodbc.DatabaseError) as err:
+                            except (Exception or pyodbc.DatabaseError) as error:
                                 self.escrever_no_input(
-                                    "- Falha ao tentar executar o comando de checagem do banco: " + str(err))
-                                self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando de checagem do banco: {err} ")
+                                    "- Falha ao tentar executar o comando de checagem do banco: " + str(error))
+                                self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando de checagem do banco: {error} ")
+                                self.escrever_no_input("- Processo finalizado")
+                                self.button_restaurar_inicio.config(state='normal')
+                                self.button_restaurar_voltar.config(state='normal')
+                                for entry_atual in self.entries:
+                                    entry_atual.config(state='normal')
+                                self.combobox_servidor_restaurar.config(state='normal')
+                                self.button_menu_sair.config(state='normal')
+                                return
                             else:
                                 looping = True
                                 tam_result = len(result_check) - 2
@@ -1621,11 +1594,19 @@ class Aplicativo:
                                 try:
                                     cursorrs.execute(comando_excluir_device)
                                     result_excluir_device = cursorrs.messages
-                                except (Exception or pyodbc.DatabaseError) as err:
+                                except (Exception or pyodbc.DatabaseError) as error:
                                     self.escrever_no_input(
-                                        "- Falha ao tentar executar o comando de checagem do banco: " + str(err))
+                                        "- Falha ao tentar executar o comando de checagem do banco: " + str(error))
                                     self.escrever_arquivo_log(
-                                        self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando de checagem do banco: {err} ")
+                                        self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando de checagem do banco: {error} ")
+                                    self.escrever_no_input("- Processo finalizado")
+                                    self.button_restaurar_inicio.config(state='normal')
+                                    self.button_restaurar_voltar.config(state='normal')
+                                    for entry_atual in self.entries:
+                                        entry_atual.config(state='normal')
+                                    self.combobox_servidor_restaurar.config(state='normal')
+                                    self.button_menu_sair.config(state='normal')
+                                    return
                                 else:
                                     for incs in range(len(result_excluir_device)):
                                         separados = result_excluir_device[0][1].split("]")
@@ -1636,58 +1617,79 @@ class Aplicativo:
                                     try:
                                         cursorrs.execute(comando_primeiro_script)
                                         associar_owner = cursorrs.messages
-                                    except (Exception or pyodbc.DatabaseError) as err:
+                                    except (Exception or pyodbc.DatabaseError) as error:
                                         self.escrever_no_input(
-                                            "- Falha ao tentar executar o comando de associação do Owner: " + str(err))
-                                        self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando de associação do Owner:  {err} ")
+                                            "- Falha ao tentar executar o comando de associação do Owner: " + str(error))
+                                        self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando de associação do Owner:  {error} ")
+                                        self.escrever_no_input("- Processo finalizado")
+                                        self.button_restaurar_inicio.config(state='normal')
+                                        self.button_restaurar_voltar.config(state='normal')
+                                        for entry_atual in self.entries:
+                                            entry_atual.config(state='normal')
+                                        self.combobox_servidor_restaurar.config(state='normal')
+                                        self.button_menu_sair.config(state='normal')
+                                        return
                                     else:
                                         separados = associar_owner[0][1].split("]")
                                         mensagem = separados[3]
                                         self.escrever_no_input(f"- Comando(Associar Owner) - Mensagem SQL: {mensagem}")
                                         self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Comando(Script Associar Owner) - Mensagem SQL: {mensagem} ")
-
                     cursorrs.close()
 
-            self.escrever_no_input("- Processo finalizado")
-            self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Processo finalizado")
-            self.entry.config(state='normal')
-            self.button_restaurar_inicio.config(state='active')
-            self.button_restaurar_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
+                self.escrever_no_input("- Processo finalizado")
+                self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Processo finalizado")
+                self.button_restaurar_inicio.config(state='normal')
+                self.button_restaurar_voltar.config(state='normal')
+                self.entry.config(state='normal')
+                self.combobox_servidor_restaurar.config(state='normal')
+                self.button_menu_sair.config(state='normal')
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.entry.config(state='normal')
-            self.button_restaurar_inicio.config(state='active')
-            self.button_restaurar_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
+            self.button_restaurar_inicio.config(state='normal')
+            self.button_restaurar_voltar.config(state='normal')
+            for entry_atual in self.entries:
+                entry_atual.config(state='normal')
+            self.combobox_servidor_restaurar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
 
     def download_backup(self):
         try:
             self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Download Backup ")
             self.button_download_inicio.config(state='disabled')
             self.button_download_voltar.config(state='disabled')
-            self.button_menu_sair.config(state='disabled')
-
+            self.combobox_servidor_download.config(state='disabled')
             self.entry.config(state='disabled')
+            self.button_menu_sair.config(state='disabled')
+            server = self.combobox_servidor_download.get()
+            endereco_download = self.entry.get()
             self.escrever_arquivo_log(self.nomes['arquivo_download_backup'],
                                       f"INFO - Inicio da operação Download Backup ")
-            endereco_download = self.entry.get()
             self.escrever_arquivo_log(self.nomes['arquivo_download_backup'],
                                       f"INFO - Inserida a URL de Download: {endereco_download} ")
 
-            if endereco_download == self.placeholder_text or endereco_download == "":
-                self.escrever_no_input("- O campo acima deverá ser preenchido")
-                self.button_download_inicio.config(state='active')
-                self.button_download_voltar.config(state='active')
+            if server == "":
+                self.escrever_no_input(f"- Deverá ser selecionado o servidor, antes de prosseguir")
+                self.button_download_inicio.config(state='normal')
+                self.button_download_voltar.config(state='normal')
+                self.combobox_servidor_download.config(state='normal')
                 self.entry.config(state='normal')
-                self.button_menu_sair.config(state='active')
+                self.button_menu_sair.config(state='normal')
+                return
+            elif endereco_download == self.placeholder_text or endereco_download == "":
+                self.escrever_no_input("- O campo URL deverá ser preenchido")
+                self.button_download_inicio.config(state='normal')
+                self.button_download_voltar.config(state='normal')
+                self.combobox_servidor_download.config(state='normal')
+                self.entry.config(state='normal')
+                self.button_menu_sair.config(state='normal')
                 return
             else:
+                servidor_selecionado = self.infos_config["conexoes"][server]
                 comando = f"""xp_cmdshell 'powershell.exe -file C:\\wget\\download.ps1 bkp "{endereco_download}"'"""
 
                 try:
                     cnxnrp1 = pyodbc.connect(
-                        f"DRIVER=SQL Server;SERVER={self.infos_config['server_principal']};ENCRYPT=not;UID={self.infos_config['username_principal']};PWD={self.infos_config['password_principal']}")
+                        f"DRIVER=SQL Server;SERVER={servidor_selecionado["server"]};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
                     cursorrp1 = cnxnrp1.cursor()
                     cursorrp1.execute(comando)
                     result = cursorrp1.fetchall()
@@ -1719,17 +1721,18 @@ class Aplicativo:
 
             self.escrever_no_input("- Processo finalizado")
             self.escrever_arquivo_log(self.nomes['arquivo_download_backup'], f"INFO - Processo finalizado ")
+            self.combobox_servidor_download.config(state='normal')
             self.entry.config(state='normal')
-            self.button_download_inicio.config(state='active')
-            self.button_download_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
+            self.button_download_inicio.config(state='normal')
+            self.button_download_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
 
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
             self.entry.config(state='normal')
-            self.button_download_inicio.config(state='active')
-            self.button_download_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
+            self.button_download_inicio.config(state='normal')
+            self.button_download_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
 
     def limpar_todos_redis(self):
         try:
@@ -1737,57 +1740,127 @@ class Aplicativo:
             self.button_atualizacao_voltar.config(state='disabled')
             self.button_menu_sair.config(state='disabled')
             self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"INFO - Inicio da operação Limpar todos Redis ")
-            for red_atual in self.infos_config['redis_qa']:
-                self.escrever_no_input(
-                    f"- Iniciado processo no Redis {red_atual['nome_redis']}")
-                self.escrever_arquivo_log(self.nomes['arquivo_redis'],
-                                          f"INFO - Iniciado processo no Redis {red_atual['nome_redis']} ")
-                redis_host = red_atual['ip']  # ou o endereço do seu servidor Redis
-                redis_port = red_atual['port']  # ou a porta que o seu servidor Redis está ouvindo
+            grupo_redis = self.combobox_redis_grupo.get()
+            if grupo_redis == "":
+                self.escrever_no_input("- Nenhum grupo selecionado, favor escolher e tentar novamente")
+                self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"ERRO - Nenhum grupo selecionado, favor escolher e tentar novamente ")
+                self.escrever_no_input("- Processo finalizado")
+                self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"INFO - Processo finalizado ")
+                self.button_atualizacao_inicio.config(state='normal')
+                self.button_atualizacao_voltar.config(state='normal')
+                self.button_menu_sair.config(state='normal')
+                return
+            else:
+                chaves = ''
+                redis_parcial = dict()
+                redis_total = dict()
 
-                # Criando uma instância do cliente Redis
-                redis_client = redis.StrictRedis(host=redis_host, port=redis_port, decode_responses=True)
+                for red_grupo_atual in self.infos_config['redis_qa']:
+                    try:
+                        grupo_escolhido = red_grupo_atual[grupo_redis]
+                        chaves = list(red_grupo_atual.keys())
+                        redis_parcial = red_grupo_atual[chaves[0]]
+                        redis_parcial.pop(0)
+                        redis_total = list(redis_total) + redis_parcial
+                    except Exception as error:
+                        continue
 
-                try:
-                    # Executando o comando FLUSHALL
-                    redis_client.flushall()
-                except Exception as err:
-                    self.escrever_no_input(f"- Processo finalizado com falha: {err}")
-                    self.escrever_arquivo_log(
-                        self.nomes['arquivo_redis'], f"INFO - Processo finalizado com falha: {err}")
-                else:
-                    self.escrever_no_input(f"- FLUSHALL executado com sucesso no redis")
-                    self.escrever_arquivo_log(
-                        self.nomes['arquivo_redis'], f"INFO - FLUSHALL executado com sucesso no redis")
+                for red_atual in redis_total:
+                    if red_atual['ip'] == "" or len(red_atual) == 0:
+                        self.escrever_no_input("- A tag ou Grupo do redis se encontra vazio")
+                        self.escrever_arquivo_log(self.nomes['arquivo_redis'],
+                                                  f"ERRO - A tag ou Grupo do redis se encontra vazio")
+                        continue
+                    else:
+                        self.escrever_no_input(
+                            f"- Iniciado processo no Redis {red_atual['nome_redis']}")
+                        self.escrever_arquivo_log(self.nomes['arquivo_redis'],
+                                                  f"INFO - Iniciado processo no Redis {red_atual['nome_redis']} ")
+                        redis_host = red_atual['ip']  # ou o endereço do seu servidor Redis
+                        redis_port = red_atual['port']  # ou a porta que o seu servidor Redis está ouvindo
+
+                        # Criando uma instância do cliente Redis
+                        redis_client = redis.StrictRedis(host=redis_host, port=redis_port, decode_responses=True)
+
+                        try:
+                            # Executando o comando FLUSHALL
+                            redis_client.flushall()
+                        except Exception as err:
+                            self.escrever_no_input(f"- Processo finalizado com falha: {err}")
+                            self.escrever_arquivo_log(
+                                self.nomes['arquivo_redis'], f"INFO - Processo finalizado com falha: {err}")
+                        else:
+                            self.escrever_no_input(f"- FLUSHALL executado com sucesso no redis")
+                            self.escrever_arquivo_log(
+                                self.nomes['arquivo_redis'], f"INFO - FLUSHALL executado com sucesso no redis")
             self.escrever_no_input("- Processo finalizado")
             self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"INFO - Processo finalizado ")
-            self.button_atualizacao_inicio.config(state='active')
-            self.button_atualizacao_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
+            self.button_atualizacao_inicio.config(state='normal')
+            self.button_atualizacao_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
 
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.button_atualizacao_inicio.config(state='active')
-            self.button_atualizacao_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
+            self.button_atualizacao_inicio.config(state='normal')
+            self.button_atualizacao_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
 
     def limpar_redis_especifico(self):
         try:
-            self.combobox.config(state='disabled')
+            self.combobox_redis.config(state='disabled')
+            self.combobox_redis_grupo.config(state='disabled')
             self.button_redis_inicio.config(state='disabled')
             self.button_redis_voltar.config(state='disabled')
             self.button_menu_sair.config(state='disabled')
             self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"INFO - Inicio da operação Limpar Redis especifico")
-            redis_selecionado = self.combobox.get()
+            grupo_selecionado = self.combobox_redis_grupo.get()
+            redis_selecionado = self.combobox_redis.get()
+            if grupo_selecionado == "":
+                self.escrever_no_input("- O campo Grupo Redis não pode estar vazio")
+                self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"ERRO - O campo Grupo Redis não pode estar vazio ")
+                self.escrever_no_input("- Processo finalizado")
+                self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"INFO - Processo finalizado ")
+                self.button_redis_inicio.config(state='normal')
+                self.button_redis_voltar.config(state='normal')
+                self.combobox_redis.config(state='normal')
+                self.combobox_redis_grupo.config(state='normal')
+                self.button_menu_sair.config(state='normal')
+                return
+            if redis_selecionado == "":
+                self.escrever_no_input("- O campo Redis não pode estar vazio")
+                self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"ERRO - O campo Redis não pode estar vazio ")
+                self.escrever_no_input("- Processo finalizado")
+                self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"INFO - Processo finalizado ")
+                self.button_redis_inicio.config(state='normal')
+                self.button_redis_voltar.config(state='normal')
+                self.combobox_redis.config(state='normal')
+                self.combobox_redis_grupo.config(state='normal')
+                self.button_menu_sair.config(state='normal')
+                return
             self.escrever_no_input(f"- Iniciado processo no Redis {redis_selecionado}")
             self.escrever_arquivo_log(
                 self.nomes['arquivo_redis'], f"INFO - Iniciado processo no Redis {redis_selecionado} ")
             todos_valores_redis = self.infos_config["redis_qa"]
-            for redis_unico in todos_valores_redis:
-                if redis_unico["nome_redis"] == redis_selecionado:
-                    self.redis_certo = redis_unico
-            redis_host = self.redis_certo["ip"]
-            redis_port = self.redis_certo["port"]
+            status_operacao = False
+            for redis_grupo in todos_valores_redis:
+                if not status_operacao:
+                    try:
+                        selecionar_redis_dict = redis_grupo[grupo_selecionado]
+                        status_operacao = True
+                    except Exception as error:
+                        print(error)
+                        continue
+                    else:
+                        for redis_unico in selecionar_redis_dict:
+                            if redis_selecionado in redis_unico["nome_redis"]:
+                                self.redis_certo = redis_unico
+                                redis_host = self.redis_certo["ip"]
+                                redis_port = self.redis_certo["port"]
+                                break
+                            else:
+                                continue
+                else:
+                    break
 
             # Criando uma instância do cliente Redis
             redis_client = redis.StrictRedis(host=redis_host, port=redis_port, decode_responses=True)
@@ -1803,17 +1876,19 @@ class Aplicativo:
                 self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"INFO - FLUSHALL executado com sucesso no redis")
             self.escrever_no_input("- Processo finalizado")
             self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"INFO - Processo finalizado ")
-            self.button_redis_inicio.config(state='active')
-            self.button_redis_voltar.config(state='active')
-            self.combobox.config(state='active')
-            self.button_menu_sair.config(state='active')
+            self.button_redis_inicio.config(state='normal')
+            self.button_redis_voltar.config(state='normal')
+            self.combobox_redis.config(state='normal')
+            self.combobox_redis_grupo.config(state='normal')
+            self.button_menu_sair.config(state='normal')
 
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.button_redis_inicio.config(state='active')
-            self.button_redis_voltar.config(state='active')
-            self.combobox.config(state='active')
-            self.button_menu_sair.config(state='active')
+            self.button_redis_inicio.config(state='normal')
+            self.button_redis_voltar.config(state='normal')
+            self.combobox_redis.config(state='normal')
+            self.combobox_redis_grupo.config(state='normal')
+            self.button_menu_sair.config(state='normal')
 
     def validador_nif(self, documento_inserido):
         try:
@@ -1866,20 +1941,20 @@ class Aplicativo:
                 else:
                     self.escrever_no_input(f"- Documento invalido")
 
-            self.combobox.config(state='active')
+            self.combobox.config(state='normal')
             self.entry.config(state='normal')
-            self.button_gerador_inicio.config(state='active')
-            self.button_gerador_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
-            self.button_gerador_limpar.config(state='active')
+            self.button_gerador_inicio.config(state='normal')
+            self.button_gerador_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+            self.button_gerador_limpar.config(state='normal')
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.combobox.config(state='active')
+            self.combobox.config(state='normal')
             self.entry.config(state='normal')
-            self.button_gerador_inicio.config(state='active')
-            self.button_gerador_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
-            self.button_gerador_limpar.config(state='active')
+            self.button_gerador_inicio.config(state='normal')
+            self.button_gerador_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+            self.button_gerador_limpar.config(state='normal')
 
     def validador_cnpj(self, documento_inserido):
         try:
@@ -1950,20 +2025,20 @@ class Aplicativo:
                     self.escrever_no_input(f"- CNPJ - {doc} - {status_checagem}")
                 else:
                     self.escrever_no_input(f"- Documento invalido")
-            self.combobox.config(state='active')
+            self.combobox.config(state='normal')
             self.entry.config(state='normal')
-            self.button_gerador_inicio.config(state='active')
-            self.button_gerador_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
-            self.button_gerador_limpar.config(state='active')
+            self.button_gerador_inicio.config(state='normal')
+            self.button_gerador_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+            self.button_gerador_limpar.config(state='normal')
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.combobox.config(state='active')
+            self.combobox.config(state='normal')
             self.entry.config(state='normal')
-            self.button_gerador_inicio.config(state='active')
-            self.button_gerador_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
-            self.button_gerador_limpar.config(state='active')
+            self.button_gerador_inicio.config(state='normal')
+            self.button_gerador_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+            self.button_gerador_limpar.config(state='normal')
 
     def validador_cpf(self, documento_inserido):
         try:
@@ -2036,20 +2111,20 @@ class Aplicativo:
                 else:
                     self.escrever_no_input(f"- Documento invalido")
 
-            self.combobox.config(state='active')
+            self.combobox.config(state='normal')
             self.entry.config(state='normal')
-            self.button_gerador_inicio.config(state='active')
-            self.button_gerador_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
-            self.button_gerador_limpar.config(state='active')
+            self.button_gerador_inicio.config(state='normal')
+            self.button_gerador_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+            self.button_gerador_limpar.config(state='normal')
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.combobox.config(state='active')
+            self.combobox.config(state='normal')
             self.entry.config(state='normal')
-            self.button_gerador_inicio.config(state='active')
-            self.button_gerador_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
-            self.button_gerador_limpar.config(state='active')
+            self.button_gerador_inicio.config(state='normal')
+            self.button_gerador_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+            self.button_gerador_limpar.config(state='normal')
 
     def validador_cei(self, documento_inserido):
         try:
@@ -2105,20 +2180,20 @@ class Aplicativo:
                     self.escrever_no_input(f"- Documento invalido")
 
 
-            self.combobox.config(state='active')
+            self.combobox.config(state='normal')
             self.entry.config(state='normal')
-            self.button_gerador_inicio.config(state='active')
-            self.button_gerador_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
-            self.button_gerador_limpar.config(state='active')
+            self.button_gerador_inicio.config(state='normal')
+            self.button_gerador_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+            self.button_gerador_limpar.config(state='normal')
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.combobox.config(state='active')
+            self.combobox.config(state='normal')
             self.entry.config(state='normal')
-            self.button_gerador_inicio.config(state='active')
-            self.button_gerador_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
-            self.button_gerador_limpar.config(state='active')
+            self.button_gerador_inicio.config(state='normal')
+            self.button_gerador_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+            self.button_gerador_limpar.config(state='normal')
 
     def validador_pis(self, documento_inserido):
         try:
@@ -2173,21 +2248,21 @@ class Aplicativo:
                     self.escrever_no_input(f"- Documento invalido")
 
 
-            self.combobox.config(state='active')
+            self.combobox.config(state='normal')
             self.entry.config(state='normal')
-            self.button_gerador_inicio.config(state='active')
-            self.button_gerador_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
-            self.button_gerador_limpar.config(state='active')
+            self.button_gerador_inicio.config(state='normal')
+            self.button_gerador_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+            self.button_gerador_limpar.config(state='normal')
 
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.combobox.config(state='active')
+            self.combobox.config(state='normal')
             self.entry.config(state='normal')
-            self.button_gerador_inicio.config(state='active')
-            self.button_gerador_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
-            self.button_gerador_limpar.config(state='active')
+            self.button_gerador_inicio.config(state='normal')
+            self.button_gerador_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+            self.button_gerador_limpar.config(state='normal')
 
     def gerador_nif(self, linhas, checkbox_arquivo):
         try:
@@ -2224,23 +2299,23 @@ class Aplicativo:
                 contador -= 1
                 self.escrever_no_input(lista[0])
                 if checkbox_arquivo:
-                    self.escrever_arquivo_log(self.nomes['arquivo_doc_nif'], lista[0])
-            self.combobox.config(state='active')
+                    self.escrever_arquivo_txt(self.nomes['arquivo_doc_nif'], lista[0])
+            self.combobox.config(state='normal')
             self.entry.config(state='normal')
-            self.button_gerador_inicio.config(state='active')
-            self.button_gerador_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
-            self.button_gerador_limpar.config(state='active')
+            self.button_gerador_inicio.config(state='normal')
+            self.button_gerador_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+            self.button_gerador_limpar.config(state='normal')
             self.escrever_no_input(f"- Processo finalizado com sucesso")
 
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.combobox.config(state='active')
+            self.combobox.config(state='normal')
             self.entry.config(state='normal')
-            self.button_gerador_inicio.config(state='active')
-            self.button_gerador_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
-            self.button_gerador_limpar.config(state='active')
+            self.button_gerador_inicio.config(state='normal')
+            self.button_gerador_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+            self.button_gerador_limpar.config(state='normal')
 
     def gerador_cnpj(self, linhas, checkbox_mascara, checkbox_arquivo):
         try:
@@ -2291,23 +2366,23 @@ class Aplicativo:
                 self.escrever_no_input(lista[0])
 
                 if checkbox_arquivo:
-                    self.escrever_arquivo_log(self.nomes['arquivo_doc_cnpj'], lista[0])
-            self.combobox.config(state='active')
+                    self.escrever_arquivo_txt(self.nomes['arquivo_doc_cnpj'], lista[0])
+            self.combobox.config(state='normal')
             self.entry.config(state='normal')
-            self.button_gerador_inicio.config(state='active')
-            self.button_gerador_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
-            self.button_gerador_limpar.config(state='active')
+            self.button_gerador_inicio.config(state='normal')
+            self.button_gerador_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+            self.button_gerador_limpar.config(state='normal')
             self.escrever_no_input(f"- Processo finalizado com sucesso")
 
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.combobox.config(state='active')
+            self.combobox.config(state='normal')
             self.entry.config(state='normal')
-            self.button_gerador_inicio.config(state='active')
-            self.button_gerador_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
-            self.button_gerador_limpar.config(state='active')
+            self.button_gerador_inicio.config(state='normal')
+            self.button_gerador_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+            self.button_gerador_limpar.config(state='normal')
 
     def gerador_cpf(self, linhas, checkbox_mascara, checkbox_arquivo):
         try:
@@ -2354,23 +2429,23 @@ class Aplicativo:
                 self.escrever_no_input(lista[0])
 
                 if checkbox_arquivo:
-                    self.escrever_arquivo_log(self.nomes['arquivo_doc_cpf'], lista[0])
-            self.combobox.config(state='active')
+                    self.escrever_arquivo_txt(self.nomes['arquivo_doc_cpf'], lista[0])
+            self.combobox.config(state='normal')
             self.entry.config(state='normal')
-            self.button_gerador_inicio.config(state='active')
-            self.button_gerador_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
-            self.button_gerador_limpar.config(state='active')
+            self.button_gerador_inicio.config(state='normal')
+            self.button_gerador_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+            self.button_gerador_limpar.config(state='normal')
             self.escrever_no_input(f"- Processo finalizado com sucesso")
 
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.combobox.config(state='active')
+            self.combobox.config(state='normal')
             self.entry.config(state='normal')
-            self.button_gerador_inicio.config(state='active')
-            self.button_gerador_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
-            self.button_gerador_limpar.config(state='active')
+            self.button_gerador_inicio.config(state='normal')
+            self.button_gerador_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+            self.button_gerador_limpar.config(state='normal')
 
     def gerador_cei(self, linhas, checkbox_mascara, checkbox_arquivo):
         try:
@@ -2422,23 +2497,23 @@ class Aplicativo:
                 self.escrever_no_input(lista[0])
 
                 if checkbox_arquivo:
-                    self.escrever_arquivo_log(self.nomes['arquivo_doc_cei'], lista[0])
-            self.combobox.config(state='active')
+                    self.escrever_arquivo_txt(self.nomes['arquivo_doc_cei'], lista[0])
+            self.combobox.config(state='normal')
             self.entry.config(state='normal')
-            self.button_gerador_inicio.config(state='active')
-            self.button_gerador_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
-            self.button_gerador_limpar.config(state='active')
+            self.button_gerador_inicio.config(state='normal')
+            self.button_gerador_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+            self.button_gerador_limpar.config(state='normal')
             self.escrever_no_input(f"- Processo finalizado com sucesso")
 
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.combobox.config(state='active')
+            self.combobox.config(state='normal')
             self.entry.config(state='normal')
-            self.button_gerador_inicio.config(state='active')
-            self.button_gerador_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
-            self.button_gerador_limpar.config(state='active')
+            self.button_gerador_inicio.config(state='normal')
+            self.button_gerador_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+            self.button_gerador_limpar.config(state='normal')
 
     def gerador_pis(self, linhas, checkbox_mascara, checkbox_arquivo):
         try:
@@ -2493,23 +2568,23 @@ class Aplicativo:
                 self.escrever_no_input(lista[0])
 
                 if checkbox_arquivo:
-                    self.escrever_arquivo_log(self.nomes['arquivo_doc_pis'], lista[0])
-            self.combobox.config(state='active')
+                    self.escrever_arquivo_txt(self.nomes['arquivo_doc_pis'], lista[0])
+            self.combobox.config(state='normal')
             self.entry.config(state='normal')
-            self.button_gerador_inicio.config(state='active')
-            self.button_gerador_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
-            self.button_gerador_limpar.config(state='active')
+            self.button_gerador_inicio.config(state='normal')
+            self.button_gerador_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+            self.button_gerador_limpar.config(state='normal')
             self.escrever_no_input(f"- Processo finalizado com sucesso")
 
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.combobox.config(state='active')
+            self.combobox.config(state='normal')
             self.entry.config(state='normal')
-            self.button_gerador_inicio.config(state='active')
-            self.button_gerador_voltar.config(state='active')
-            self.button_menu_sair.config(state='active')
-            self.button_gerador_limpar.config(state='active')
+            self.button_gerador_inicio.config(state='normal')
+            self.button_gerador_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+            self.button_gerador_limpar.config(state='normal')
 
 # Menus que realizam as validar antes de inicar os processos
     def menu_gerador_documentos(self):
@@ -2559,40 +2634,17 @@ class Aplicativo:
             self.escrever_no_input(f"- Insira o documento que será validado")
             return
 
-    """    def menu_restaurar_banco(self):
-            self.infos_config['status'] = True
-            while True:
-                if self.infos_config['status']:
-                    try:
-                        if self.infos_config['server_principal'] != "":
-                            self.iniciar_processo_restaurar()
-                            break
-                        else:
-                            self.escrever_no_input(f"- A tag de server_principal parece estar vazia")
-                            self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - A tag de server_principal parece estar vazia, preencha e recarregue o config novamente ")
-                            self.infos_config['status'] = False
-                    except (Exception or pyodbc.DatabaseError) as err:
-                        self.escrever_no_input(f"- Falha ao tentar ler o arquivo {err}")
-                        self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar ler o arquivo, corrija e tente novamente: {err} ")
-                        self.infos_config['status'] = False
-                else:
-                    self.escrever_no_input(f"- Processo finalizado")
-                    break"""
+    def menu_restaurar_banco(self):
+        self.iniciar_processo_restaurar()
 
-    def menu_restaurar_banco_2(self, opcao):
-        tam_instancias = len(opcao)
-        if tam_instancias > 0:
-            self.iniciar_processo_restaurar()
-        else:
-            self.escrever_no_input(f"- As tags de conexôes estão vazias, favor preencher")
-            self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'],f"INFO - As tags de conexôes estão vazias, favor preencher")
 
     def menu_redis_todos(self):
         self.infos_config['status'] = True
         while True:
             if self.infos_config['status']:
                 try:
-                    if self.infos_config['redis_qa'][0]["nome_redis"] != "":
+                    servidores_redis = list(self.infos_config['redis_qa'][0])
+                    if servidores_redis != "":
                         self.iniciar_processo_limpar_redis_todos()
                         break
                     else:
@@ -2612,13 +2664,8 @@ class Aplicativo:
         while True:
             if self.infos_config['status']:
                 try:
-                    if self.infos_config['redis_qa'][0]["nome_redis"] != "":
-                        self.iniciar_processo_limpar_redis_especifico()
-                        break
-                    else:
-                        self.escrever_no_input(f"- A tag de redis_qa parece estar vazia")
-                        self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"INFO - A tag de redis_qa parece estar vazia, preencha e recarregue o config novamente ")
-                        self.infos_config['status'] = False
+                    self.iniciar_processo_limpar_redis_especifico()
+                    break
                 except (Exception or pyodbc.DatabaseError) as err:
                     self.escrever_no_input(f"- Falha ao tentar ler o arquivo {err}")
                     self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"ERRO - Falha ao tentar ler o arquivo, corrija e tente novamente: {err} ")
@@ -2632,13 +2679,8 @@ class Aplicativo:
         while True:
             if self.infos_config['status']:
                 try:
-                    if self.infos_config['server_principal'] != "":
-                        self.iniciar_processo_download()
-                        break
-                    else:
-                        self.escrever_no_input(f"- A tag de server_principal parece estar vazia")
-                        self.escrever_arquivo_log(self.nomes['arquivo_download_backup'], f"INFO - A tag de server_principal parece estar vazia, preencha e recarregue o config novamente ")
-                        self.infos_config['status'] = False
+                    self.iniciar_processo_download()
+                    break
                 except (Exception or pyodbc.DatabaseError) as err:
                     self.escrever_no_input(f"- Falha ao tentar ler o arquivo {err}")
                     self.escrever_arquivo_log(self.nomes['arquivo_download_backup'], f"ERRO - Falha ao tentar ler o arquivo, corrija e tente novamente: {err} ")
@@ -2836,7 +2878,7 @@ class Aplicativo:
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.escolher_config_existente_2()
+            command=lambda: self.escolher_config_existente()
         )
         if len(opcoes) > 0:
             self.combobox.set(opcoes[0])
@@ -2876,6 +2918,26 @@ class Aplicativo:
         )
         self.label.grid(row=linha_label, column=coluna, sticky="WS", pady=(10, 0))
         self.combobox.grid(row=linha_seletor, column=coluna, columnspan=1, pady=(0, 10), sticky="WEN")
+
+    def inserir_input_placeholder_modular(self, linha_label, linha_entry,  coluna, texto, nome_campo, posicao_label, posicao_entry, tamanho):
+        self.placeholder_text = texto
+        placeholder_color = "gray"
+
+        self.label = Label(
+            text=nome_campo,
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
+        self.entry = Entry(
+            self.app,
+            width=tamanho,
+            fg=placeholder_color
+        )
+        self.entry.insert(0, self.placeholder_text)
+        self.label.grid(row=linha_label, column=coluna, sticky=posicao_label, pady=(10, 0))
+        self.entry.grid(row=linha_entry, column=coluna, columnspan=1, sticky=posicao_entry, pady=(0, 10))
+        self.entries.append(self.entry)
+
 
     def inserir_input_placeholder(self, linha_label, linha_entry,  coluna, texto, nome_campo):
         texo_com_espaco = "  " + texto
@@ -3084,7 +3146,12 @@ class Aplicativo:
         self.app.rowconfigure(2, weight=1)
         self.app.rowconfigure(3, weight=peso_linha)
         self.app.rowconfigure(4, weight=peso_linha)
-        self.app.rowconfigure(9, weight=1)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(6, weight=peso_linha)
+        self.app.rowconfigure(7, weight=peso_linha)
+        self.app.rowconfigure(8, weight=peso_linha)
+        self.app.rowconfigure(9, weight=peso_linha)
+        self.app.rowconfigure(10, weight=1)
         self.Inserir_estrutura_padrao_telas()
         self.tela_busca_muro(self.app, self.version, self.coluna)
 
@@ -3110,7 +3177,8 @@ class Aplicativo:
         self.app.rowconfigure(6, weight=peso_linha)
         self.app.rowconfigure(7, weight=peso_linha)
         self.app.rowconfigure(8, weight=peso_linha)
-        self.app.rowconfigure(9, weight=1)
+        self.app.rowconfigure(9, weight=peso_linha)
+        self.app.rowconfigure(10, weight=2)
         self.Inserir_estrutura_padrao_telas()
         self.tela_restaurar_backup(self.app, self.version, self.coluna)
 
@@ -3247,25 +3315,30 @@ class Aplicativo:
     def tela_limpar_redis_especifico(self, app, version, coluna):
         titulo = "LIMPAR REDIS ESPECIFICOS"
         app.title("MSS - " + version + " - " + titulo)
-        opcoes = []
+        opcoes_grupo_redis = []
+        opcoes_redis = []
 
-        if self.infos_config["redis_qa"]:
-            for red_nome in self.infos_config["redis_qa"]:
-                if self.infos_config['redis_qa'][0]["nome_redis"] != "":
-                    opcoes.append(red_nome["nome_redis"])
+        redis = self.infos_config["redis_qa"]
+        for red in redis:
+            opcoes_grupo_redis = opcoes_grupo_redis + list(red.keys())
 
-        else:
-            self.criar_popup_mensagem(f"Não existe arquivos .json na pasta config")
-            return
-
+        self.label_grupo_redis = Label(
+            text="Grupo Redis:",
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
+        self.combobox_redis_grupo = Combobox(
+            app,
+            values=opcoes_grupo_redis,
+        )
         self.label_lista_redis = Label(
             text="Redis:",
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
-        self.combobox = Combobox(
+        self.combobox_redis = Combobox(
             app,
-            values=opcoes,
+            values=opcoes_redis,
         )
         self.button_redis_inicio = Button(
             app,
@@ -3285,20 +3358,41 @@ class Aplicativo:
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_ferramentas_redis()
         )
+
         self.remover_conteudo_linha(10, 2)
         self.inserir_titulos_telas(self.app, titulo, 2, coluna)
-        if len(opcoes) > 0:
-            self.combobox.set(opcoes[0])
-        self.label_lista_redis.grid(row=3, column=coluna, columnspan=1, pady=(10, 0), sticky="WS")
-        self.combobox.grid(row=4, column=coluna, columnspan=1, pady=(0, 10), sticky="WEN")
-        self.inserir_caixa_texto(5, 6, coluna, "Saida:")
-        self.button_redis_inicio.grid(row=7, column=coluna, pady=(10, 0))
+        if len(opcoes_grupo_redis) > 0:
+            self.combobox_redis_grupo.set(opcoes_grupo_redis[0])
+        if len(opcoes_redis) > 0:
+            self.combobox_redis_grupo.set(opcoes_redis[0])
+        self.label_grupo_redis.grid(row=3, column=coluna, columnspan=1, pady=(10, 0), sticky="WS")
+        self.combobox_redis_grupo.grid(row=4, column=coluna, columnspan=1, pady=(0, 10), sticky="WEN")
+        self.combobox_redis_grupo.bind("<<ComboboxSelected>>", self.atualizar_opcoes)
+        self.label_lista_redis.grid(row=5, column=coluna, columnspan=1, pady=(10, 0), sticky="WS")
+        self.combobox_redis.grid(row=6, column=coluna, columnspan=1, pady=(0, 10), sticky="WEN")
+        self.inserir_caixa_texto(7, 8, coluna, "Saida:")
+        self.button_redis_inicio.grid(row=9, column=coluna, pady=(10, 0))
         self.button_redis_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
+        self.atualizar_opcoes("<<ComboboxSelected>>")
 
     def tela_limpar_redis_todos(self, app, version, coluna):
         titulo = "LIMPAR TODOS OS REDIS"
         app.title("MSS - " + version + " - " + titulo)
+        opcoes_grupo_redis = []
 
+        redis = self.infos_config["redis_qa"]
+        for red in redis:
+            opcoes_grupo_redis = opcoes_grupo_redis + list(red.keys())
+
+        self.label_redis_grupo = Label(
+            text="Grupo Redis:",
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
+        self.combobox_redis_grupo = Combobox(
+            app,
+            values=opcoes_grupo_redis,
+        )
         self.button_atualizacao_inicio = Button(
             app,
             text="Iniciar",
@@ -3317,19 +3411,33 @@ class Aplicativo:
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_ferramentas_redis()
         )
+
+        if len(opcoes_grupo_redis) > 0:
+            self.combobox_redis_grupo.set(opcoes_grupo_redis[0])
         self.remover_conteudo_linha(10, 2)
         self.inserir_titulos_telas(self.app, titulo, 2, coluna)
-        self.inserir_caixa_texto(3, 4, coluna, "Saida:")
-        self.button_atualizacao_inicio.grid(row=5, column=coluna,  pady=(10, 0))
+        self.label_redis_grupo.grid(row=3, column=coluna, sticky="WS", pady=(10, 0))
+        self.combobox_redis_grupo.grid(row=4, column=coluna, columnspan=1, pady=(0, 10), sticky="WEN")
+        self.inserir_caixa_texto(5, 6, coluna, "Saida:")
+        self.button_atualizacao_inicio.grid(row=7, column=coluna,  pady=(10, 0))
         self.button_atualizacao_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
 
     def tela_restaurar_backup(self, app, version, coluna):
         titulo = "Restaurar Backup"
         app.title("MSS - " + version + " - " + titulo)
-        opcoes = []
-        for nt in self.infos_config['conexoes'].keys():
-            opcoes.append(nt)
+        placeholder_color = "gray"
+        opcoes_servidor = list(self.infos_config["conexoes"])
 
+        self.label_restaurar_servidor = Label(
+            text="Servidor:",
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
+        self.combobox_servidor_restaurar = Combobox(
+            app,
+            values=opcoes_servidor,
+            width=29
+        )
         self.button_restaurar_inicio = Button(
             app,
             text="Iniciar",
@@ -3337,7 +3445,7 @@ class Aplicativo:
             height=2,
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.menu_restaurar_banco_2(opcoes)
+            command=lambda: self.menu_restaurar_banco()
         )
         self.button_restaurar_voltar = Button(
             app,
@@ -3348,10 +3456,15 @@ class Aplicativo:
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu()
         )
+        if len(opcoes_servidor) > 0:
+            self.combobox_servidor_restaurar.set(opcoes_servidor[0])
         self.remover_conteudo_linha(10, 2)
         self.inserir_titulos_telas(self.app, titulo, 2, coluna)
-        self.inserir_input_placeholder(3, 4, coluna, " Insira o nome do banco desejado (KAIROS_BASE_123456789)", "Nome do banco:")
-        self.inserir_caixa_seletora(5, 6, coluna, opcoes, "Instancias")
+        self.label_restaurar_servidor.grid(row=3, column=coluna, sticky="WS", pady=(10, 0))
+        self.combobox_servidor_restaurar.grid(row=4, column=coluna, columnspan=1, pady=(0, 10), sticky="WS")
+        self.inserir_input_placeholder_modular(3, 4, coluna, "E:\\DBDATA\\LOG\\,D:\\DBDATA\\DATA\\","Caminho LDF e MDF:", "ES", "ES", 33)
+        self.inserir_input_placeholder_modular(5, 6, coluna, "","Nome do Backup:", "WS", "WS", 33)
+        self.inserir_input_placeholder_modular(5, 6, coluna, "","Nome do banco:", "ES", "ES", 33)
         self.inserir_caixa_texto(7, 8, coluna, "Saida:")
         self.button_restaurar_inicio.grid(row=9, column=coluna, pady=(10, 0))
         self.button_restaurar_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
@@ -3359,7 +3472,17 @@ class Aplicativo:
     def tela_download_backup(self, app, version, coluna):
         titulo = "Download Backup"
         app.title("MSS - " + version + " - " + titulo)
+        opcoes_servidor = list(self.infos_config["conexoes"])
 
+        self.label_download_servidor = Label(
+            text="Servidor:",
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
+        self.combobox_servidor_download = Combobox(
+            app,
+            values=opcoes_servidor,
+        )
         self.button_download_inicio = Button(
             app,
             text="Iniciar",
@@ -3378,17 +3501,31 @@ class Aplicativo:
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu()
         )
+        if len(opcoes_servidor) > 0:
+            self.combobox_servidor_download.set(opcoes_servidor[0])
         self.remover_conteudo_linha(10, 2)
         self.inserir_titulos_telas(self.app, titulo, 2, coluna)
-        self.inserir_input_placeholder(3, 4, coluna, "URL DO BACKUP", "Endereço URL:")
-        self.inserir_caixa_texto(5, 6, coluna, "Saida:")
-        self.button_download_inicio.grid(row=7, column=coluna, pady=(10, 0))
+        self.label_download_servidor.grid(row=3, column=coluna, sticky="WS", pady=(10, 0))
+        self.combobox_servidor_download.grid(row=4, column=coluna, columnspan=1, pady=(0, 10), sticky="WEN")
+        self.inserir_input_placeholder(5, 6, coluna, "URL DO BACKUP", "Endereço URL:")
+        self.inserir_caixa_texto(7, 8, coluna, "Saida:")
+        self.button_download_inicio.grid(row=9, column=coluna, pady=(10, 0))
         self.button_download_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
 
     def tela_busca_muro(self, app, version, coluna):
         titulo = "BUSCAR BANCOS"
         app.title("MSS - " + version + " - " + titulo)
+        opcoes_servidor = list(self.infos_config["conexoes"])
 
+        self.label_busca_servidor = Label(
+            text="Servidor:",
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
+        self.combobox_servidor = Combobox(
+            app,
+            values=opcoes_servidor,
+        )
         self.button_busca_inicio = Button(
             app,
             text="Iniciar",
@@ -3407,17 +3544,30 @@ class Aplicativo:
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_ferramentas_bancos()
         )
-
+        if len(opcoes_servidor) > 0:
+            self.combobox_servidor.set(opcoes_servidor[0])
         self.inserir_titulos_telas(self.app, titulo, 2, coluna)
         self.inserir_input_placeholder(3, 4, coluna, "Insira o version para downgrade...", "Version:")
-        self.inserir_caixa_texto(5, 6, coluna, "Saida:")
-        self.button_busca_inicio.grid(row=7, column=coluna, padx=5, pady=5)
+        self.label_busca_servidor.grid(row=5, column=coluna, sticky="WS", pady=(10, 0))
+        self.combobox_servidor.grid(row=6, column=coluna, columnspan=1, pady=(0, 10), sticky="WEN")
+        self.inserir_caixa_texto(7, 8, coluna, "Saida:")
+        self.button_busca_inicio.grid(row=9, column=coluna, padx=5, pady=5)
         self.button_busca_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
 
     def tela_buscar_versions(self, app, version, coluna):
         titulo = "CONSULTAR VERSIONS"
         app.title("MSS - " + version + " - " + titulo)
+        opcoes_servidor = list(self.infos_config["conexoes"])
 
+        self.label_version_servidor = Label(
+            text="Servidor:",
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
+        self.combobox_servidor_version = Combobox(
+            app,
+            values=opcoes_servidor,
+        )
         self.button_atualizacao_inicio = Button(
             app,
             text="Iniciar",
@@ -3436,16 +3586,29 @@ class Aplicativo:
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_ferramentas_bancos()
         )
-
+        if len(opcoes_servidor) > 0:
+            self.combobox_servidor_version.set(opcoes_servidor[0])
         self.inserir_titulos_telas(self.app, titulo, 2, coluna)
-        self.inserir_caixa_texto(3, 4, coluna, "Saida:")
-        self.button_atualizacao_inicio.grid(row=5, column=coluna,  pady=(10, 0))
+        self.label_version_servidor.grid(row=3, column=coluna, sticky="WS", pady=(10, 0))
+        self.combobox_servidor_version.grid(row=4, column=coluna, columnspan=1, pady=(0, 10), sticky="WEN")
+        self.inserir_caixa_texto(5, 6, coluna, "Saida:")
+        self.button_atualizacao_inicio.grid(row=7, column=coluna,  pady=(10, 0))
         self.button_atualizacao_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
 
     def tela_replicar_version_muro(self, app, version, coluna):
         titulo = "REPLICAR VERSIONS"
         app.title("MSS - " + version + " - " + titulo)
+        opcoes_servidor = list(self.infos_config["conexoes"])
 
+        self.label_replicar_servidor = Label(
+            text="Servidor:",
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
+        self.combobox_servidor_replicar = Combobox(
+            app,
+            values=opcoes_servidor,
+        )
         self.button_replicar_inicio = Button(
             app,
             text="Iniciar",
@@ -3464,10 +3627,14 @@ class Aplicativo:
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_ferramentas_bancos()
         )
+        if len(opcoes_servidor) > 0:
+            self.combobox_servidor_replicar.set(opcoes_servidor[0])
         self.remover_conteudo_linha(10, 2)
         self.inserir_titulos_telas(self.app, titulo, 2, coluna)
-        self.inserir_caixa_texto(3, 4, coluna, "Saida:")
-        self.button_replicar_inicio.grid(row=5, column=coluna,  pady=(10, 0))
+        self.label_replicar_servidor.grid(row=3, column=coluna, sticky="WS", pady=(10, 0))
+        self.combobox_servidor_replicar.grid(row=4, column=coluna, columnspan=1, pady=(0, 10), sticky="WEN")
+        self.inserir_caixa_texto(5, 6, coluna, "Saida:")
+        self.button_replicar_inicio.grid(row=7, column=coluna,  pady=(10, 0))
         self.button_replicar_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
 
     def tela_ferramentas_bancos(self, app, version, coluna):
@@ -3627,7 +3794,7 @@ class Aplicativo:
         )
         self.button_gerador_inicio = Button(
             app,
-            text="Criar",
+            text="Gerar",
             width=25,
             height=2,
             bg=self.infos_config_prog["background_color_botoes"],
@@ -3656,7 +3823,7 @@ class Aplicativo:
         self.combobox.set(opcoes[0])
         self.inserir_titulos_telas(self.app, titulo, 2, coluna)
         self.combobox.grid(row=3, column=coluna, pady=(0, 10), sticky="SWE")
-        self.inserir_input_placeholder(4, 5, coluna, " Insira a quantidade de números que serão gerados", "Quantidade:")
+        self.inserir_input_placeholder(4, 5, coluna, " Clique em Gerar ou insira a quantidade desejada", "Quantidade:")
         self.checkbox_mascara_num.grid(row=5, column=coluna, pady=(25, 0), sticky="W")
         self.checkbox_gerar_arquivo.grid(row=6, column=coluna, pady=(0, 1), sticky="W")
         self.inserir_caixa_texto(7, 8, coluna, "Saida:")
@@ -3957,7 +4124,7 @@ class Aplicativo:
                 self.ler_arquivo_config()
                 if self.infos_config_prog['config_default'] != "":
                     self.infos_config_prog['escolha_manual'] = False
-                    self.escolher_config_existente_2()
+                    self.escolher_config_existente()
                 else:
                     self.trocar_tela_config()
 
