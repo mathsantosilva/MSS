@@ -147,10 +147,10 @@ def validar_diretorio(nomes, criar_popup_mensagem):
             f"\n{data_hora_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_txt']}: {error} ")
 
 class Aplicativo:
-    version = "3.5.0"
+    version = "4.0.0"
     version_json = '2.0'
     mensagem_json = "Refatorado json para aceitar varias conexões e redis"
-    coluna = 1
+    coluna = 0
     widget = []
     nomes = dict()
     entries = []
@@ -258,7 +258,6 @@ class Aplicativo:
             return
 
 # Processos arquivo .json
-
     def criar_config(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Criação de config ")
         nome_banco_escolhido = self.entry.get()
@@ -583,7 +582,7 @@ class Aplicativo:
 
         if self.infos_config['status']:
             self.atualizar_config_default(self.config_selecionado)
-            self.trocar_tela_menu()
+            self.trocar_tela_menu_geral()
         else:
             self.trocar_tela_config()
         return self.infos_config
@@ -689,7 +688,6 @@ class Aplicativo:
             return
 
 # Subprocessos
-
     def atualizar_opcoes(self, event):
         redis_total = dict()
         red_grupo_atual = ''
@@ -717,6 +715,7 @@ class Aplicativo:
                 else:
                     self.combobox_redis['values'] = nome_redis
                     self.combobox_redis.set(nome_redis[0])
+
     def criar_dict_conexoes(self):
         grupo_con = dict()
         tam_conexoes = len(self.infos_config['conexoes'])
@@ -852,7 +851,7 @@ class Aplicativo:
             self.infos_config_prog["background_color_botoes"] = backg_botoes
             self.infos_config_prog["background_color_botoes_navs"] = backg_botoes_navs
             self.infos_config_prog["background_color_fonte"] = backg_fontes
-            self.trocar_tela_menu()
+            self.trocar_tela_menu_geral()
         except Exception as error:
             self.criar_popup_mensagem(f"Erro ao Alterar o background: {error}")
 
@@ -878,7 +877,7 @@ class Aplicativo:
             self.infos_config_prog["background_color_botoes"] = backg_botoes
             self.infos_config_prog["background_color_botoes_navs"] = backg_botoes_navs
             self.infos_config_prog["background_color_fonte"] = backg_fontes
-            self.trocar_tela_menu()
+            self.trocar_tela_menu_geral()
         except Exception as error:
             self.criar_popup_mensagem(f"Erro ao Alterar o background: {error}")
 
@@ -899,7 +898,6 @@ class Aplicativo:
         if self.entry.get() == "":
             self.entry.insert(0, self.placeholder_text)
             self.entry.config(foreground='gray')
-
 
 # Processos principais
     def atualizar_bancos_update(self):
@@ -1420,7 +1418,7 @@ class Aplicativo:
             status_etapa1 = False
 
             if nome_bak == "":
-                self.escrever_no_input("- O campo 'Nome do Backup' deverá ser preenchido")
+                self.escrever_no_input("- O campo 'Nome arquivo.bak' deverá ser preenchido")
                 for entry_atual in self.entries:
                     entry_atual.config(state='normal')
                 self.button_restaurar_inicio.config(state='normal')
@@ -2637,7 +2635,6 @@ class Aplicativo:
     def menu_restaurar_banco(self):
         self.iniciar_processo_restaurar()
 
-
     def menu_redis_todos(self):
         self.infos_config['status'] = True
         while True:
@@ -2811,23 +2808,17 @@ class Aplicativo:
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.finalizar()
         )
-        self.button_menu_generico = Button(
-            app,
-            text="",
-            width=15,
-            height=2,
-            bg=self.infos_config_prog["background_color_botoes_navs"],
-            fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.finalizar()
-        )
-        self.button_menu_generico.config(state='disabled')
-        self.button_menu_sair.grid(row=10, column=0, columnspan=2, padx=5, pady=5, sticky="WS")
-        self.button_menu_generico.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
+        self.button_menu_sair.grid(row=15, column=0, columnspan=2, padx=15, pady=15, sticky="WS")
 
     def inserir_campos_arquivo_existente(self, app, coluna):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Escolher Arquivo Existente")
         opcoes = []
+        self.remover_conteudo_linha(6,0)
+        self.remover_conteudo_linha(7, 0)
 
+
+        if self.button_nav_criar != None:
+            self.button_nav_criar.config(state="disabled")
         # listar os arquivos de dentro da pasta
         try:
             arquivos_diretorio = os.listdir(self.nomes['pasta_config'])
@@ -2856,10 +2847,6 @@ class Aplicativo:
                     self.criar_popup_mensagem(f"Não existe arquivos na pasta config")
                     return
 
-        self.remover_conteudo_linha(5, 1)
-        self.remover_conteudo_linha(6, 1)
-        self.remover_conteudo_linha(7, 1)
-        self.remover_conteudo_linha(10, 2)
         self.infos_config_prog['escolha_manual'] = True
 
         self.label_lista_arquivos = Label(
@@ -2882,16 +2869,16 @@ class Aplicativo:
         )
         if len(opcoes) > 0:
             self.combobox.set(opcoes[0])
-        self.label_lista_arquivos.grid(row=5, column=coluna, pady=(10, 0), sticky="WS")
-        self.combobox.grid(row=6, column=coluna, pady=(0, 10), sticky="WEN")
-        self.button_nav_escolher.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
+        self.label_lista_arquivos.grid(row=6, column=coluna, pady=(10, 0), columnspan=2)
+        self.combobox.grid(row=7, column=coluna, pady=(0, 10), columnspan=2)
+        self.button_nav_escolher.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def inserir_campos_arquivo_novo(self, app, coluna):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Criar Arquivo config")
-        self.remover_conteudo_linha(5, 1)
-        self.remover_conteudo_linha(6, 1)
-        self.remover_conteudo_linha(7, 1)
-        self.remover_conteudo_linha(10, 2)
+        self.remover_conteudo_linha(6,0)
+        self.remover_conteudo_linha(7, 0)
+        if self.button_nav_escolher != None:
+            self.button_nav_escolher.config(state="disabled")
 
         self.button_nav_criar = Button(
             app,
@@ -2903,8 +2890,8 @@ class Aplicativo:
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.criar_config()
         )
-        self.inserir_input_placeholder(5, 6, coluna, "Insira o nome para o arquivo...", "Nome do arquivo:")
-        self.button_nav_criar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
+        self.inserir_input_placeholder_modular(6, 7, coluna, "Insira o nome para o arquivo...", "Nome do arquivo:", "W", "WE", 50, (0,0) ,(15,0) ,(0,0), (15,15))
+        self.button_nav_criar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def inserir_caixa_seletora(self, linha_label, linha_seletor,  coluna, opcoes, nome_campo):
         self.label = Label(
@@ -2917,10 +2904,11 @@ class Aplicativo:
             values=opcoes
         )
         self.label.grid(row=linha_label, column=coluna, sticky="WS", pady=(10, 0))
-        self.combobox.grid(row=linha_seletor, column=coluna, columnspan=1, pady=(0, 10), sticky="WEN")
+        self.combobox.grid(row=linha_seletor, column=coluna, columnspan=2, pady=(0, 10), sticky="WEN")
 
-    def inserir_input_placeholder_modular(self, linha_label, linha_entry,  coluna, texto, nome_campo, posicao_label, posicao_entry, tamanho):
-        self.placeholder_text = texto
+    def inserir_input_placeholder_modular(self, linha_label, linha_entry, coluna, texto, nome_campo, posicao_label, posicao_entry, tamanho_elemento, pady_label, padx_label, pady_entry, padx_entry):
+        texo_com_espaco = "  " + texto
+        self.placeholder_text = texo_com_espaco
         placeholder_color = "gray"
 
         self.label = Label(
@@ -2930,16 +2918,17 @@ class Aplicativo:
         )
         self.entry = Entry(
             self.app,
-            width=tamanho,
+            width=tamanho_elemento,
             fg=placeholder_color
         )
         self.entry.insert(0, self.placeholder_text)
-        self.label.grid(row=linha_label, column=coluna, sticky=posicao_label, pady=(10, 0))
-        self.entry.grid(row=linha_entry, column=coluna, columnspan=1, sticky=posicao_entry, pady=(0, 10))
+        self.entry.bind("<FocusIn>", self.on_entry_click)
+        self.entry.bind("<FocusOut>", self.on_focusout)
+        self.label.grid(row=linha_label, column=coluna, sticky=posicao_label, pady=(pady_label), padx=(padx_label))
+        self.entry.grid(row=linha_entry, column=coluna, columnspan=2, sticky=posicao_entry, pady=(pady_entry), padx=(padx_entry))
         self.entries.append(self.entry)
 
-
-    def inserir_input_placeholder(self, linha_label, linha_entry,  coluna, texto, nome_campo):
+    def inserir_input_placeholder(self, linha_label, linha_entry,  coluna, texto, nome_campo, padding_baixo):
         texo_com_espaco = "  " + texto
         self.placeholder_text = texo_com_espaco
         placeholder_color = "gray"
@@ -2955,25 +2944,25 @@ class Aplicativo:
         self.entry.insert(0, self.placeholder_text)
         self.entry.bind("<FocusIn>", self.on_entry_click)
         self.entry.bind("<FocusOut>", self.on_focusout)
-        self.label.grid(row=linha_label, column=coluna, sticky="WS", pady=(10, 0))
-        self.entry.grid(row=linha_entry, column=coluna, columnspan=1, sticky="WEN", pady=(0, 10))
+        self.label.grid(row=linha_label, column=coluna, sticky="W", pady=(10, 0), padx=(15))
+        self.entry.grid(row=linha_entry, column=coluna, columnspan=2, sticky="WEN", padx=(15), pady=(0, padding_baixo))
 
-    def inserir_titulos_telas(self, app, tela, linha, coluna):
-        self.label_restaurar_backup = Label(
+    def inserir_titulos_telas(self, app, nome_tela, linha, coluna, padding_baixo):
+        self.label_inserir_titulos = Label(
             app,
-            text=tela,
+            text=nome_tela,
             font=('Arial', 12, 'bold'),
             bg=self.infos_config_prog["background_color_titulos"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
-        self.label_restaurar_backup.grid(row=linha, column=coluna, sticky="NWE")
+        self.label_inserir_titulos.grid(row=linha, column=coluna, sticky="WE", columnspan=2, pady=(0, padding_baixo))
 
     def remover_conteudo_linha(self, linha, coluna):
         widgets = self.app.grid_slaves(row=linha, column=coluna)
         for widget in widgets:
             widget.destroy()
 
-    def inserir_caixa_texto(self, linha_label, linha_texto, coluna, nome):
+    def inserir_caixa_texto(self, linha_label, linha_texto, coluna, nome, pady_label, padx_label, tamanho):
         self.nome_campo_caixa = Label(
             text=nome,
             bg=self.infos_config_prog["background_color_fundo"],
@@ -2981,11 +2970,11 @@ class Aplicativo:
         )
         self.widtexto = Text(
             self.app,
-            height=12,
+            height=tamanho,
             wrap="word"
         )
-        self.nome_campo_caixa.grid(row=linha_label, column=coluna, sticky="WE")
-        self.widtexto.grid(row=linha_texto, column=coluna, sticky="WE")
+        self.nome_campo_caixa.grid(row=linha_label, column=coluna, sticky="WE", columnspan=2, pady=(pady_label), padx=(padx_label))
+        self.widtexto.grid(row=linha_texto, column=coluna, sticky="WE", columnspan=2, padx=(15))
         self.widtexto.config(width=50)
         self.widtexto.config(state="disabled")
 
@@ -3004,54 +2993,107 @@ class Aplicativo:
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
-        self.label_config_selecionado.grid(row=0, column=0, columnspan=3, sticky="WN", padx=2, pady=2)
+        self.label_config_selecionado.grid(row=0, column=0, columnspan=3, sticky="NW", pady=(0,10))
 
     def Inserir_estrutura_padrao_telas(self):
         self.app.configure(bg=self.infos_config_prog["background_color_fundo"])
         self.app.rowconfigure(0, weight=0)
-        self.app.rowconfigure(10, weight=0)
+        self.app.rowconfigure(15, weight=0)
         self.remover_widget(self.app, '*', '*')
         self.inserir_menu_cascata()
         self.texto_config_selecionado(self.app)
         self.inserir_botoes_navs(self.app)
+        self.entries = []
 
 # Realiza as limpezas e contruçoes antes da montagem das telas
-    def trocar_tela_ferramentas_documentos(self):
+    def trocar_tela_menu_geral(self):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Menu")
+        peso_linha = 0
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
+        self.app.rowconfigure(3, weight=1)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(6, weight=peso_linha)
+        self.app.rowconfigure(7, weight=peso_linha)
+        self.app.rowconfigure(14, weight=1)
+        self.Inserir_estrutura_padrao_telas()
+        self.tela_menu_geral(self.app, self.version, self.coluna)
+
+    def trocar_tela_menu_ferramentas_bancos(self):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Ferramenta Banco Muro")
+        peso_linha = 0
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
+        self.app.rowconfigure(3, weight=1)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(6, weight=peso_linha)
+        self.app.rowconfigure(14, weight=1)
+        self.Inserir_estrutura_padrao_telas()
+        self.tela_menu_ferramentas_bancos(self.app, self.version, self.coluna)
+
+    def trocar_tela_menu_ferramentas_backup(self):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Ferramentas Backup")
+        peso_linha = 0
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
+        self.app.rowconfigure(3, weight=1)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(14, weight=1)
+        self.Inserir_estrutura_padrao_telas()
+        self.tela_menu_ferramentas_backup(self.app, self.version, self.coluna)
+
+    def trocar_tela_menu_ferramentas_redis(self):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Ferramentas Redis")
+        peso_linha = 0
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
+        self.app.rowconfigure(3, weight=1)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(14, weight=1)
+        self.Inserir_estrutura_padrao_telas()
+        self.tela_menu_ferramentas_redis(self.app, self.version, self.coluna)
+
+    def trocar_tela_menu_ferramentas_documentos(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Ferramentas Documentos")
         peso_linha = 0
-        self.app.rowconfigure(1, weight=1)
-        self.app.rowconfigure(2, weight=1)
-        self.app.rowconfigure(3, weight=peso_linha)
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
+        self.app.rowconfigure(3, weight=1)
         self.app.rowconfigure(4, weight=peso_linha)
-        self.app.rowconfigure(9, weight=1)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(14, weight=1)
         self.Inserir_estrutura_padrao_telas()
-        self.tela_ferramentas_documentos(self.app, self.version, self.coluna)
+        self.tela_menu_ferramentas_documentos(self.app, self.version, self.coluna)
 
     def trocar_tela_atualizacao_banco_update(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Atualização de banco Update")
         peso_linha = 0
-        self.app.rowconfigure(1, weight=1)
-        self.app.rowconfigure(2, weight=1)
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
         self.app.rowconfigure(3, weight=peso_linha)
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(5, weight=peso_linha)
         self.app.rowconfigure(6, weight=peso_linha)
         self.app.rowconfigure(10, weight=1)
         self.Inserir_estrutura_padrao_telas()
-        self.tela_ferramentas_banco_update(self.app, self.version, self.coluna)
+        self.trocar_tela_menu_geral()
+        self.criar_popup_mensagem("Tela Não implementada")
 
     def trocar_tela_validadores(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Validadores de Documentos")
         peso_linha = 0
-        self.app.rowconfigure(1, weight=1)
-        self.app.rowconfigure(2, weight=peso_linha)
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
         self.app.rowconfigure(3, weight=peso_linha)
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(5, weight=peso_linha)
         self.app.rowconfigure(6, weight=peso_linha)
         self.app.rowconfigure(7, weight=peso_linha)
         self.app.rowconfigure(8, weight=peso_linha)
-        self.app.rowconfigure(9, weight=peso_linha)
         self.app.rowconfigure(10, weight=1)
         self.Inserir_estrutura_padrao_telas()
         self.tela_validadores(self.app, self.version, self.coluna)
@@ -3059,8 +3101,8 @@ class Aplicativo:
     def trocar_tela_geradores(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Geradores de Documentos")
         peso_linha = 0
-        self.app.rowconfigure(1, weight=1)
-        self.app.rowconfigure(2, weight=peso_linha)
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
         self.app.rowconfigure(3, weight=peso_linha)
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(5, weight=peso_linha)
@@ -3068,15 +3110,20 @@ class Aplicativo:
         self.app.rowconfigure(7, weight=peso_linha)
         self.app.rowconfigure(8, weight=peso_linha)
         self.app.rowconfigure(9, weight=peso_linha)
-        self.app.rowconfigure(10, weight=1)
+        self.app.rowconfigure(10, weight=peso_linha)
+        self.app.rowconfigure(11, weight=peso_linha)
+        self.app.rowconfigure(12, weight=peso_linha)
+        self.app.rowconfigure(13, weight=peso_linha)
+        self.app.rowconfigure(14, weight=peso_linha)
+        self.app.rowconfigure(15, weight=1)
         self.Inserir_estrutura_padrao_telas()
         self.tela_geradores(self.app, self.version, self.coluna)
 
     def trocar_tela_redis_especifico(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Limpar redis Especifico")
         peso_linha = 0
-        self.app.rowconfigure(1, weight=1)
-        self.app.rowconfigure(2, weight=1)
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
         self.app.rowconfigure(3, weight=peso_linha)
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(9, weight=1)
@@ -3086,64 +3133,19 @@ class Aplicativo:
     def trocar_tela_redis_todos(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Limpar todos os redis")
         peso_linha = 0
-        self.app.rowconfigure(1, weight=1)
-        self.app.rowconfigure(2, weight=1)
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
         self.app.rowconfigure(3, weight=peso_linha)
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(9, weight=1)
         self.Inserir_estrutura_padrao_telas()
         self.tela_limpar_redis_todos(self.app, self.version, self.coluna)
 
-    def trocar_tela_ferramentas(self):
-        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Ferramentas")
-        peso_linha = 0
-        self.app.rowconfigure(1, weight=1)
-        self.app.rowconfigure(2, weight=1)
-        self.app.rowconfigure(3, weight=peso_linha)
-        self.app.rowconfigure(4, weight=peso_linha)
-        self.app.rowconfigure(5, weight=peso_linha)
-        self.app.rowconfigure(9, weight=1)
-        self.Inserir_estrutura_padrao_telas()
-        self.tela_ferramentas(self.app, self.version, self.coluna)
-
-    def trocar_tela_ferramentas_bancos(self):
-        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Ferramentas de banco")
-        peso_linha = 0
-        self.app.rowconfigure(1, weight=1)
-        self.app.rowconfigure(2, weight=1)
-        self.app.rowconfigure(3, weight=peso_linha)
-        self.app.rowconfigure(4, weight=peso_linha)
-        self.app.rowconfigure(9, weight=1)
-        self.Inserir_estrutura_padrao_telas()
-        self.tela_ferramentas_bancos(self.app, self.version, self.coluna)
-
-    def trocar_tela_ferramentas_redis(self):
-        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Ferramentas de Redis")
-        peso_linha = 0
-        self.app.rowconfigure(1, weight=1)
-        self.app.rowconfigure(2, weight=1)
-        self.app.rowconfigure(3, weight=peso_linha)
-        self.app.rowconfigure(4, weight=peso_linha)
-        self.app.rowconfigure(9, weight=1)
-        self.Inserir_estrutura_padrao_telas()
-        self.tela_ferramentas_redis(self.app, self.version, self.coluna)
-
-    def trocar_tela_menu(self):
-        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Menu")
-        peso_linha = 0
-        self.app.rowconfigure(1, weight=1)
-        self.app.rowconfigure(2, weight=1)
-        self.app.rowconfigure(3, weight=peso_linha)
-        self.app.rowconfigure(4, weight=peso_linha)
-        self.app.rowconfigure(9, weight=1)
-        self.Inserir_estrutura_padrao_telas()
-        self.tela_menu(self.app, self.version, self.coluna)
-
     def trocar_tela_busca_muro(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Busca Muro")
         peso_linha = 0
-        self.app.rowconfigure(1, weight=1)
-        self.app.rowconfigure(2, weight=1)
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
         self.app.rowconfigure(3, weight=peso_linha)
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(5, weight=peso_linha)
@@ -3151,15 +3153,15 @@ class Aplicativo:
         self.app.rowconfigure(7, weight=peso_linha)
         self.app.rowconfigure(8, weight=peso_linha)
         self.app.rowconfigure(9, weight=peso_linha)
-        self.app.rowconfigure(10, weight=1)
+        self.app.rowconfigure(15, weight=1)
         self.Inserir_estrutura_padrao_telas()
         self.tela_busca_muro(self.app, self.version, self.coluna)
 
     def trocar_tela_download_backup(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Download Backup")
         peso_linha = 0
-        self.app.rowconfigure(1, weight=1)
-        self.app.rowconfigure(2, weight=1)
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
         self.app.rowconfigure(3, weight=peso_linha)
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(9, weight=1)
@@ -3169,8 +3171,8 @@ class Aplicativo:
     def trocar_tela_restaurar_backup(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Restaurar Backup")
         peso_linha = 0
-        self.app.rowconfigure(1, weight=1)
-        self.app.rowconfigure(2, weight=1)
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
         self.app.rowconfigure(3, weight=peso_linha)
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(5, weight=peso_linha)
@@ -3185,51 +3187,227 @@ class Aplicativo:
     def trocar_tela_buscar_versions(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Buscar Versions")
         peso_linha = 0
-        self.app.rowconfigure(1, weight=1)
-        self.app.rowconfigure(2, weight=1)
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
         self.app.rowconfigure(3, weight=peso_linha)
         self.app.rowconfigure(4, weight=peso_linha)
-        self.app.rowconfigure(9, weight=1)
+        self.app.rowconfigure(15, weight=1)
         self.Inserir_estrutura_padrao_telas()
         self.tela_buscar_versions(self.app, self.version, self.coluna)
 
     def trocar_tela_replicar_version(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Replicar Versions")
         peso_linha = 0
-        self.app.rowconfigure(1, weight=1)
-        self.app.rowconfigure(2, weight=1)
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
         self.app.rowconfigure(3, weight=peso_linha)
         self.app.rowconfigure(4, weight=peso_linha)
-        self.app.rowconfigure(9, weight=1)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(6, weight=peso_linha)
+        self.app.rowconfigure(7, weight=peso_linha)
+        self.app.rowconfigure(15, weight=1)
         self.Inserir_estrutura_padrao_telas()
         self.tela_replicar_version_muro(self.app, self.version, self.coluna)
 
     def trocar_tela_alterar_aparencia(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Alterar Aparencia")
         peso_linha = 0
-        self.app.rowconfigure(1, weight=1)
-        self.app.rowconfigure(2, weight=1)
-        self.app.rowconfigure(3, weight=peso_linha)
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
+        self.app.rowconfigure(3, weight=1)
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(5, weight=peso_linha)
         self.app.rowconfigure(6, weight=peso_linha)
-        self.app.rowconfigure(9, weight=1)
+        self.app.rowconfigure(7, weight=peso_linha)
+        self.app.rowconfigure(8, weight=peso_linha)
+        self.app.rowconfigure(14, weight=1)
         self.Inserir_estrutura_padrao_telas()
         self.tela_alterar_aparencia(self.app, self.version, self.coluna)
 
     def trocar_tela_config(self):
         peso_linha = 0
-        self.app.rowconfigure(1, weight=1)
-        self.app.rowconfigure(2, weight=1)
-        self.app.rowconfigure(3, weight=peso_linha)
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
+        self.app.rowconfigure(3, weight=1)
         self.app.rowconfigure(4, weight=peso_linha)
-        self.app.rowconfigure(9, weight=1)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(6, weight=peso_linha)
+        self.app.rowconfigure(7, weight=peso_linha)
+        self.app.rowconfigure(14, weight=1)
         self.Inserir_estrutura_padrao_telas()
         self.tela_config(self.app, self.version, self.coluna)
 
 # monta as telas
-    def tela_ferramentas_documentos(self, app, version, coluna):
-        titulo = "Ferramentas Documentos"
+    def tela_menu_geral(self, app, version, coluna):
+        titulo = "MENU"
+        app.title("MSS - " + version + " - " + titulo)
+
+        self.button_menu_geral_ferramentas_banco = Button(
+            app,
+            text="Ferramentas Banco Muro",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_menu_ferramentas_bancos()
+        )
+        self.button_menu_geral_ferramentas_backup = Button(
+            app,
+            text="Ferramentas Backup",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_menu_ferramentas_backup()
+        )
+        self.button_menu_geral_ferramentas_redis = Button(
+            app,
+            text="Ferramentas Redis",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_menu_ferramentas_redis()
+        )
+        self.button_menu_geral_ferramentas_documentos = Button(
+            app,
+            text="Ferramentas Documentos",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_menu_ferramentas_documentos()
+        )
+        self.remover_conteudo_linha(10, 2)
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.button_menu_geral_ferramentas_banco.grid(row=4, column=coluna, columnspan=2)
+        self.button_menu_geral_ferramentas_backup.grid(row=5, column=coluna, columnspan=2)
+        self.button_menu_geral_ferramentas_redis.grid(row=6, column=coluna, columnspan=2)
+        self.button_menu_geral_ferramentas_documentos.grid(row=7, column=coluna, columnspan=2)
+
+    def tela_menu_ferramentas_bancos(self, app, version, coluna):
+        titulo = "FERRAMENTAS DE BANCO MURO"
+        app.title("MSS - " + version + " - " + titulo)
+
+        self.button_ferramentas_bancos_busca_banco = Button(
+            app,
+            text="Buscar Bancos",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_busca_muro()
+        )
+        self.button_ferramentas_bancos_buscar_versions = Button(
+            app,
+            text="Buscar Version's",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_buscar_versions()
+        )
+        self.button_ferramentas_bancos_replicar_version = Button(
+            app,
+            text="Replicar version",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_replicar_version()
+        )
+        self.button_ferramentas_bancos_voltar = Button(
+            app,
+            text="Voltar",
+            width=15,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_menu_geral()
+        )
+        self.remover_conteudo_linha(10, 2)
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.button_ferramentas_bancos_busca_banco.grid(row=4, column=coluna, columnspan=2)
+        self.button_ferramentas_bancos_buscar_versions.grid(row=5, column=coluna, columnspan=2)
+        self.button_ferramentas_bancos_replicar_version.grid(row=6, column=coluna, columnspan=2)
+        self.button_ferramentas_bancos_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
+
+    def tela_menu_ferramentas_backup(self, app, version, coluna):
+        titulo = "FERRAMENTAS BACKUP"
+        app.title("MSS - " + version + " - " + titulo)
+
+        self.button_menu_download = Button(
+            app,
+            text="Download Backup",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_download_backup()
+        )
+        self.button_menu_restaurar = Button(
+            app,
+            text="Restaurar Backup",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_restaurar_backup()
+        )
+        self.button_menu_ferramentas_backup_voltar = Button(
+            app,
+            text="Voltar",
+            width=15,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_menu_geral()
+        )
+        self.remover_conteudo_linha(10, 2)
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.button_menu_download.grid(row=4, column=coluna, columnspan=2)
+        self.button_menu_restaurar.grid(row=5, column=coluna, columnspan=2)
+        self.button_menu_ferramentas_backup_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
+
+    def tela_menu_ferramentas_redis(self, app, version, coluna):
+        titulo = "FERRAMENTAS REDIS"
+        app.title("MSS - " + version + " - " + titulo)
+
+        self.button_ferramenta_redis_limpar_todos = Button(
+            app,
+            text="Limpar todos os redis",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_redis_todos()
+        )
+        self.button_ferramenta_redis_limpar_espec = Button(
+            app,
+            text="Limpar Redis especifico",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_redis_especifico()
+        )
+        self.button_ferramenta_redis_voltar = Button(
+            app,
+            text="Voltar",
+            width=15,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_menu_geral()
+        )
+        self.remover_conteudo_linha(10, 2)
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.button_ferramenta_redis_limpar_todos.grid(row=4, column=coluna, columnspan=2)
+        self.button_ferramenta_redis_limpar_espec.grid(row=5, column=coluna, columnspan=2)
+        self.button_ferramenta_redis_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
+
+    def tela_menu_ferramentas_documentos(self, app, version, coluna):
+        titulo = "FERRAMENTAS DOCUMENTOS"
         app.title("MSS - " + version + " - " + titulo)
 
         self.button_menu_ferramentas_documentos_geradores = Button(
@@ -3257,60 +3435,13 @@ class Aplicativo:
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas()
+            command=lambda: self.trocar_tela_menu_geral()
         )
         self.remover_conteudo_linha(10, 2)
-        self.inserir_titulos_telas(self.app, titulo, 2, coluna)
-        self.button_menu_ferramentas_documentos_geradores.grid(row=3, column=coluna)
-        self.button_menu_ferramentas_documentos_validadores.grid(row=4, column=coluna)
-        self.button_menu_ferramentas_documentos_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
-
-    def tela_ferramentas_banco_update(self, app, version, coluna):
-        titulo = "Ferramenta banco Update"
-        app.title("MSS - " + version + " - " + titulo)
-
-        self.button_menu_ferramentas_banco_atualizacao = Button(
-            app,
-            text="Atualização banco Update",
-            width=25,
-            height=2,
-            bg=self.infos_config_prog["background_color_botoes"],
-            fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_atualizacao_banco_update()
-        )
-        self.button_menu_ferramentas_banco_criar = Button(
-            app,
-            text="Criar banco update",
-            width=25,
-            height=2,
-            bg=self.infos_config_prog["background_color_botoes"],
-            fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_atualizacao_banco_update()
-        )
-        self.button_menu_ferramentas_banco_validador = Button(
-            app,
-            text="Validar atualização banco",
-            width=25,
-            height=2,
-            bg=self.infos_config_prog["background_color_botoes"],
-            fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_atualizacao_banco_update()
-        )
-        self.button_menu_ferramentas_banco_voltar = Button(
-            app,
-            text="Voltar",
-            width=15,
-            height=2,
-            bg=self.infos_config_prog["background_color_botoes_navs"],
-            fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas()
-        )
-        self.remover_conteudo_linha(10, 2)
-        self.inserir_titulos_telas(self.app, titulo, 2, coluna)
-        self.button_menu_ferramentas_banco_atualizacao.grid(row=4, column=coluna)
-        self.button_menu_ferramentas_banco_criar.grid(row=5, column=coluna)
-        self.button_menu_ferramentas_banco_validador.grid(row=6, column=coluna)
-        self.button_menu_ferramentas_banco_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.button_menu_ferramentas_documentos_geradores.grid(row=4, column=coluna, columnspan=2)
+        self.button_menu_ferramentas_documentos_validadores.grid(row=5, column=coluna, columnspan=2)
+        self.button_menu_ferramentas_documentos_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def tela_limpar_redis_especifico(self, app, version, coluna):
         titulo = "LIMPAR REDIS ESPECIFICOS"
@@ -3356,23 +3487,23 @@ class Aplicativo:
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas_redis()
+            command=lambda: self.trocar_tela_menu_ferramentas_redis()
         )
 
         self.remover_conteudo_linha(10, 2)
-        self.inserir_titulos_telas(self.app, titulo, 2, coluna)
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
         if len(opcoes_grupo_redis) > 0:
             self.combobox_redis_grupo.set(opcoes_grupo_redis[0])
         if len(opcoes_redis) > 0:
             self.combobox_redis_grupo.set(opcoes_redis[0])
-        self.label_grupo_redis.grid(row=3, column=coluna, columnspan=1, pady=(10, 0), sticky="WS")
-        self.combobox_redis_grupo.grid(row=4, column=coluna, columnspan=1, pady=(0, 10), sticky="WEN")
+        self.label_grupo_redis.grid(row=3, column=coluna, columnspan=2, pady=(0, 0), padx=(15, 15), sticky="WS")
+        self.combobox_redis_grupo.grid(row=4, column=coluna, columnspan=2, pady=(0, 10), padx=(15, 15), sticky="WE")
         self.combobox_redis_grupo.bind("<<ComboboxSelected>>", self.atualizar_opcoes)
-        self.label_lista_redis.grid(row=5, column=coluna, columnspan=1, pady=(10, 0), sticky="WS")
-        self.combobox_redis.grid(row=6, column=coluna, columnspan=1, pady=(0, 10), sticky="WEN")
-        self.inserir_caixa_texto(7, 8, coluna, "Saida:")
-        self.button_redis_inicio.grid(row=9, column=coluna, pady=(10, 0))
-        self.button_redis_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
+        self.label_lista_redis.grid(row=5, column=coluna, columnspan=2, pady=(0, 0), padx=(15, 15), sticky="WS")
+        self.combobox_redis.grid(row=6, column=coluna, columnspan=2, pady=(0, 0), padx=(15, 15), sticky="WE")
+        self.inserir_caixa_texto(7, 8, coluna, "Saida:", (10,0), (0,0), 12)
+        self.button_redis_inicio.grid(row=9, column=coluna, pady=(0, 0), columnspan=2)
+        self.button_redis_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
         self.atualizar_opcoes("<<ComboboxSelected>>")
 
     def tela_limpar_redis_todos(self, app, version, coluna):
@@ -3409,18 +3540,18 @@ class Aplicativo:
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas_redis()
+            command=lambda: self.trocar_tela_menu_ferramentas_redis()
         )
 
         if len(opcoes_grupo_redis) > 0:
             self.combobox_redis_grupo.set(opcoes_grupo_redis[0])
         self.remover_conteudo_linha(10, 2)
-        self.inserir_titulos_telas(self.app, titulo, 2, coluna)
-        self.label_redis_grupo.grid(row=3, column=coluna, sticky="WS", pady=(10, 0))
-        self.combobox_redis_grupo.grid(row=4, column=coluna, columnspan=1, pady=(0, 10), sticky="WEN")
-        self.inserir_caixa_texto(5, 6, coluna, "Saida:")
-        self.button_atualizacao_inicio.grid(row=7, column=coluna,  pady=(10, 0))
-        self.button_atualizacao_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.label_redis_grupo.grid(row=3, column=coluna, columnspan=2, pady=(0, 0), padx=(15, 15), sticky="WS")
+        self.combobox_redis_grupo.grid(row=4, column=coluna, columnspan=2, pady=(0, 0), padx=(15, 15), sticky="WE")
+        self.inserir_caixa_texto(5, 6, coluna, "Saida:", (10,0), (0,0), 15)
+        self.button_atualizacao_inicio.grid(row=7, column=coluna, columnspan=2,  pady=(10, 0))
+        self.button_atualizacao_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def tela_restaurar_backup(self, app, version, coluna):
         titulo = "Restaurar Backup"
@@ -3454,20 +3585,20 @@ class Aplicativo:
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_menu()
+            command=lambda: self.trocar_tela_menu_ferramentas_backup()
         )
         if len(opcoes_servidor) > 0:
             self.combobox_servidor_restaurar.set(opcoes_servidor[0])
         self.remover_conteudo_linha(10, 2)
-        self.inserir_titulos_telas(self.app, titulo, 2, coluna)
-        self.label_restaurar_servidor.grid(row=3, column=coluna, sticky="WS", pady=(10, 0))
-        self.combobox_servidor_restaurar.grid(row=4, column=coluna, columnspan=1, pady=(0, 10), sticky="WS")
-        self.inserir_input_placeholder_modular(3, 4, coluna, "E:\\DBDATA\\LOG\\,D:\\DBDATA\\DATA\\","Caminho LDF e MDF:", "ES", "ES", 33)
-        self.inserir_input_placeholder_modular(5, 6, coluna, "","Nome do Backup:", "WS", "WS", 33)
-        self.inserir_input_placeholder_modular(5, 6, coluna, "","Nome do banco:", "ES", "ES", 33)
-        self.inserir_caixa_texto(7, 8, coluna, "Saida:")
-        self.button_restaurar_inicio.grid(row=9, column=coluna, pady=(10, 0))
-        self.button_restaurar_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.label_restaurar_servidor.grid(row=3, column=coluna, sticky="WS", pady=(10, 0), padx=(10, 10))
+        self.combobox_servidor_restaurar.grid(row=4, column=coluna, columnspan=2, pady=(0, 0), padx=(10, 10), sticky="WS")
+        self.inserir_input_placeholder_modular(3, 4, 1, "E:\\DBDATA\\LOG\\,D:\\DBDATA\\DATA\\","Caminho LDF e MDF:", "WS", "WN", 33, (10,0), (10,0), (0,0), (10,0))
+        self.inserir_input_placeholder_modular(5, 6, coluna, "","Nome arquivo .bak:", "WS", "WN", 33, (10,0), (10,0), (0,0), (10,0) )
+        self.inserir_input_placeholder_modular(5, 6, 1, "","Nome do banco:", "WS", "WN", 33, (10,0), (10,0), (0,0), (10,0))
+        self.inserir_caixa_texto(7, 8, coluna, "Saida:", (10,0), (0,0), 12)
+        self.button_restaurar_inicio.grid(row=9, column=coluna, columnspan=2, pady=(10, 0))
+        self.button_restaurar_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def tela_download_backup(self, app, version, coluna):
         titulo = "Download Backup"
@@ -3499,18 +3630,18 @@ class Aplicativo:
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_menu()
+            command=lambda: self.trocar_tela_menu_ferramentas_backup()
         )
         if len(opcoes_servidor) > 0:
             self.combobox_servidor_download.set(opcoes_servidor[0])
         self.remover_conteudo_linha(10, 2)
-        self.inserir_titulos_telas(self.app, titulo, 2, coluna)
-        self.label_download_servidor.grid(row=3, column=coluna, sticky="WS", pady=(10, 0))
-        self.combobox_servidor_download.grid(row=4, column=coluna, columnspan=1, pady=(0, 10), sticky="WEN")
-        self.inserir_input_placeholder(5, 6, coluna, "URL DO BACKUP", "Endereço URL:")
-        self.inserir_caixa_texto(7, 8, coluna, "Saida:")
-        self.button_download_inicio.grid(row=9, column=coluna, pady=(10, 0))
-        self.button_download_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.label_download_servidor.grid(row=3, column=coluna, sticky="WS", pady=(10, 0), padx=(15))
+        self.combobox_servidor_download.grid(row=4, column=coluna, columnspan=2, pady=(0, 10), sticky="WE", padx=(15))
+        self.inserir_input_placeholder(5, 6, coluna, "URL DO BACKUP", "Endereço URL:", 10)
+        self.inserir_caixa_texto(7, 8, coluna, "Saida:", (10,0), (0,0), 12)
+        self.button_download_inicio.grid(row=9, column=coluna, pady=(10, 0), columnspan=2,)
+        self.button_download_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def tela_busca_muro(self, app, version, coluna):
         titulo = "BUSCAR BANCOS"
@@ -3542,17 +3673,18 @@ class Aplicativo:
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas_bancos()
+            command=lambda: self.trocar_tela_menu_ferramentas_bancos()
         )
         if len(opcoes_servidor) > 0:
             self.combobox_servidor.set(opcoes_servidor[0])
-        self.inserir_titulos_telas(self.app, titulo, 2, coluna)
-        self.inserir_input_placeholder(3, 4, coluna, "Insira o version para downgrade...", "Version:")
-        self.label_busca_servidor.grid(row=5, column=coluna, sticky="WS", pady=(10, 0))
-        self.combobox_servidor.grid(row=6, column=coluna, columnspan=1, pady=(0, 10), sticky="WEN")
-        self.inserir_caixa_texto(7, 8, coluna, "Saida:")
-        self.button_busca_inicio.grid(row=9, column=coluna, padx=5, pady=5)
-        self.button_busca_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
+        self.remover_conteudo_linha(15, 2)
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.inserir_input_placeholder(3, 4, coluna, "Insira o version para downgrade...", "Version:",10)
+        self.label_busca_servidor.grid(row=5, column=coluna, sticky="WS", pady=(10, 0), padx=(15))
+        self.combobox_servidor.grid(row=6, column=coluna, pady=(0, 10), sticky="WE", columnspan=2, padx=(15))
+        self.inserir_caixa_texto(7, 8, coluna, "Saida:", (10,0), (0,0), 12)
+        self.button_busca_inicio.grid(row=9, column=coluna, pady=5, columnspan=2)
+        self.button_busca_voltar.grid(row=15, column=1, padx=15, pady=15, sticky="ES")
 
     def tela_buscar_versions(self, app, version, coluna):
         titulo = "CONSULTAR VERSIONS"
@@ -3584,16 +3716,17 @@ class Aplicativo:
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas_bancos()
+            command=lambda: self.trocar_tela_menu_ferramentas_bancos()
         )
         if len(opcoes_servidor) > 0:
             self.combobox_servidor_version.set(opcoes_servidor[0])
-        self.inserir_titulos_telas(self.app, titulo, 2, coluna)
-        self.label_version_servidor.grid(row=3, column=coluna, sticky="WS", pady=(10, 0))
-        self.combobox_servidor_version.grid(row=4, column=coluna, columnspan=1, pady=(0, 10), sticky="WEN")
-        self.inserir_caixa_texto(5, 6, coluna, "Saida:")
-        self.button_atualizacao_inicio.grid(row=7, column=coluna,  pady=(10, 0))
-        self.button_atualizacao_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
+        self.remover_conteudo_linha(15, 2)
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.label_version_servidor.grid(row=3, column=coluna, sticky="WS", pady=(10, 0), padx=(15))
+        self.combobox_servidor_version.grid(row=4, column=coluna, columnspan=2, pady=(0, 10), sticky="WE", padx=(15))
+        self.inserir_caixa_texto(5, 6, coluna, "Saida:", (10,0), (0,0), 12)
+        self.button_atualizacao_inicio.grid(row=7, column=coluna, columnspan=2, pady=(10, 0))
+        self.button_atualizacao_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def tela_replicar_version_muro(self, app, version, coluna):
         titulo = "REPLICAR VERSIONS"
@@ -3625,155 +3758,30 @@ class Aplicativo:
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas_bancos()
+            command=lambda: self.trocar_tela_menu_ferramentas_bancos()
         )
         if len(opcoes_servidor) > 0:
             self.combobox_servidor_replicar.set(opcoes_servidor[0])
-        self.remover_conteudo_linha(10, 2)
-        self.inserir_titulos_telas(self.app, titulo, 2, coluna)
-        self.label_replicar_servidor.grid(row=3, column=coluna, sticky="WS", pady=(10, 0))
-        self.combobox_servidor_replicar.grid(row=4, column=coluna, columnspan=1, pady=(0, 10), sticky="WEN")
-        self.inserir_caixa_texto(5, 6, coluna, "Saida:")
-        self.button_replicar_inicio.grid(row=7, column=coluna,  pady=(10, 0))
-        self.button_replicar_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
-
-    def tela_ferramentas_bancos(self, app, version, coluna):
-        titulo = "FERRAMENTAS BD"
-        app.title("MSS - " + version + " - " + titulo)
-
-        self.button_ferramenta_busca_banco = Button(
-            app,
-            text="Buscar Bancos",
-            width=25,
-            height=2,
-            bg=self.infos_config_prog["background_color_botoes"],
-            fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_busca_muro()
-        )
-        self.button_ferramenta_buscar_versions = Button(
-            app,
-            text="Buscar Version's",
-            width=25,
-            height=2,
-            bg=self.infos_config_prog["background_color_botoes"],
-            fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_buscar_versions()
-        )
-        self.button_ferramenta_replicar_version = Button(
-            app,
-            text="Replicar version",
-            width=25,
-            height=2,
-            bg=self.infos_config_prog["background_color_botoes"],
-            fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_replicar_version()
-        )
-        self.button_ferramenta_voltar = Button(
-            app,
-            text="Voltar",
-            width=15,
-            height=2,
-            bg=self.infos_config_prog["background_color_botoes_navs"],
-            fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas()
-        )
-        self.remover_conteudo_linha(10, 2)
-        self.inserir_titulos_telas(self.app, titulo, 2, coluna)
-        self.button_ferramenta_busca_banco.grid(row=3, column=coluna)
-        self.button_ferramenta_buscar_versions.grid(row=4, column=coluna)
-        self.button_ferramenta_replicar_version.grid(row=5, column=coluna)
-        self.button_ferramenta_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
-
-    def tela_ferramentas_redis(self, app, version, coluna):
-        titulo = "FERRAMENTAS REDIS"
-        app.title("MSS - " + version + " - " + titulo)
-
-        self.button_ferramenta_busca_banco = Button(
-            app,
-            text="Limpar todos os redis",
-            width=25,
-            height=2,
-            bg=self.infos_config_prog["background_color_botoes"],
-            fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_redis_todos()
-        )
-        self.button_ferramenta_buscar_versions = Button(
-            app,
-            text="Limpar Redis especifico",
-            width=25,
-            height=2,
-            bg=self.infos_config_prog["background_color_botoes"],
-            fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_redis_especifico()
-        )
-        self.button_ferramenta_voltar = Button(
-            app,
-            text="Voltar",
-            width=15,
-            height=2,
-            bg=self.infos_config_prog["background_color_botoes_navs"],
-            fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas()
-        )
-        self.remover_conteudo_linha(10, 2)
-        self.inserir_titulos_telas(self.app, titulo, 2, coluna)
-        self.button_ferramenta_busca_banco.grid(row=3, column=coluna)
-        self.button_ferramenta_buscar_versions.grid(row=4, column=coluna)
-        self.button_ferramenta_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
-
-    def tela_ferramentas(self, app, version, coluna):
-        titulo = "FERRAMENTAS"
-        app.title("MSS - " + version + " - " + titulo)
-
-        self.button_menu_ferramentas = Button(
-            app,
-            text="Ferramentas de Bancos",
-            width=25,
-            height=2,
-            bg=self.infos_config_prog["background_color_botoes"],
-            fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas_bancos()
-        )
-        self.button_menu_ferramentas_redis = Button(
-            app,
-            text="Ferramentas Redis",
-            width=25,
-            height=2,
-            bg=self.infos_config_prog["background_color_botoes"],
-            fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas_redis()
-        )
-        self.button_menu_ferramentas_documentos = Button(
-            app,
-            text="Ferramentas documentos",
-            width=25,
-            height=2,
-            bg=self.infos_config_prog["background_color_botoes"],
-            fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas_documentos()
-        )
-        self.button_menu_Voltar = Button(
-            app,
-            text="Voltar",
-            width=15,
-            height=2,
-            bg=self.infos_config_prog["background_color_botoes_navs"],
-            fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_menu()
-        )
-        self.remover_conteudo_linha(10, 2)
-        self.inserir_titulos_telas(self.app, titulo, 2, coluna)
-        self.button_menu_ferramentas.grid(row=3, column=coluna)
-        self.button_menu_ferramentas_redis.grid(row=4, column=coluna)
-        self.button_menu_ferramentas_documentos.grid(row=5, column=coluna)
-        self.button_menu_Voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
+        self.remover_conteudo_linha(15, 2)
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.label_replicar_servidor.grid(row=3, column=coluna, sticky="W", pady=(10, 0), padx=(15))
+        self.combobox_servidor_replicar.grid(row=4, column=coluna, columnspan=2, pady=(0, 10), sticky="WE", padx=(15))
+        self.inserir_caixa_texto(5, 6, coluna, "Saida:", (10,0), (0,0), 12)
+        self.button_replicar_inicio.grid(row=7, column=coluna,  pady=(10, 0), columnspan=2)
+        self.button_replicar_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def tela_geradores(self, app, version, coluna):
-        titulo = "Geradores"
+        titulo = "GERADORES"
         app.title("MSS - " + version + " - " + titulo)
         opcoes = ["CEI", "CNPJ", "CPF", "NIF", "PIS"]
         self.valor_checkbox_mascara_num = BooleanVar()
         self.valor_checkbox_gerar_arquivo = BooleanVar()
+
+        self.label_gerador = Label(
+            text="Documentos",
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
         self.combobox = Combobox(
             app,
             values=opcoes,
@@ -3817,19 +3825,20 @@ class Aplicativo:
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas_documentos()
+            command=lambda: self.trocar_tela_menu_ferramentas_documentos()
         )
         self.remover_conteudo_linha(10, 2)
         self.combobox.set(opcoes[0])
-        self.inserir_titulos_telas(self.app, titulo, 2, coluna)
-        self.combobox.grid(row=3, column=coluna, pady=(0, 10), sticky="SWE")
-        self.inserir_input_placeholder(4, 5, coluna, " Clique em Gerar ou insira a quantidade desejada", "Quantidade:")
-        self.checkbox_mascara_num.grid(row=5, column=coluna, pady=(25, 0), sticky="W")
-        self.checkbox_gerar_arquivo.grid(row=6, column=coluna, pady=(0, 1), sticky="W")
-        self.inserir_caixa_texto(7, 8, coluna, "Saida:")
-        self.button_gerador_inicio.grid(row=9, column=coluna, pady=(10, 0), sticky="E")
-        self.button_gerador_limpar.grid(row=9, column=coluna, pady=(10, 0), sticky="W")
-        self.button_gerador_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.label_gerador.grid(row=3, column=coluna, padx=(15,0), pady=(0,0), sticky="W")
+        self.combobox.grid(row=4, column=coluna, pady=(0, 0), columnspan=2, sticky="WE", padx=(15))
+        self.inserir_input_placeholder(5, 6, coluna, "Clique em Gerar ou insira a quantidade desejada", "Quantidade:", 10)
+        self.checkbox_mascara_num.grid(row=7, column=coluna, pady=(0, 0), padx=(15,0), sticky="W")
+        self.checkbox_gerar_arquivo.grid(row=7, column=1, pady=(0, 0), padx=(0,0), sticky="W")
+        self.inserir_caixa_texto(8, 9, coluna, "Saida:", (0,0), (5,0), 12)
+        self.button_gerador_limpar.grid(row=10, column=coluna, padx=(15), pady=(10, 0), sticky="WE")
+        self.button_gerador_inicio.grid(row=10, column=1, padx=(15), pady=(10, 0), sticky="WE")
+        self.button_gerador_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def tela_validadores(self, app, version, coluna):
         titulo = "Validadores"
@@ -3864,59 +3873,24 @@ class Aplicativo:
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas_documentos()
+            command=lambda: self.trocar_tela_menu_ferramentas_documentos()
         )
         self.remover_conteudo_linha(10, 2)
         self.combobox.set(opcoes[0])
-        self.inserir_titulos_telas(self.app, titulo, 2, coluna)
-        self.combobox.grid(row=3, column=coluna, pady=(0, 10), sticky="SWE")
-        self.inserir_input_placeholder(4, 5, coluna, " Insira o documento para ser validado", "Documento:")
-        self.inserir_caixa_texto(7, 8, coluna, "Saida:")
-        self.button_gerador_inicio.grid(row=9, column=coluna, pady=(10, 0), sticky="E")
-        self.button_gerador_limpar.grid(row=9, column=coluna, pady=(10, 0), sticky="W")
-        self.button_gerador_voltar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
-
-    def tela_menu(self, app, version, coluna):
-        titulo = "Menu"
-        app.title("MSS - " + version + " - " + titulo)
-
-        self.button_menu_ferramentas = Button(
-            app,
-            text="Ferramentas",
-            width=25,
-            height=2,
-            bg=self.infos_config_prog["background_color_botoes"],
-            fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_ferramentas()
-        )
-        self.button_menu_download = Button(
-            app,
-            text="Download Backup",
-            width=25,
-            height=2,
-            bg=self.infos_config_prog["background_color_botoes"],
-            fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_download_backup()
-        )
-        self.button_menu_restaurar = Button(
-            app,
-            text="Restaurar Backup",
-            width=25,
-            height=2,
-            bg=self.infos_config_prog["background_color_botoes"],
-            fg=self.infos_config_prog["background_color_fonte"],
-            command=lambda: self.trocar_tela_restaurar_backup()
-        )
-        self.remover_conteudo_linha(10, 2)
-        self.inserir_titulos_telas(self.app, titulo, 2, coluna)
-        self.button_menu_ferramentas.grid(row=3, column=coluna)
-        self.button_menu_download.grid(row=4, column=coluna)
-        self.button_menu_restaurar.grid(row=5, column=coluna)
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.combobox.grid(row=3, column=coluna, pady=(0, 10), padx=(15), columnspan=2, sticky="WE")
+        self.inserir_input_placeholder(4, 5, coluna, " Insira o documento para ser validado", "Documento:", 10)
+        self.inserir_caixa_texto(6, 7, coluna, "Saida:", (10,0), (0,0), 12)
+        self.button_gerador_inicio.grid(row=8, column=1, padx=(15), pady=(10, 0), sticky="WE")
+        self.button_gerador_limpar.grid(row=8, column=coluna, padx=(15), pady=(10, 0), sticky="WE")
+        self.button_gerador_voltar.grid(row=15, column=1, padx=15, pady=15, sticky="ES")
 
     def tela_config(self, app, version, coluna):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Tela - CONFIGURAÇÃO")
         titulo = "CONFIGURAÇÃO"
         app.title("MSS - " + version + " - " + titulo)
+        self.button_nav_criar = None
+        self.button_nav_escolher = None
 
         self.button_config_existente = Button(
             app,
@@ -3937,9 +3911,9 @@ class Aplicativo:
             command=lambda: self.inserir_campos_arquivo_novo(app, coluna)
         )
         self.remover_conteudo_linha(10, 2)
-        self.inserir_titulos_telas(self.app, titulo, 2, coluna)
-        self.button_config_existente.grid(row=3, column=coluna, sticky="WE")
-        self.button_config_novo.grid(row=4, column=coluna, sticky="WE")
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.button_config_existente.grid(row=4, column=coluna, columnspan=2)
+        self.button_config_novo.grid(row=5, column=coluna, columnspan=2)
 
     def tela_alterar_aparencia(self, app, version, coluna):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Tela - CONFIGURAÇÃO")
@@ -4060,23 +4034,23 @@ class Aplicativo:
         )
 
         self.remover_conteudo_linha(10, 2)
-        self.inserir_titulos_telas(self.app, titulo, 2, coluna)
-        self.label_background_fundo.grid(row=3, column=coluna, sticky="WN")
-        self.entry_background_fundo.grid(row=3, column=coluna, sticky="EN")
-        self.button_background_fundo.grid(row=3, column=2, sticky="WS")
-        self.label_background_titulos.grid(row=4, column=coluna, sticky="WN")
-        self.entry_background_titulos.grid(row=4, column=coluna, sticky="EN")
-        self.button_background_titulos.grid(row=4, column=2, sticky="WS")
-        self.label_background_botoes.grid(row=5, column=coluna, sticky="WN")
-        self.entry_background_botoes.grid(row=5, column=coluna, sticky="EN")
-        self.button_background_botoes.grid(row=5, column=2, sticky="WS")
-        self.label_background_botoes_navs.grid(row=6, column=coluna, sticky="WN")
-        self.entry_background_botoes_navs.grid(row=6, column=coluna, sticky="EN")
-        self.button_background_botoes_navs.grid(row=6, column=2, sticky="WS")
-        self.label_background_fonte.grid(row=7, column=coluna, sticky="WN")
-        self.entry_background_fonte.grid(row=7, column=coluna, sticky="EN")
-        self.button_background_fonte.grid(row=7, column=2, sticky="WS")
-        self.button_nav_salvar.grid(row=10, column=1, padx=5, pady=5, columnspan=2, sticky="ES")
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.label_background_fundo.grid(row=4, column=coluna, padx=(15,0), pady=(0,0), sticky="W")
+        self.entry_background_fundo.grid(row=4, column=coluna, padx=(15,0), pady=(0,0), sticky="E")
+        self.button_background_fundo.grid(row=4, column=1, padx=(15,15), pady=(0,0), sticky="WE")
+        self.label_background_titulos.grid(row=5, column=coluna, padx=(15,0), pady=(0,0), sticky="W")
+        self.entry_background_titulos.grid(row=5, column=coluna, padx=(15,0), pady=(0,0), sticky="E")
+        self.button_background_titulos.grid(row=5, column=1, padx=(15,15), pady=(0,0), sticky="WE")
+        self.label_background_botoes.grid(row=6, column=coluna, padx=(15,0), pady=(0,0), sticky="W")
+        self.entry_background_botoes.grid(row=6, column=coluna, padx=(15,0), pady=(0,0), sticky="E")
+        self.button_background_botoes.grid(row=6, column=1, padx=(15,15), pady=(0,0), sticky="WE")
+        self.label_background_botoes_navs.grid(row=7, column=coluna, padx=(15,0), pady=(0,0), sticky="W")
+        self.entry_background_botoes_navs.grid(row=7, column=coluna, padx=(15,0), pady=(0,0), sticky="E")
+        self.button_background_botoes_navs.grid(row=7, column=1, padx=(15,15), pady=(0,0), sticky="WE")
+        self.label_background_fonte.grid(row=8, column=coluna, padx=(15,0), pady=(0,0), sticky="W")
+        self.entry_background_fonte.grid(row=8, column=coluna, padx=(15,0), pady=(0,0), sticky="E")
+        self.button_background_fonte.grid(row=8, column=1, padx=(15,15), pady=(0,0), sticky="WE")
+        self.button_nav_salvar.grid(row=15, column=1, padx=(0,15), pady=(0,15), columnspan=2, sticky="ES")
         self.entry_background_fundo.insert(0, valores_input[0])
         self.entry_background_titulos.insert(0, valores_input[1])
         self.entry_background_botoes.insert(0, valores_input[2])
@@ -4089,21 +4063,21 @@ class Aplicativo:
         menu = Menu(self.app)
         self.app.config(menu=menu)
 
-        self.peso_linha_zero = 1
-        self.peso_linha_um = 1
+        self.peso_linha_um = 0
+        self.peso_linha_dois = 1
         self.peso_linha = 1
         self.peso_ultima_linha = 1
         self.peso_coluna = 1
+        self.padding_down_titulos = 10
 
         self.app.columnconfigure(0, weight=self.peso_coluna)
         self.app.columnconfigure(1, weight=self.peso_coluna)
-        self.app.columnconfigure(2, weight=self.peso_coluna)
         return self.app
 
     def main(self):
         self.app = Tk()
         self.largura = 450
-        self.altura = 515
+        self.altura = 535
         pos_wid = self.app.winfo_screenwidth()
         pos_hei = self.app.winfo_screenheight()
         self.metade_wid = int((pos_wid / 2) - (self.largura / 2))
