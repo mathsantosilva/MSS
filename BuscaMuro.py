@@ -17,6 +17,8 @@ import redis
 import configparser
 import random
 import math
+import time
+
 
 # processos de atualização prog
 def comparar_tags(tag1, tag2):
@@ -165,6 +167,7 @@ class Aplicativo:
     nomes['arquivo_restaurar_banco'] = 'restaurar_banco'
     nomes['arquivo_connection_strings'] = 'connection_strings'
     nomes['arquivo_validar'] = 'buscar_versions'
+    nomes['arquivo_buscar_empresas'] = 'buscar_empresas'
     nomes['arquivo_redis'] = 'limpeza_redis'
     nomes['arquivo_config_default'] = 'prog'
     nomes['arquivo_doc_pis'] = 'PIS_gerados'
@@ -391,18 +394,24 @@ class Aplicativo:
         server_utilizado = server_utilizado.lower()
         server_principal = self.infos_config['server_principal']
         server_principal = server_principal.lower()
-        if "\\" in server_utilizado:
-            server_utilizado = server_utilizado.replace('\\', '\\\\')
-        if server_utilizado == '':
+
+        if server_principal == server_utilizado:
+            server_utilizado = ''
+            self.infos_config['username'] = ''
+            self.infos_config['password'] = ''
+
+        if server_principal == '':
             name_server_1 = ''
-        elif "pt" in server_utilizado:
+        elif "pt" in server_principal:
             name_server_1 = '2019'
         else:
             name_server_1 = '2017'
 
-        if server_principal == '':
+        if "\\" in server_utilizado:
+            server_utilizado = server_utilizado.replace('\\', '\\\\')
+        if server_utilizado == '':
             name_server_2 = ''
-        elif "pt" in server_principal:
+        elif "pt" in server_utilizado:
             name_server_2 = '2019'
         else:
             name_server_2 = '2017'
@@ -425,15 +434,16 @@ class Aplicativo:
     "conexoes": [
 		{{
             "nome": "{name_server_1}",
-			"server": "{server_utilizado}",
-			"username": "{self.infos_config['username']}",
-			"password": "{self.infos_config['password']}"
+			"server": "{server_principal}",
+            "username": "{self.infos_config['username_principal']}",
+            "password": "{self.infos_config['password_principal']}"
+
 		}},
 		{{
             "nome":"{name_server_2}",
-			"server": "{server_principal}",
-			"username": "{self.infos_config['username_principal']}",
-			"password": "{self.infos_config['password_principal']}"
+			"server": "{server_utilizado}",
+            "username": "{self.infos_config['username']}",
+            "password": "{self.infos_config['password']}"
 		}}
 	],
     "redis_qa": [
@@ -507,7 +517,6 @@ class Aplicativo:
 
             match versao_config:
                 case "atual":
-
                     tam_conexoes = len(params_dict["conexoes"])
                     for con in range(tam_conexoes):
                         if params_dict["conexoes"][con]['server'] != '':
@@ -578,7 +587,7 @@ class Aplicativo:
                         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
                                                   f"INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
                 case _:
-                    print("Deu erro")
+                    self.criar_popup_mensagem("Erro ao ler arquivo config")
 
         if self.infos_config['status']:
             self.atualizar_config_default(self.config_selecionado)
@@ -688,26 +697,47 @@ class Aplicativo:
             return
 
 # Subprocessos
+    def buscar_redis_dict(self):
+        opcoes_grupo_redis = []
+        count = 1
+        redis = self.infos_config["redis_qa"]
+        for red in redis:
+            grupo = "grupo_" + str(count)
+            opcoes_grupo_redis.append(red.get(grupo)[0]['nome'])
+            count += 1
+
+        return opcoes_grupo_redis
+
     def atualizar_opcoes(self, event):
         redis_total = dict()
         red_grupo_atual = ''
         nome_redis = []
         grupo_redis_selecionado = self.combobox_redis_grupo.get()
+
         for red_grupo_atual in self.infos_config['redis_qa']:
             try:
-                grupo_redis = red_grupo_atual[grupo_redis_selecionado]
-                chaves = list(red_grupo_atual.keys())
-                redis_parcial = red_grupo_atual[chaves[0]]
-                if redis_parcial[0].get("nome"):
-                    redis_parcial.pop(0)
-                redis_total = list(redis_total) + redis_parcial
+                redis_atual = red_grupo_atual
+                key_atual = list(redis_atual.keys())
+                grupo_redis = redis_atual[key_atual[0]][0].get('nome')
+                if grupo_redis == grupo_redis_selecionado:
+                    chaves = list(redis_atual.keys())
+                    redis_parcial = redis_atual[chaves[0]]
+                    redis_total = list(redis_total) + redis_parcial
+                else:
+                    continue
             except Exception as error:
                 continue
             else:
                 for red in redis_total:
-                    nome_redis.append(red["nome_redis"])
+                    try:
+                        if red["nome_redis"] != '':
+                            nome_redis.append(red["nome_redis"])
+                    except Exception as error:
+                        continue
 
-                if "" in nome_redis:
+                if len(nome_redis) <= 0 or nome_redis == '':
+                    self.combobox_redis['values'] = nome_redis
+                    self.combobox_redis.set(nome_redis)
                     self.combobox_redis['values'] = nome_redis
                     self.escrever_no_input("- A tag ou Grupo do redis se encontra vazio")
                     self.escrever_arquivo_log(self.nomes['arquivo_redis'],
@@ -897,11 +927,11 @@ class Aplicativo:
     def on_focusout(self, event):
         if self.entry.get() == "":
             self.entry.insert(0, self.placeholder_text)
-            self.entry.config(foreground='gray')
+            self.entry.config(foreground='black')
 
 # Processos principais
     def atualizar_bancos_update(self):
-        print("teste654")
+        print("Não implementado")
 
     def buscar_versions(self):
         try:
@@ -962,6 +992,182 @@ class Aplicativo:
             self.button_atualizacao_voltar.config(state='normal')
             self.button_menu_sair.config(state='normal')
 
+    def buscar_empresas(self):
+        try:
+            self.button_busca_empresa_atualizacao_inicio.config(state='disabled')
+            self.button_busca_empresa_atualizacao_voltar.config(state='disabled')
+            self.button_menu_sair.config(state='disabled')
+            server = self.combobox_busca_empresa_servidor_version.get()
+            base_muro = self.combobox_busca_empresa_banco_muro.get()
+
+            self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'], f"INFO - Inicio da busca das empresas ")
+            self.escrever_no_input(f"- Inicio da busca das empresas")
+
+            lista_razao_social = []
+            lista_usuarios = []
+            servidor_selecionado = self.infos_config["conexoes"][server]
+            lista_limpa_razao_social = []
+            lista_limpa_usuarios = []
+
+            try:
+                cnx = pyodbc.connect(f"DRIVER=SQL Server;SERVER={servidor_selecionado['server']};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}", autocommit=True)
+                cursor = cnx.cursor()
+                cursor.execute(f"""SELECT name FROM sys.databases;""")
+                lista_empresas_instancia = cursor.fetchall()
+            except (Exception or pyodbc.DatabaseError) as error:
+                self.button_busca_empresa_atualizacao_inicio.config(state='normal')
+                self.button_busca_empresa_atualizacao_voltar.config(state='normal')
+                self.button_menu_sair.config(state='normal')
+                self.escrever_no_input(f"- Falha ao tentar consultar banco de update: {error}")
+                self.escrever_arquivo_log(self.nomes['arquivo_validar'],
+                                          f"ERRO - Falha ao tentar consultar banco de muro update: {error}")
+            else:
+                self.escrever_no_input(f"- Sucesso na busca dos bancos da instancia")
+                self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'],
+                                          f"INFO - Sucesso na busca dos bancos da instancia")
+                self.escrever_no_input(f"\n- Iniciando o processo no banco: {base_muro}")
+                self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'],
+                                          f"INFO - Iniciando o processo no banco: {base_muro}")
+                self.buscar_connections_strings(servidor_selecionado, lista_empresas_instancia, base_muro)
+
+                tam_lista_empresas_localizadas = len(self.catalog['DATABASE_NAME'])
+                for emp in range(tam_lista_empresas_localizadas):
+                    try:
+                        cnx = pyodbc.connect(f"DRIVER=SQL Server;SERVER={servidor_selecionado['server']};DATABASE={self.catalog['DATABASE_NAME'][emp]};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}",
+                            autocommit=True)
+                        cursor = cnx.cursor()
+                        cursor.execute(f"""SELECT TOP 1 TX_RAZ_SOC FROM [userNewPoint].[EMPRESA_MATRIZ];""")
+                        lista_razao_social.append(cursor.fetchall())
+                        cursor = cnx.cursor()
+                        cursor.execute(f"""SELECT TOP 1 TX_LOGN FROM [userNewPoint].[USUARIO_CONTROLE_ACESSO] where [TX_LOGN] != 'dmpmaster';""")
+                        lista_usuarios.append(cursor.fetchall())
+                    except (Exception or pyodbc.DatabaseError) as error:
+                        self.escrever_no_input(f"- Erro ao consultar empresa {self.catalog['DATABASE_NAME']}")
+                        self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'],
+                                                  f"ERRO - Erro ao consultar empresa {self.catalog['DATABASE_NAME']}")
+                    else:
+                        calculo = ((emp + 1) / tam_lista_empresas_localizadas) * 100
+                        porcentagem = '{:02.0f}'.format(calculo)
+                        self.escrever_no_input(f"- Buscando Dados nas empresas: {porcentagem}%")
+                        self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'],
+                                                  f"INFO - Buscando empresas: {porcentagem}%")
+                        continue
+                for n in range(len(lista_razao_social)):
+                    lista_limpa_razao_social.append(lista_razao_social[n][0].TX_RAZ_SOC)
+                for n in range(len(lista_usuarios)):
+                    lista_limpa_usuarios.append(lista_usuarios[n][0].TX_LOGN)
+                for emp in range(tam_lista_empresas_localizadas):
+                    self.escrever_no_input(f"""
+Database: {self.catalog['DATABASE_NAME'][emp]}
+Razão Social: {lista_limpa_razao_social[emp]}
+Usuario: {lista_limpa_usuarios[emp]}
+---------------------------""")
+                    self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'],
+                                          f"INFO - Database: {self.catalog['DATABASE_NAME'][emp]} | Razão Social: {lista_limpa_razao_social[emp]} | Usuario: {lista_limpa_usuarios[emp]}")
+
+        except (Exception or pyodbc.DatabaseError) as error:
+            self.escrever_no_input(f"- Falha ao tentar consultar banco: {error}")
+            self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'],
+                                      f"ERRO - Falha ao tentar consultar banco: {error}")
+            self.button_busca_empresa_atualizacao_inicio.config(state='normal')
+            self.button_busca_empresa_atualizacao_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+        else:
+            self.button_busca_empresa_atualizacao_inicio.config(state='normal')
+            self.button_busca_empresa_atualizacao_voltar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+
+    def buscar_connections_strings(self, servidor_selecionado, lista_string_instancia, base_muro):
+        # Iniciando processo banco muro.
+        # Configurando as Variáveis
+        self.catalog = dict()
+        self.catalog['CONNECTION_STRING'] = []
+        self.catalog['DATABASE_NAME'] = []
+        self.catalog['DATABASE_ID'] = []
+        lista_connection_string = []
+        index_banco = []
+        string_limpa = []
+        connection_string = []
+        database_id = []
+        atual_connection_string = []
+        atual_database_name = []
+        atual_database_id = []
+        lista_limpa_nomes_instancia = []
+        database_name = []
+
+        # Pega a lista de connections strings
+        try:
+            cnxn1 = pyodbc.connect(
+                f"DRIVER=SQL Server;SERVER={servidor_selecionado["server"]};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
+            cursor1 = cnxn1.cursor()
+            cursor1.execute(
+                f"SELECT [DATABASE_ID],[CONNECTION_STRING] FROM {base_muro}.[dbo].[KAIROS_DATABASES]")
+            lista_connection_string = cursor1.fetchall()
+
+        except (Exception or pyodbc.DatabaseError) as err:
+            self.escrever_no_input(f"- Falha ao tentar consultar banco de muro: {err}")
+            self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'],
+                                      f"ERRO - Falha ao tentar consultar banco de muro {err} ")
+        else:
+            cursor1.commit()
+
+            self.escrever_no_input(f"- Quantidade de registros encontrados: {len(lista_connection_string)}")
+            self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'],
+                                      f"INFO - Quantidade de registros encontrados: {len(lista_connection_string)} ")
+
+        for i in range(len(lista_connection_string)):
+            atual_connection_string.append(lista_connection_string[i].CONNECTION_STRING)
+            atual_database_name.append(lista_connection_string[i].CONNECTION_STRING.split(';')[1].split('=')[1])
+            atual_database_id.append(lista_connection_string[i].DATABASE_ID)
+            continue
+
+        for e in range(len(lista_string_instancia)):
+            lista_limpa_nomes_instancia.append(lista_string_instancia[e].name)
+
+        self.catalog['CONNECTION_STRING'] = atual_connection_string
+        self.catalog['DATABASE_NAME'] = atual_database_name
+        self.catalog['DATABASE_ID'] = atual_database_id
+
+        # Comparar bancos "strings"
+        self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Iniciando a comparação dos bancos ")
+        for comparar in range(len(lista_string_instancia)):
+            if lista_limpa_nomes_instancia[comparar] in self.catalog['DATABASE_NAME']:
+                database_name.append(lista_limpa_nomes_instancia[comparar])
+                index_banco.append(self.catalog['DATABASE_NAME'].index(lista_limpa_nomes_instancia[comparar]))
+                index_banco.sort()
+            continue
+
+        for nums in range(len(index_banco)):
+            connection_string.append(self.catalog['CONNECTION_STRING'][index_banco[nums]])
+            database_id.append(self.catalog['DATABASE_ID'][index_banco[nums]])
+
+        self.catalog['DATABASE_ID'] = database_id
+        self.catalog['CONNECTION_STRING'] = connection_string
+        self.catalog['DATABASE_NAME'] = database_name
+
+        if len(connection_string) > 0:
+            self.escrever_no_input("- Quantidade de bancos que deram Match: " + str(len(connection_string)))
+            self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'],
+                                      f"INFO - Quantidade de bancos que deram Match: {len(connection_string)} ")
+        else:
+            self.escrever_no_input("- Não foram encontrados Match na comparação de bancos")
+            self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'],
+                                      f"INFO - Não foram encontrados Match na comparação de bancos ")
+
+        for lim in range(len(connection_string)):
+            string_limpa.append(connection_string[lim])
+            continue
+
+        # Logando as connection string
+        quant = 1
+        self.escrever_arquivo_log(self.nomes['arquivo_connection_strings'], f"INFO - Buscar Bancos - Listando as connection strings utilizadas ")
+        self.escrever_arquivo_log(self.nomes['arquivo_connection_strings'], f"INFO - Buscar Bancos - Ambiente: {base_muro} ")
+        for log in range(len(connection_string)):
+            self.escrever_arquivo_log(self.nomes['arquivo_connection_strings'], f"INFO - {quant} - {connection_string[log]}")
+            quant += 1
+            continue
+        self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Listado as Connection Strings no arquivo: {self.nomes['arquivo_connection_strings']} ")
+
     def manipular_banco_muro(self):
         try:
             self.entry.config(state='disabled')
@@ -1018,99 +1224,14 @@ class Aplicativo:
                     status_consulta = True
 
                 if status_consulta:
-
                     # Iniciando processo banco muro.
                     for num in range(len(self.infos_config['bases_muro'])):
-
-                        self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Iniciando o processo no banco: {self.infos_config['bases_muro'][num]} ")
-
-                        # Configurando as Variáveis
-                        lista_connection_string = []
-                        lista_banco_instancia = []
-                        lista_nome_banco = []
-                        lista_id_banco = []
-                        guarda_string_cs = []
-                        guarda_id_cs = []
-                        guarda_banco_instancia = []
-                        guarda_string_bm = []
-                        index_banco = []
-                        separa_string = []
-                        string_limpa = []
-                        connection_string = []
-                        database_id = []
-
-                        # Pega a lista de connections strings
-                        try:
-                            cursor1.execute(
-                                f"SELECT [DATABASE_ID],[CONNECTION_STRING] FROM {self.infos_config['bases_muro'][num]}.[dbo].[KAIROS_DATABASES]")
-                            lista_connection_string = cursor1.fetchall()
-
-                        except (Exception or pyodbc.DatabaseError) as err:
-                            self.escrever_no_input(f"- Falha ao tentar consultar banco de muro: {err}")
-                            self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"ERRO - Falha ao tentar consultar banco de muro {err} ")
-                        else:
-                            cursor1.commit()
-
-                            self.escrever_no_input(f"\n- Quantidade de registros encontrados: {len(lista_connection_string)}")
-                            self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Quantidade de registros encontrados: {len(lista_connection_string)} ")
-
-                        # separar o nome do banco nas connection strings
-                        for i in range(len(lista_connection_string)):
-
-                            guarda_string_cs.append(lista_connection_string[i].CONNECTION_STRING)
-                            string_separada = guarda_string_cs[i].split(";")
-                            try:
-                                catalog = string_separada[1]
-                                nome_banco = catalog.split("=")[1]
-                            except:
-                                catalog = string_separada
-                                nome_banco = str(catalog).split("=")
-
-                            lista_nome_banco.append(nome_banco)
-                            continue
-
-                        # separar o id do banco nas connection strings
-                        for cs in range(len(lista_connection_string)):
-                            guarda_id_cs.append(str(lista_connection_string[cs].DATABASE_ID))
-                            lista_id_banco.append(guarda_id_cs[cs])
-                            continue
-
-                        # separar o nome do banco nas instancias
-                        for ins in range(len(lista_string_instancia)):
-                            guarda_banco_instancia.append(str(lista_string_instancia[ins]).split("'")[1])
-                            nome_banco_instancia = guarda_banco_instancia[ins]
-                            lista_banco_instancia.append(nome_banco_instancia)
-                            continue
-
-                        # Comparar bancos "strings"
-                        self.escrever_arquivo_log(
-                            self.nomes['arquivo_busca_bancos'], f"INFO - Iniciando a comparação dos bancos ")
-                        for comparar in range(len(lista_banco_instancia)):
-                            if lista_banco_instancia[comparar] in lista_nome_banco:
-                                index_banco.append(lista_nome_banco.index(lista_banco_instancia[comparar]))
-                                index_banco.sort()
-                            continue
-
-                        for nums in range(len(index_banco)):
-                            connection_string.append(lista_connection_string[index_banco[nums]])
-                            database_id.append(lista_id_banco[index_banco[nums]])
-
-                        if len(connection_string) > 0:
-                            self.escrever_no_input("- Quantidade de bancos que deram Match: " + str(len(connection_string)))
-                            self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Quantidade de bancos que deram Match: {len(connection_string)} ")
-                        else:
-                            self.escrever_no_input("- Não foram encontrados Match na comparação de bancos")
-                            self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Não foram encontrados Match na comparação de bancos ")
-
-                        # Limpar as strings para inserir no banco
-                        for lim in range(len(connection_string)):
-                            guarda_string_bm.append(str(connection_string[lim].CONNECTION_STRING))
-                            string = guarda_string_bm[lim]
-                            string_limpa.append(string)
-                            continue
-
+                        base_muro = self.infos_config['bases_muro'][num]
+                        self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Iniciando o processo no banco: {base_muro} ")
+                        self.escrever_no_input(f"\n- Iniciando o processo no banco: {base_muro}")
+                        self.buscar_connections_strings(servidor_selecionado, lista_string_instancia, base_muro)
                         database_update = self.valida_banco_update(num)
-                        if len(string_limpa) > 0:
+                        if len(self.catalog['CONNECTION_STRING']) > 0:
                             # Limpeza base muro UPDATE
                             self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'],
                                                       f"INFO - limpando o banco: {database_update} ")
@@ -1122,23 +1243,23 @@ class Aplicativo:
                                 self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"ERRO - Falha ao tentar zerar o banco de muro update {err} ")
                             else:
                                 cursor1.commit()
-                                self.escrever_no_input(f"- banco {database_update} zerado")
-                                self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Banco {database_update} zerado com sucesso ")
+                                self.escrever_no_input(f"- banco update zerado com sucesso")
+                                self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Banco update zerado com sucesso ")
                         else:
                             self.escrever_no_input("- Não foi realizada a limpeza no banco: " + database_update)
                             self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Não foi realizada a limpeza no banco: {database_update} ")
 
                         # Inserindo as connections strings no banco muro update
                         self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Iniciando o processo de inserção:  {database_update} ")
-                        if len(string_limpa) > 0:
+                        if len(self.catalog['CONNECTION_STRING']) > 0:
                             try:
                                 cnxn1 = pyodbc.connect(
                                     f"DRIVER=SQL Server;SERVER={servidor_selecionado["server"]};DATABASE={database_update};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
                                 cursor1 = cnxn1.cursor()
 
                                 cursor1.execute("set identity_insert [dbo].[KAIROS_DATABASES]  on")
-                                for incs in range(len(string_limpa)):
-                                    montar_comando = f"INSERT INTO [{database_update}].[dbo].[KAIROS_DATABASES] ([DATABASE_ID],[CONNECTION_STRING] ,[DATABASE_VERSION] ,[FL_MAQUINA_CALCULO] ,[FL_ATIVO]) VALUES({database_id[incs]},'{string_limpa[incs]}',{versao_databases},0, 1)"
+                                for incs in range(len(self.catalog['CONNECTION_STRING'])):
+                                    montar_comando = f"INSERT INTO [{database_update}].[dbo].[KAIROS_DATABASES] ([DATABASE_ID],[CONNECTION_STRING] ,[DATABASE_VERSION] ,[FL_MAQUINA_CALCULO] ,[FL_ATIVO]) VALUES({self.catalog['DATABASE_ID'][incs]},'{self.catalog['CONNECTION_STRING'][incs]}',{versao_databases},0, 1)"
                                     cursor1.execute(montar_comando)
                                     continue
                                 cursor1.execute("set identity_insert [dbo].[KAIROS_DATABASES]  off")
@@ -1150,18 +1271,6 @@ class Aplicativo:
                                 cursor1.commit()
                                 self.escrever_no_input("- Sucesso ao inserir registros no Banco")
                                 self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Sucesso ao inserir connection Strings no Banco de muro Update ")
-
-                                # Logando as connection string
-                                quant = 1
-                                self.escrever_arquivo_log(self.nomes['arquivo_connection_strings'], f"INFO - Buscar Bancos - Listando as connection strings utilizadas ")
-                                self.escrever_arquivo_log(self.nomes['arquivo_connection_strings'], f"INFO - Buscar Bancos - Ambiente: {self.infos_config['bases_muro'][num]} ")
-                                for log in range(len(connection_string)):
-                                    self.escrever_arquivo_log(self.nomes['arquivo_connection_strings'], f"INFO - {quant} - {connection_string[log]} ")
-                                    quant += 1
-                                    continue
-
-                                self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Listado as Connection Strings no arquivo: {self.nomes['arquivo_connection_strings']} ")
-
                         else:
                             self.escrever_no_input("- Não a registros para serem inseridos no banco: " + database_update)
                             self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Não a registros para serem inseridos no banco: {database_update} ")
@@ -1174,7 +1283,7 @@ class Aplicativo:
                     self.escrever_no_input(f"- Erro na primeira etapa das buscas, o processo foi interrompido.")
                     self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Erro na primeira etapa das buscas, o processo foi interrompido. ")
 
-                self.escrever_no_input(f"- Fim da operação Busca muro")
+                self.escrever_no_input(f"\n- Fim da operação Busca muro")
                 self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Fim da operação Busca muro")
                 self.entry.config(state='normal')
                 self.button_busca_inicio.config(state='normal')
@@ -1365,57 +1474,23 @@ class Aplicativo:
             self.button_restaurar_voltar.config(state='disabled')
             self.combobox_servidor_restaurar.config(state='disabled')
             self.button_menu_sair.config(state='disabled')
-
             self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Restaurar Backup")
-            cnxnrs = ''
-            cursorrs = ''
+
             valores_entries = []
-            caminho_banco_ldf = ''
             caminho_banco_mdf = ''
-            caminho_ldf_mdf = []
+
             server = self.combobox_servidor_restaurar.get()
             for entry_atual in self.entries:
                 entry_atual.config(state='disabled')
                 valores_entries.append(entry_atual.get())
-            nome_bak = valores_entries[1]
-            nome_banco_escolhido = valores_entries[2]
+            nome_bak = valores_entries[1].strip().split('.')[0]
+            nome_banco_escolhido = valores_entries[2].strip().split('.')[0]
             caminho_ldf_mdf = valores_entries[0].split(',')
-            caminho_banco_ldf = caminho_ldf_mdf[0]
+            caminho_banco_ldf = caminho_ldf_mdf[0].strip()
             if len(caminho_ldf_mdf) > 1:
-                caminho_banco_mdf = caminho_ldf_mdf[1]
+                caminho_banco_mdf = caminho_ldf_mdf[1].strip()
 
             caminho_eventual = 'G:\\Backup\\Eventual'
-            comando_criar_device = f"""
-            USE [master];
-            EXEC Sp_addumpdevice'disk','{nome_banco_escolhido}','{caminho_eventual}\\{nome_bak}.bak';
-            """
-            comando_restaurar_banco = f"""
-            RESTORE DATABASE "{nome_banco_escolhido}" 
-            FROM DISK ='{caminho_eventual}\\{nome_bak}.bak'
-            WITH norecovery, stats = 1, move '{nome_bak}_log' 
-            TO '{caminho_banco_ldf}\\{nome_banco_escolhido}_log.ldf',
-            move '{nome_bak}' 
-            TO '{caminho_banco_mdf}\\{nome_banco_escolhido}.mdf'
-            """
-            comando_ativar_banco = f"""
-            RESTORE DATABASE "{nome_banco_escolhido}" WITH recovery
-            ALTER DATABASE "{nome_banco_escolhido}" SET recovery simple
-            """
-            comando_excluir_device = f"""
-            EXEC Sp_dropdevice
-            '{nome_banco_escolhido}';
-            """
-            comando_checar_banco = f"""
-            DBCC CHECKDB('{nome_banco_escolhido}')
-            """
-            comando_primeiro_script = f"""
-            use [{nome_banco_escolhido}]
-            EXEC sp_addrolemember N'db_owner',  N'userNewPoint'
-            EXEC sp_change_users_login 'Update_One', 'userNewPoint','userNewPoint'
-            EXEC sp_addrolemember N'db_owner',  N'newPoint'
-            EXEC sp_change_users_login 'Update_One', 'newPoint', 'newPoint'
-            """
-            status_etapa1 = False
 
             if nome_bak == "":
                 self.escrever_no_input("- O campo 'Nome arquivo.bak' deverá ser preenchido")
@@ -1470,15 +1545,16 @@ class Aplicativo:
             else:
                 servidor_selecionado = self.infos_config["conexoes"][server]
                 self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Inserido o nome do banco apresentado no discord: {nome_bak} ")
-                self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Escolhido o servidor: {servidor_selecionado} ")
+                self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Escolhido o servidor: {servidor_selecionado['server']} ")
 
                 try:
-                    cnxnrs = pyodbc.connect(
-                        f"DRIVER=SQL Server;SERVER={servidor_selecionado['server']};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
-                    cnxnrs.timeout = 12
+                    cnxnrs = pyodbc.connect(f"DRIVER=SQL Server;SERVER={servidor_selecionado['server']};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}", autocommit=True)
+                    cnxnrs.setencoding(encoding='utf-8')
                     cursorrs = cnxnrs.cursor()
-                    cursorrs.execute(comando_criar_device)
+                    cursorrs.execute(f" USE [master]; EXEC Sp_addumpdevice'disk', '{nome_banco_escolhido}', '{caminho_eventual}\\{nome_bak}.bak';")
                     result_criar_device = cursorrs.messages
+                    time.sleep(5)
+                    cursorrs.close()
                 except (Exception or pyodbc.DatabaseError) as error:
                     self.escrever_no_input(
                         "- Falha ao tentar executar o comando de criação de device de backup " + str(error))
@@ -1493,9 +1569,8 @@ class Aplicativo:
                     self.button_menu_sair.config(state='normal')
                     return
                 else:
-                    cursorrs.commit()
-                    self.escrever_no_input(f"- Sucesso ao realizar Criar Device de Backup")
-                    self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Sucesso ao realizar Criar Device de Backup ")
+                    self.escrever_no_input(f"- Comando(Criação de Device) - Sucesso ao realizar Criar Device de Backup")
+                    self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Comando(Criação de Device) - Sucesso ao realizar Criar Device de Backup ")
                     status_etapa1 = True
                     for incs in range(len(result_criar_device)):
                         separados = result_criar_device[0][1].split("]")
@@ -1505,7 +1580,8 @@ class Aplicativo:
                 if status_etapa1:
                     try:
                         cursorrs = cnxnrs.cursor()
-                        cursorrs.execute(comando_restaurar_banco)
+                        cursorrs.execute(f"""USE [master]; RESTORE DATABASE "{nome_banco_escolhido}" FROM DISK ='{caminho_eventual}\\{nome_bak}.bak' WITH norecovery, stats = 1, move '{nome_bak}_log' TO '{caminho_banco_ldf}\\{nome_banco_escolhido}_log.ldf', move '{nome_bak}' TO '{caminho_banco_mdf}\\{nome_banco_escolhido}.mdf'""")
+                        time.sleep(5)
                     except (Exception or pyodbc.DatabaseError) as error:
                         self.escrever_no_input("- Falha ao tentar executar o comando de restauração de banco: " + str(error))
                         self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando de restauração de banco: {error} ")
@@ -1529,9 +1605,8 @@ class Aplicativo:
                                 continue
                             else:
                                 break
-                        cursorrs.commit()
-                        self.escrever_no_input(f"- Sucesso ao realizar a restauração do banco")
-                        self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Sucesso ao realizar a restauração do banco ")
+                        self.escrever_no_input(f"- Comando(Restaurar Banco) - Sucesso ao realizar a restauração do banco")
+                        self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Comando(Restaurar Banco) - Sucesso ao realizar a restauração do banco ")
 
                         tam = len(mensagens) - 3
                         for incs in range(posicao):
@@ -1540,8 +1615,10 @@ class Aplicativo:
                             tam += 1
 
                         try:
-                            cursorrs.execute(comando_ativar_banco)
+                            cursorrs = cnxnrs.cursor()
+                            cursorrs.execute(f"""RESTORE DATABASE "{nome_banco_escolhido}" WITH recovery ALTER DATABASE "{nome_banco_escolhido}" SET recovery simple""")
                             result_ativar_banco = cursorrs.messages
+                            time.sleep(5)
                         except (Exception or pyodbc.DatabaseError) as error:
                             self.escrever_no_input("- Falha ao tentar executar o comando de Ativação do banco: " + str(error))
                             self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando de Ativação do banco: {error} ")
@@ -1563,8 +1640,10 @@ class Aplicativo:
                                 tam_result += 1
 
                             try:
-                                cursorrs.execute(comando_checar_banco)
+                                cursorrs = cnxnrs.cursor()
+                                cursorrs.execute(f"""DBCC CHECKDB("{nome_banco_escolhido}")""")
                                 result_check = cursorrs.messages
+                                time.sleep(5)
                             except (Exception or pyodbc.DatabaseError) as error:
                                 self.escrever_no_input(
                                     "- Falha ao tentar executar o comando de checagem do banco: " + str(error))
@@ -1578,6 +1657,7 @@ class Aplicativo:
                                 self.button_menu_sair.config(state='normal')
                                 return
                             else:
+                                time.sleep(5)
                                 looping = True
                                 tam_result = len(result_check) - 2
                                 while looping:
@@ -1590,13 +1670,13 @@ class Aplicativo:
                                     else:
                                         looping = False
                                 try:
-                                    cursorrs.execute(comando_excluir_device)
+                                    cursorrs = cnxnrs.cursor()
+                                    cursorrs.execute(f"""USE [master]; EXEC Sp_dropdevice "{nome_banco_escolhido}";""")
                                     result_excluir_device = cursorrs.messages
+                                    time.sleep(5)
                                 except (Exception or pyodbc.DatabaseError) as error:
-                                    self.escrever_no_input(
-                                        "- Falha ao tentar executar o comando de checagem do banco: " + str(error))
-                                    self.escrever_arquivo_log(
-                                        self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando de checagem do banco: {error} ")
+                                    self.escrever_no_input("- Falha ao tentar executar o comando exclusão de device: " + str(error))
+                                    self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"ERRO - Falha ao tentar executar o comando de checagem do banco: {error} ")
                                     self.escrever_no_input("- Processo finalizado")
                                     self.button_restaurar_inicio.config(state='normal')
                                     self.button_restaurar_voltar.config(state='normal')
@@ -1609,12 +1689,13 @@ class Aplicativo:
                                     for incs in range(len(result_excluir_device)):
                                         separados = result_excluir_device[0][1].split("]")
                                         mensagem = separados[3]
-                                        self.escrever_no_input(f"- Comando(Exclusão Device) -  Mensagem SQL: {mensagem}  ")
-                                        self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Comando(Exclusão Device) -  Mensagem SQL: {mensagem} ")
-
+                                        self.escrever_no_input(f"- Comando(Exclusão Device) -  Mensagem SQL: {mensagem}")
+                                        self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Comando(Exclusão Device) -  Mensagem SQL: {mensagem}")
                                     try:
-                                        cursorrs.execute(comando_primeiro_script)
+                                        cursorrs = cnxnrs.cursor()
+                                        cursorrs.execute(f"""USE [{nome_banco_escolhido}] EXEC sp_addrolemember N'db_owner',  N'userNewPoint' EXEC sp_change_users_login 'Update_One', 'userNewPoint','userNewPoint' EXEC sp_addrolemember N'db_owner',  N'newPoint' EXEC sp_change_users_login 'Update_One', 'newPoint', 'newPoint'""")
                                         associar_owner = cursorrs.messages
+                                        time.sleep(5)
                                     except (Exception or pyodbc.DatabaseError) as error:
                                         self.escrever_no_input(
                                             "- Falha ao tentar executar o comando de associação do Owner: " + str(error))
@@ -1632,6 +1713,56 @@ class Aplicativo:
                                         mensagem = separados[3]
                                         self.escrever_no_input(f"- Comando(Associar Owner) - Mensagem SQL: {mensagem}")
                                         self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'], f"INFO - Comando(Script Associar Owner) - Mensagem SQL: {mensagem} ")
+                                        try:
+                                            cursorrs = cnxnrs.cursor()
+                                            cursorrs.execute(f"SELECT [TX_LOGN] FROM [userNewPoint].[USUARIO_CONTROLE_ACESSO] where [ID_USU_CNTRL_ACES] = 2")
+                                            result_usuario = cursorrs.fetchall()
+                                            time.sleep(5)
+                                        except (Exception or pyodbc.DatabaseError) as error:
+                                            self.escrever_no_input(
+                                                "- Falha ao tentar executar o comando de busca de usuario: " + str(
+                                                    error))
+                                            self.escrever_arquivo_log(
+                                                self.nomes['arquivo_restaurar_banco'],
+                                                f"ERRO - Falha ao tentar executar o comando de busca de usuario: {error} ")
+                                            self.escrever_no_input("- Processo finalizado")
+                                            self.button_restaurar_inicio.config(state='normal')
+                                            self.button_restaurar_voltar.config(state='normal')
+                                            for entry_atual in self.entries:
+                                                entry_atual.config(state='normal')
+                                            self.combobox_servidor_restaurar.config(state='normal')
+                                            self.button_menu_sair.config(state='normal')
+                                            return
+                                        else:
+                                            mensagem = result_usuario[0]
+                                            self.escrever_no_input(
+                                                f"- Comando(Buscar Usuario) - O usuario que será alterado é: {mensagem}  ")
+                                            self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'],
+                                                                      f"INFO - Comando(Buscar Usuario) -  Mensagem SQL: {mensagem} ")
+                                            try:
+                                                cursorrs = cnxnrs.cursor()
+                                                cursorrs.execute(f"""USE [{nome_banco_escolhido}] UPDATE [userNewPoint].[USUARIO_CONTROLE_ACESSO] SET [TX_SENHA] = '555BjkhiNWnXXip7Ca6I7Zt3sSakRbn/ncaYmgjvoHk=' WHERE [ID_USU_CNTRL_ACES] = 2""")
+                                                time.sleep(5)
+                                            except (Exception or pyodbc.DatabaseError) as error:
+                                                self.escrever_no_input(
+                                                    "- Falha ao tentar executar o comando de alteração de usuario: " + str(
+                                                        error))
+                                                self.escrever_arquivo_log(
+                                                    self.nomes['arquivo_restaurar_banco'],
+                                                    f"ERRO - Falha ao tentar executar o comando de alteração de usuario: {error} ")
+                                                self.escrever_no_input("- Processo finalizado")
+                                                self.button_restaurar_inicio.config(state='normal')
+                                                self.button_restaurar_voltar.config(state='normal')
+                                                for entry_atual in self.entries:
+                                                    entry_atual.config(state='normal')
+                                                self.combobox_servidor_restaurar.config(state='normal')
+                                                self.button_menu_sair.config(state='normal')
+                                                return
+                                            else:
+                                                self.escrever_no_input(
+                                                    f"- Comando(Alterar Usuario) - Senha alterada com sucesso  ")
+                                                self.escrever_arquivo_log(self.nomes['arquivo_restaurar_banco'],
+                                                                          f"INFO - Comando(Alterar Usuario) -  Mensagem SQL: {mensagem} ")
                     cursorrs.close()
 
                 self.escrever_no_input("- Processo finalizado")
@@ -1749,48 +1880,48 @@ class Aplicativo:
                 self.button_menu_sair.config(state='normal')
                 return
             else:
-                chaves = ''
-                redis_parcial = dict()
-                redis_total = dict()
-
                 for red_grupo_atual in self.infos_config['redis_qa']:
                     try:
-                        grupo_escolhido = red_grupo_atual[grupo_redis]
-                        chaves = list(red_grupo_atual.keys())
-                        redis_parcial = red_grupo_atual[chaves[0]]
-                        redis_parcial.pop(0)
-                        redis_total = list(redis_total) + redis_parcial
+                        if red_grupo_atual.get(grupo_redis):
+                            grupo_escolhido = red_grupo_atual[grupo_redis]
                     except Exception as error:
+                        self.escrever_no_input(f"- Erro ao selecionar redis: {error}")
                         continue
 
-                for red_atual in redis_total:
-                    if red_atual['ip'] == "" or len(red_atual) == 0:
-                        self.escrever_no_input("- A tag ou Grupo do redis se encontra vazio")
-                        self.escrever_arquivo_log(self.nomes['arquivo_redis'],
-                                                  f"ERRO - A tag ou Grupo do redis se encontra vazio")
-                        continue
-                    else:
-                        self.escrever_no_input(
-                            f"- Iniciado processo no Redis {red_atual['nome_redis']}")
-                        self.escrever_arquivo_log(self.nomes['arquivo_redis'],
-                                                  f"INFO - Iniciado processo no Redis {red_atual['nome_redis']} ")
-                        redis_host = red_atual['ip']  # ou o endereço do seu servidor Redis
-                        redis_port = red_atual['port']  # ou a porta que o seu servidor Redis está ouvindo
-
-                        # Criando uma instância do cliente Redis
-                        redis_client = redis.StrictRedis(host=redis_host, port=redis_port, decode_responses=True)
-
-                        try:
-                            # Executando o comando FLUSHALL
-                            redis_client.flushall()
-                        except Exception as err:
-                            self.escrever_no_input(f"- Processo finalizado com falha: {err}")
-                            self.escrever_arquivo_log(
-                                self.nomes['arquivo_redis'], f"INFO - Processo finalizado com falha: {err}")
+                for red_atual in grupo_escolhido:
+                    try:
+                        if red_atual.get('nome'):
+                            continue
+                        elif red_atual.get('ip') == "" or len(red_atual) == 0:
+                            self.escrever_no_input("- A tag ou Grupo do redis se encontra vazio")
+                            self.escrever_arquivo_log(self.nomes['arquivo_redis'],
+                                                      f"ERRO - A tag ou Grupo do redis se encontra vazio")
+                            continue
                         else:
-                            self.escrever_no_input(f"- FLUSHALL executado com sucesso no redis")
-                            self.escrever_arquivo_log(
-                                self.nomes['arquivo_redis'], f"INFO - FLUSHALL executado com sucesso no redis")
+                            self.escrever_no_input(
+                                f"- Iniciado processo no Redis {red_atual['nome_redis']}")
+                            self.escrever_arquivo_log(self.nomes['arquivo_redis'],
+                                                      f"INFO - Iniciado processo no Redis {red_atual['nome_redis']} ")
+                            redis_host = red_atual['ip']  # ou o endereço do seu servidor Redis
+                            redis_port = red_atual['port']  # ou a porta que o seu servidor Redis está ouvindo
+
+                            # Criando uma instância do cliente Redis
+                            redis_client = redis.StrictRedis(host=redis_host, port=redis_port, decode_responses=True)
+
+                            try:
+                                # Executando o comando FLUSHALL
+                                redis_client.flushall()
+                            except Exception as err:
+                                self.escrever_no_input(f"- Processo finalizado com falha: {err}")
+                                self.escrever_arquivo_log(
+                                    self.nomes['arquivo_redis'], f"INFO - Processo finalizado com falha: {err}")
+                            else:
+                                self.escrever_no_input(f"- FLUSHALL executado com sucesso no redis")
+                                self.escrever_arquivo_log(
+                                    self.nomes['arquivo_redis'], f"INFO - FLUSHALL executado com sucesso no redis")
+                    except Exception as error:
+                        self.escrever_no_input(f"- Erro ao selecionar redis: {error}")
+                        continue
             self.escrever_no_input("- Processo finalizado")
             self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"INFO - Processo finalizado ")
             self.button_atualizacao_inicio.config(state='normal')
@@ -1846,11 +1977,13 @@ class Aplicativo:
                         selecionar_redis_dict = redis_grupo[grupo_selecionado]
                         status_operacao = True
                     except Exception as error:
-                        print(error)
+                        self.escrever_no_input(f"- Erro ao selecionar redis: {error}")
                         continue
                     else:
                         for redis_unico in selecionar_redis_dict:
-                            if redis_selecionado in redis_unico["nome_redis"]:
+                            if redis_unico.get('nome'):
+                                continue
+                            elif redis_selecionado in redis_unico["nome_redis"]:
                                 self.redis_certo = redis_unico
                                 redis_host = self.redis_certo["ip"]
                                 redis_port = self.redis_certo["port"]
@@ -2754,6 +2887,12 @@ class Aplicativo:
         self.thread = threading.Thread(target=self.limpar_todos_redis)
         self.thread.start()
 
+    def iniciar_processo_buscar_empresas(self):
+        self.escrever_no_input(f"- Processo iniciado")
+        # Criar uma nova thread para executar o processo demorado
+        self.thread = threading.Thread(target=self.buscar_empresas)
+        self.thread.start()
+
     def iniciar_processo_atualizacao(self):
         self.escrever_no_input(f"- Processo iniciado")
         # Criar uma nova thread para executar o processo demorado
@@ -2890,7 +3029,7 @@ class Aplicativo:
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.criar_config()
         )
-        self.inserir_input_placeholder_modular(6, 7, coluna, "Insira o nome para o arquivo...", "Nome do arquivo:", "W", "WE", 50, (0,0) ,(15,0) ,(0,0), (15,15))
+        self.inserir_input_placeholder_modular('gray', 6, 7, coluna, "Insira o nome para o arquivo...", "Nome do arquivo:", "W", "WE", 50, (0,0) ,(15,0) ,(0,0), (15,15))
         self.button_nav_criar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def inserir_caixa_seletora(self, linha_label, linha_seletor,  coluna, opcoes, nome_campo):
@@ -2906,10 +3045,9 @@ class Aplicativo:
         self.label.grid(row=linha_label, column=coluna, sticky="WS", pady=(10, 0))
         self.combobox.grid(row=linha_seletor, column=coluna, columnspan=2, pady=(0, 10), sticky="WEN")
 
-    def inserir_input_placeholder_modular(self, linha_label, linha_entry, coluna, texto, nome_campo, posicao_label, posicao_entry, tamanho_elemento, pady_label, padx_label, pady_entry, padx_entry):
-        texo_com_espaco = "  " + texto
-        self.placeholder_text = texo_com_espaco
-        placeholder_color = "gray"
+    def inserir_input_placeholder_modular(self, cor, linha_label, linha_entry, coluna, texto, nome_campo, posicao_label, posicao_entry, tamanho_elemento, pady_label, padx_label, pady_entry, padx_entry):
+        self.placeholder_text = texto
+        placeholder_color = cor
 
         self.label = Label(
             text=nome_campo,
@@ -2922,8 +3060,6 @@ class Aplicativo:
             fg=placeholder_color
         )
         self.entry.insert(0, self.placeholder_text)
-        self.entry.bind("<FocusIn>", self.on_entry_click)
-        self.entry.bind("<FocusOut>", self.on_focusout)
         self.label.grid(row=linha_label, column=coluna, sticky=posicao_label, pady=(pady_label), padx=(padx_label))
         self.entry.grid(row=linha_entry, column=coluna, columnspan=2, sticky=posicao_entry, pady=(pady_entry), padx=(padx_entry))
         self.entries.append(self.entry)
@@ -3029,6 +3165,7 @@ class Aplicativo:
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(5, weight=peso_linha)
         self.app.rowconfigure(6, weight=peso_linha)
+        self.app.rowconfigure(7, weight=peso_linha)
         self.app.rowconfigure(14, weight=1)
         self.Inserir_estrutura_padrao_telas()
         self.tela_menu_ferramentas_bancos(self.app, self.version, self.coluna)
@@ -3068,6 +3205,22 @@ class Aplicativo:
         self.app.rowconfigure(14, weight=1)
         self.Inserir_estrutura_padrao_telas()
         self.tela_menu_ferramentas_documentos(self.app, self.version, self.coluna)
+
+    def trocar_tela_listar_empresas(self):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Buscar Empresas")
+        peso_linha = 0
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
+        self.app.rowconfigure(3, weight=peso_linha)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(6, weight=peso_linha)
+        self.app.rowconfigure(7, weight=peso_linha)
+        self.app.rowconfigure(8, weight=peso_linha)
+        self.app.rowconfigure(9, weight=peso_linha)
+        self.app.rowconfigure(15, weight=1)
+        self.Inserir_estrutura_padrao_telas()
+        self.tela_listar_empresas(self.app, self.version, self.coluna)
 
     def trocar_tela_atualizacao_banco_update(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Atualização de banco Update")
@@ -3316,6 +3469,15 @@ class Aplicativo:
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_replicar_version()
         )
+        self.button_ferramentas_bancos_buscar_empresas = Button(
+            app,
+            text="Buscar Empresas",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_listar_empresas()
+        )
         self.button_ferramentas_bancos_voltar = Button(
             app,
             text="Voltar",
@@ -3330,6 +3492,7 @@ class Aplicativo:
         self.button_ferramentas_bancos_busca_banco.grid(row=4, column=coluna, columnspan=2)
         self.button_ferramentas_bancos_buscar_versions.grid(row=5, column=coluna, columnspan=2)
         self.button_ferramentas_bancos_replicar_version.grid(row=6, column=coluna, columnspan=2)
+        self.button_ferramentas_bancos_buscar_empresas.grid(row=7, column=coluna, columnspan=2)
         self.button_ferramentas_bancos_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def tela_menu_ferramentas_backup(self, app, version, coluna):
@@ -3443,15 +3606,68 @@ class Aplicativo:
         self.button_menu_ferramentas_documentos_validadores.grid(row=5, column=coluna, columnspan=2)
         self.button_menu_ferramentas_documentos_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
+    def tela_listar_empresas(self, app, version, coluna):
+        titulo = "BUSCAR EMPRESAS"
+        app.title("MSS - " + version + " - " + titulo)
+        opcoes_servidor = list(self.infos_config["conexoes"])
+        opcoes_basemuro = list(self.infos_config["bases_muro"])
+
+        self.label_busca_empresa_version_servidor = Label(
+            text="Servidor:",
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
+        self.combobox_busca_empresa_servidor_version = Combobox(
+            app,
+            values=opcoes_servidor,
+        )
+        self.label_busca_empresa_banco_muro = Label(
+            text="Base Muro:",
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
+        self.combobox_busca_empresa_banco_muro = Combobox(
+            app,
+            values=opcoes_basemuro,
+        )
+        self.button_busca_empresa_atualizacao_inicio = Button(
+            app,
+            text="Iniciar",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.iniciar_processo_buscar_empresas()
+        )
+        self.button_busca_empresa_atualizacao_voltar = Button(
+            app,
+            text="Voltar",
+            width=15,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_menu_ferramentas_bancos()
+        )
+        if len(opcoes_servidor) > 0:
+            self.combobox_busca_empresa_servidor_version.set(opcoes_servidor[0])
+        if len(opcoes_basemuro) > 0:
+            self.combobox_busca_empresa_banco_muro.set(opcoes_basemuro[0])
+        self.remover_conteudo_linha(15, 2)
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.label_busca_empresa_version_servidor.grid(row=3, column=coluna, sticky="WS", pady=(10, 0), padx=(15))
+        self.combobox_busca_empresa_servidor_version.grid(row=4, column=coluna, columnspan=2, pady=(0, 10), sticky="WE", padx=(15))
+        self.label_busca_empresa_banco_muro.grid(row=5, column=coluna, sticky="WS", pady=(10, 0), padx=(15))
+        self.combobox_busca_empresa_banco_muro.grid(row=6, column=coluna, columnspan=2, pady=(0, 10), sticky="WE", padx=(15))
+        self.inserir_caixa_texto(7, 8, coluna, "Saida:", (10,0), (0,0), 12)
+        self.button_busca_empresa_atualizacao_inicio.grid(row=9, column=coluna, columnspan=2, pady=(10, 0))
+        self.button_busca_empresa_atualizacao_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
+
     def tela_limpar_redis_especifico(self, app, version, coluna):
         titulo = "LIMPAR REDIS ESPECIFICOS"
         app.title("MSS - " + version + " - " + titulo)
-        opcoes_grupo_redis = []
         opcoes_redis = []
 
-        redis = self.infos_config["redis_qa"]
-        for red in redis:
-            opcoes_grupo_redis = opcoes_grupo_redis + list(red.keys())
+        opcoes_grupo_redis = self.buscar_redis_dict()
 
         self.label_grupo_redis = Label(
             text="Grupo Redis:",
@@ -3509,11 +3725,8 @@ class Aplicativo:
     def tela_limpar_redis_todos(self, app, version, coluna):
         titulo = "LIMPAR TODOS OS REDIS"
         app.title("MSS - " + version + " - " + titulo)
-        opcoes_grupo_redis = []
 
-        redis = self.infos_config["redis_qa"]
-        for red in redis:
-            opcoes_grupo_redis = opcoes_grupo_redis + list(red.keys())
+        opcoes_grupo_redis = self.buscar_redis_dict()
 
         self.label_redis_grupo = Label(
             text="Grupo Redis:",
@@ -3593,11 +3806,11 @@ class Aplicativo:
         self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
         self.label_restaurar_servidor.grid(row=3, column=coluna, sticky="WS", pady=(10, 0), padx=(10, 10))
         self.combobox_servidor_restaurar.grid(row=4, column=coluna, columnspan=2, pady=(0, 0), padx=(10, 10), sticky="WS")
-        self.inserir_input_placeholder_modular(3, 4, 1, "E:\\DBDATA\\LOG\\,D:\\DBDATA\\DATA\\","Caminho LDF e MDF:", "WS", "WN", 33, (10,0), (10,0), (0,0), (10,0))
-        self.inserir_input_placeholder_modular(5, 6, coluna, "","Nome arquivo .bak:", "WS", "WN", 33, (10,0), (10,0), (0,0), (10,0) )
-        self.inserir_input_placeholder_modular(5, 6, 1, "","Nome do banco:", "WS", "WN", 33, (10,0), (10,0), (0,0), (10,0))
+        self.inserir_input_placeholder_modular('gray', 3, 4, 1, "E:\\DBDATA\\LOG\\PT,D:\\DBDATA\\DATA\\PT","Caminho LDF e MDF:", "WS", "WN", 33, (10,0), (10,0), (0,0), (10,0))
+        self.inserir_input_placeholder_modular('black', 5, 6, coluna, "","Nome arquivo .bak:", "WS", "WN", 33, (10,0), (10,0), (0,0), (10,0) )
+        self.inserir_input_placeholder_modular('black', 5, 6, 1, "","Nome do banco:", "WS", "WN", 33, (10,0), (10,0), (0,0), (10,0))
         self.inserir_caixa_texto(7, 8, coluna, "Saida:", (10,0), (0,0), 12)
-        self.button_restaurar_inicio.grid(row=9, column=coluna, columnspan=2, pady=(10, 0))
+        self.button_restaurar_inicio.grid(row=9, column=coluna, columnspan=2, pady=(10, 0) , sticky="S")
         self.button_restaurar_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def tela_download_backup(self, app, version, coluna):
