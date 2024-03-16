@@ -927,7 +927,7 @@ class Aplicativo:
     def on_focusout(self, event):
         if self.entry.get() == "":
             self.entry.insert(0, self.placeholder_text)
-            self.entry.config(foreground='black')
+            self.entry.config(foreground='gray')
 
 # Processos principais
     def atualizar_bancos_update(self):
@@ -3060,6 +3060,8 @@ Usuario: {lista_limpa_usuarios[emp]}
             fg=placeholder_color
         )
         self.entry.insert(0, self.placeholder_text)
+        self.entry.bind("<FocusIn>", self.on_entry_click)
+        self.entry.bind("<FocusOut>", self.on_focusout)
         self.label.grid(row=linha_label, column=coluna, sticky=posicao_label, pady=(pady_label), padx=(padx_label))
         self.entry.grid(row=linha_entry, column=coluna, columnspan=2, sticky=posicao_entry, pady=(pady_entry), padx=(padx_entry))
         self.entries.append(self.entry)
