@@ -149,9 +149,9 @@ def validar_diretorio(nomes, criar_popup_mensagem):
             f"\n{data_hora_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_txt']}: {error} ")
 
 class Aplicativo:
-    version = "4.0.0"
-    version_json = '2.0'
-    mensagem_json = "Refatorado json para aceitar varias conexões e redis"
+    version = "4.0.1"
+    version_json = '2.1'
+    mensagem_json = "Refatorado json para melhorar a estrutura do redis_qa"
     coluna = 0
     widget = []
     nomes = dict()
@@ -276,245 +276,332 @@ class Aplicativo:
                     "Já existe um arquivo .json com o mesmo nome\nInforme outro nome para o arquivo config")
             else:
                 arquivo_config = (f"""{{
-	"controle_versao_json": {{
-		"versao": "{self.version_json}",
-		"data": "{data_hora_atual()}",
-		"comentario": "{self.mensagem_json}"
-	}},
-	"bancos_update": {{
-		"database_update_br": "",
-		"database_update_mx": "",
-		"database_update_pt": "",
-		"database_update_md": ""
-	}},
-	"bases_muro": [
-
-	],
+    "controle_versao_json": {{
+        "versao": "{self.version_json}",
+        "data": "{data_hora_atual()}",
+        "comentario": "{self.mensagem_json}"
+    }},
+    "bancos_update": {{
+        "database_update_br": "",
+        "database_update_mx": "",
+        "database_update_pt": "",
+        "database_update_md": ""
+    }},
+    "bases_muro": [
+        ""
+    ],
     "conexoes": [
-		{{
-			"nome": "",
-			"server": "",
-			"username": "",
-			"password": ""
-		}},
-		{{
-			"nome":"",
-			"server": "",
-			"username": "",
-			"password": ""
-		}}
-	],
-	"redis_qa": [
-		{{
-			"grupo_1": [
-			{{
-				"nome": ""
-			}},
-			{{
-				"nome_redis": "",
-				"ip": "",
-				"port": ""
-			}},
-			{{
-				"nome_redis": "",
-				"ip": "",
-				"port": ""
-			}}
-			]
-		}},
-		{{
-			"grupo_2":[
-			{{
-				"nome": ""
-			}},
-			{{
-				"nome_redis": "",
-				"ip": "",
-				"port": ""
-			}},
-			{{
-				"nome_redis": "",
-				"ip": "",
-				"port": ""
-			}}
-			]
-		}}
-	]
+        {{
+            "nome": "",
+            "server": "",
+            "username": "",
+            "password": ""
+        }}
+    ],
+    "redis_qa": {{
+        "grupo_1":[
+            {{
+                "nome_redis": "",
+                "ip": "",
+                "port": ""
+            }},
+            {{
+                "nome_redis": "",
+                "ip": "",
+                "port": ""
+            }}
+        ],
+        "grupo_2":[
+            {{
+                "nome_redis": "",
+                "ip": "",
+                "port": ""
+            }},
+            {{
+                "nome_redis": "",
+                "ip": "",
+                "port": ""
+            }}
+        ]	
+    }}
 }}""")
                 self.escrever_arquivo_config(nome_config, arquivo_config, "json")
                 self.criar_popup_mensagem("Novo config criado com sucesso")
                 self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
                                           f"INFO - Novo config criado com sucesso, configure e selecione para ser utilizado {nome_config}")
 
-    def atualizar_arquivo_json(self, config_selecionado):
-        formatar_redis = ''
-        format_bases_utilizadas = ''
-        count = 0
-        bases_utilizadas = self.infos_config['bases_muro']
-        tam_bases_utilizadas = len(bases_utilizadas)
-        redis_qa = self.infos_config['redis_qa']
-        for red in redis_qa:
-            pre_formato_redis = f"""
+    def atualizar_arquivo_json(self, config_selecionado, versao_config):
+        try:
+            formatar_redis = ''
+            formatar_conexoes = ''
+            formatar_conexoes_antiga = ''
+            redis_formatados = dict()
+            conexoes_formatados = dict()
+            format_bases_utilizadas = ''
+            nome_redis = []
+            nome_redis_atual = ''
+            count = 0
+            redis_atual_form = []
+            bases_utilizadas = self.infos_config['bases_muro']
+            tam_bases_utilizadas = len(bases_utilizadas)
+            redis_qa = self.infos_config['redis_qa']
+            server_principal = ''
+            count_redis_qa = len(redis_qa)
+            count_redis_final = 1
+            if versao_config != "antiga":
+                if redis_qa != '':
+                    for red in redis_qa:
+                        count_redis = 1
+                        for key_red in red:
+                            tam_lista_redis = len(red[key_red])
+                            for item_red in red[key_red]:
+                                if count_redis >= tam_lista_redis:
+                                    virgula_redis = ''
+                                else:
+                                    virgula_redis = ','
+                                if count_redis_final >= count_redis_qa:
+                                    virgula_redis_final = ''
+                                else:
+                                    virgula_redis_final = ','
+                                if len(item_red) > 1:
+                                    pre_formato_redis = f"""
+            {{
+                "nome_redis": "{item_red["nome_redis"]}",
+                "ip": "{item_red['ip']}",
+                "port": "{item_red['port']}"
+            }}"""
+                                    tam_pre_formato_redis = len(pre_formato_redis)
+                                    pre_formato_redis = pre_formato_redis[0:tam_pre_formato_redis]
+                                    formatar_redis = formatar_redis[0:len(formatar_redis)-2] + pre_formato_redis + virgula_redis + "]" + virgula_redis_final
+                                else:
+                                    nome_redis_atual = item_red['nome']
+                                    pre_formato_redis = f"""
+        "{nome_redis_atual}": [  """
+                                    tam_pre_formato_redis = len(pre_formato_redis)
+                                    pre_formato_redis = pre_formato_redis[0:(tam_pre_formato_redis)]
+                                    formatar_redis = formatar_redis + pre_formato_redis
+                                count_redis += 1
+                            count_redis_final += 1
+                    redis_formatados["redis_qa"] = formatar_redis
+                else:
+                    redis_padrao = f"""
+        "grupo_1":[
+            {{
+                "nome_redis": "",
+                "ip": "",
+                "port": ""
+            }},
+            {{
+                "nome_redis": "",
+                "ip": "",
+                "port": ""
+            }}
+        ],
+        "grupo_2":[
+            {{
+                "nome_redis": "",
+                "ip": "",
+                "port": ""
+            }},
+            {{
+                "nome_redis": "",
+                "ip": "",
+                "port": ""
+            }}
+        ]"""
+                    redis_formatados["redis_qa"] = redis_padrao
+            else:
+                tam_lista_redis_ant = len(redis_qa)
+                count_redis = 1
+                if redis_qa != '':
+                    for red in redis_qa:
+                        if count_redis >= tam_lista_redis_ant:
+                            virgula_redis = ''
+                        else:
+                            virgula_redis = ','
+                        if count_redis_final >= count_redis_qa:
+                            virgula_redis_final = ''
+                        else:
+                            virgula_redis_final = ','
+                        if count_redis == 1:
+                            nome_redis_atual = "grupo_1"
+                            pre_formato_redis = f"""
+            "{nome_redis_atual}": [  """
+                            tam_pre_formato_redis = len(pre_formato_redis)
+                            pre_formato_redis = pre_formato_redis[0:(tam_pre_formato_redis)]
+                            formatar_redis = formatar_redis + pre_formato_redis
+                        pre_formato_redis = f"""
                 {{
-                    "nome_redis": "{red['nome_redis']}",
+                    "nome_redis": "{red["nome_redis"]}",
                     "ip": "{red['ip']}",
                     "port": "{red['port']}"
-                }},"""
-            tam_pre_formato_redis = len(pre_formato_redis)
-            pre_formato_redis = pre_formato_redis[0:tam_pre_formato_redis]
-            formatar_redis = formatar_redis + pre_formato_redis
-        for base in bases_utilizadas:
-            if tam_bases_utilizadas > 1:
-                if count > 0:
-                    formatando_bases_utilizadas = f"""
-        "{base}",
-"""
-                    format_bases_utilizadas = format_bases_utilizadas + formatando_bases_utilizadas
-                    format_bases_utilizadas = format_bases_utilizadas.strip()
+                }}"""
+                        tam_pre_formato_redis = len(pre_formato_redis)
+                        pre_formato_redis = pre_formato_redis[0:tam_pre_formato_redis]
+                        formatar_redis = formatar_redis[0:len(formatar_redis)-2] + pre_formato_redis + virgula_redis + "]" + virgula_redis_final
+                        count_redis += 1
+                        count_redis_final += 1
+                    redis_formatados["redis_qa"] = formatar_redis
                 else:
-                    formatando_bases_utilizadas = f"""
-"{base}",
-"""
+                    redis_padrao = f"""
+        "grupo_1":[
+            {{
+                "nome_redis": "",
+                "ip": "",
+                "port": ""
+            }},
+            {{
+                "nome_redis": "",
+                "ip": "",
+                "port": ""
+            }}
+        ],
+        "grupo_2":[
+            {{
+                "nome_redis": "",
+                "ip": "",
+                "port": ""
+            }},
+            {{
+                "nome_redis": "",
+                "ip": "",
+                "port": ""
+            }}
+        ]"""
+                    redis_formatados["redis_qa"] = redis_padrao
+            for base in bases_utilizadas:
+                if tam_bases_utilizadas > 1:
+                    if count > 0:
+                        formatando_bases_utilizadas = f""" 
+        "{base}",
+    """
+                        format_bases_utilizadas = format_bases_utilizadas + formatando_bases_utilizadas
+                        format_bases_utilizadas = format_bases_utilizadas.strip()
+                    else:
+                        formatando_bases_utilizadas = f""" "{base}",
+    """
+                        format_bases_utilizadas = format_bases_utilizadas + formatando_bases_utilizadas
+                        format_bases_utilizadas = format_bases_utilizadas.strip()
+                    count +=1
+                else:
+                    formatando_bases_utilizadas = f""" "{base}"
+    """
                     format_bases_utilizadas = format_bases_utilizadas + formatando_bases_utilizadas
                     format_bases_utilizadas = format_bases_utilizadas.strip()
-                count +=1
-            else:
-                formatando_bases_utilizadas = f"""
-"{base}"
-"""
-                format_bases_utilizadas = format_bases_utilizadas + formatando_bases_utilizadas
-                format_bases_utilizadas = format_bases_utilizadas.strip()
-        if "," in format_bases_utilizadas:
-            tam_format_bases_utilizadas = len(format_bases_utilizadas)-1
-            format_bases_utilizadas = format_bases_utilizadas[0:tam_format_bases_utilizadas]
-        tam_redis_pronto = len(formatar_redis) - 1
-        formatar_redis = formatar_redis[0:tam_redis_pronto]
-        formatar_redis = formatar_redis.strip()
-        server_utilizado = self.infos_config['server']
-        server_utilizado = server_utilizado.lower()
-        server_principal = self.infos_config['server_principal']
-        server_principal = server_principal.lower()
+            if "," in format_bases_utilizadas:
+                tam_format_bases_utilizadas = len(format_bases_utilizadas)-1
+                format_bases_utilizadas = format_bases_utilizadas[0:tam_format_bases_utilizadas]
+            if self.infos_config['server'] != '':
+                self.infos_config['server'] = self.infos_config['server'].lower()
+                if "\\" in self.infos_config['server']:
+                    self.infos_config['server'] = self.infos_config['server'].replace('\\', '\\\\')
+                if self.infos_config['server'] == '':
+                    name_server_2 = ''
+                elif "pt" in self.infos_config['server']:
+                    name_server_2 = '2019'
+                else:
+                    name_server_2 = '2017'
+                if self.infos_config['server_principal'] == '':
+                    virgula_con_ant = ''
+                else:
+                    virgula_con_ant = ','
 
-        if server_principal == server_utilizado:
-            server_utilizado = ''
-            self.infos_config['username'] = ''
-            self.infos_config['password'] = ''
-
-        if server_principal == '':
-            name_server_1 = ''
-        elif "pt" in server_principal:
-            name_server_1 = '2019'
-        else:
-            name_server_1 = '2017'
-
-        if "\\" in server_utilizado:
-            server_utilizado = server_utilizado.replace('\\', '\\\\')
-        if server_utilizado == '':
-            name_server_2 = ''
-        elif "pt" in server_utilizado:
-            name_server_2 = '2019'
-        else:
-            name_server_2 = '2017'
-
-        json_atualizado = f"""{{
-    "controle_versao_json": {{
-        "versao": "{self.version_json}",
-		"data": "{data_hora_atual()}",
-		"comentario": "{self.mensagem_json}"
-	}},
-	"bancos_update": {{
-        "database_update_br": "{self.infos_config['database_update_br']}",
-		"database_update_mx": "{self.infos_config['database_update_mx']}",
-		"database_update_pt": "{self.infos_config['database_update_pt']}",
-		"database_update_md": "{self.infos_config['database_update_md']}"
-	}},
-	"bases_muro": [
-        {format_bases_utilizadas}
-	],
-    "conexoes": [
-		{{
-            "nome": "{name_server_1}",
-			"server": "{server_principal}",
-            "username": "{self.infos_config['username_principal']}",
-            "password": "{self.infos_config['password_principal']}"
-
-		}},
-		{{
-            "nome":"{name_server_2}",
-			"server": "{server_utilizado}",
+                pre_formato_conexoes_ant = f"""
+        {{
+            "nome": "{name_server_2}",
+            "server": "{self.infos_config['server']}",
             "username": "{self.infos_config['username']}",
             "password": "{self.infos_config['password']}"
-		}}
-	],
-    "redis_qa": [
-		{{
-		    "grupo_1": [
-                {{
-                    "nome": "grupo_1"
-                }},
-		        {formatar_redis}
-		    ]
-		}},
-		{{
-            "grupo_2": [
-                {{
-                    "nome": "grupo_2"
-                }},
-                {{
-                    "nome_redis": "",
-                    "ip": "",
-                    "port": ""
-                }}
-           ]
-		}}
-    ]
-}}
-"""
-        config_selecionado = config_selecionado.split('.')
-        self.escrever_arquivo_config(config_selecionado[0], json_atualizado, config_selecionado[1])
 
-    def escrever_arquivo_config(self, nome_arquivo, texto, extensao):
-        self.arquivo_config = open(f"{self.nomes['diretorio_config']}\\{nome_arquivo}.{extensao}", "w")
-        self.arquivo_config.close()
-        self.arquivo_config = open(f"{self.nomes['diretorio_config']}\\{nome_arquivo}.{extensao}", "w")
-        self.arquivo_config.write(texto)
-        self.arquivo_config.close()
+        }}"""
+                tam_pre_formato_conexoes_ant = len(pre_formato_conexoes_ant)
+                pre_formato_conexoes_ant = pre_formato_conexoes_ant[0:tam_pre_formato_conexoes_ant]
+                formatar_conexoes_antiga = formatar_conexoes_antiga[0:len(formatar_conexoes_antiga)] + pre_formato_conexoes_ant + virgula_con_ant
+                conexoes_formatados["conexoes"] = formatar_conexoes_antiga
+            if self.infos_config['server_principal'] != '':
+                self.infos_config['server_principal'] = self.infos_config['server_principal'].lower()
+                virgula_con_ant = ''
+                if self.infos_config['server_principal'] == self.infos_config['server']:
+                    self.infos_config['server_principal'] = ''
+                    self.infos_config['username_principal'] = ''
+                    self.infos_config['password_principal'] = ''
+                if self.infos_config['server_principal'] == '':
+                    name_server_1 = ''
+                elif "pt" in self.infos_config['server_principal']:
+                    name_server_1 = '2019'
+                else:
+                    name_server_1 = '2017'
+                if '\\' in self.infos_config['server_principal']:
+                    self.infos_config['server_principal'] = self.infos_config['server_principal'].replace('\\', '\\\\')
+                pre_formato_conexoes_ant = f"""
+        {{
+            "nome": "{name_server_1}",
+            "server": "{self.infos_config['server_principal']}",
+            "username": "{self.infos_config['username_principal']}",
+            "password": "{self.infos_config['password_principal']}"
+    
+        }}"""
+                tam_pre_formato_conexoes_ant = len(pre_formato_conexoes_ant)
+                pre_formato_conexoes_ant = pre_formato_conexoes_ant[0:tam_pre_formato_conexoes_ant]
+                formatar_conexoes_antiga = formatar_conexoes_antiga[0:len(formatar_conexoes_antiga)] + pre_formato_conexoes_ant + virgula_con_ant
+            conexoes_formatados["conexoes"] = formatar_conexoes_antiga
+            if self.infos_config['conexoes'] != '':
+                count_conexoes = 1
+                count_conexoes_final = 1
+                tam_lista_conexoes = len(self.infos_config['conexoes'])
+                for con_atual in self.infos_config['conexoes']:
+                    if count_conexoes >= tam_lista_conexoes:
+                        virgula_con = ''
+                    else:
+                        virgula_con = ','
+                    if '\\' in con_atual['server']:
+                        con_atual['server'] = con_atual['server'].replace('\\', '\\\\')
+                    pre_formato_conexoes = f"""
+        {{
+            "nome": "{con_atual['nome']}",
+            "server": "{con_atual['server']}",
+            "username": "{con_atual['username']}",
+            "password": "{con_atual['password']}"
+        }}"""
+                    tam_pre_formato_conexoes = len(pre_formato_conexoes)
+                    pre_formato_conexoes = pre_formato_conexoes[0:tam_pre_formato_conexoes]
+                    formatar_conexoes = formatar_conexoes[0:len(formatar_conexoes)] + pre_formato_conexoes + virgula_con
+                    count_conexoes += 1
+                conexoes_formatados["conexoes"] = formatar_conexoes
 
-    def escolher_config_existente(self):
-        params_dict = ''
-        self.infos_config['status'] = False
-
-        if self.infos_config_prog['escolha_manual']:
-            self.config_selecionado = self.combobox.get()
-        elif self.infos_config_prog['escolha_manual'] is False and self.infos_config_prog['config_default'] != "":
-            self.config_selecionado = self.infos_config_prog['config_default']
-        else:
-            self.criar_popup_mensagem(
-                f"Erro na validação do arquivo config: {self.infos_config_prog['escolha_manual']} e {self.infos_config_prog['config_default']}")
-
-        # Validando o arquivo de config
-        try:
-            if os.path.isfile(f"{self.nomes['diretorio_config']}\\{self.config_selecionado}"):
-                config_bjt = open(f"{self.nomes['diretorio_config']}\\{self.config_selecionado}", "r")
-                config_json = config_bjt.read().lower()
-                params_dict = json.loads(config_json)
-            else:
-                self.criar_popup_mensagem(
-                    f"Não foi possível encontrar um .JSON com esse nome na pasta {self.nomes['diretorio_config']}!")
+            json_atualizado = f"""{{
+    "controle_versao_json": {{
+        "versao": "{self.version_json}",
+        "data": "{data_hora_atual()}",
+        "comentario": "{self.mensagem_json}"
+    }},
+    "bancos_update": {{
+        "database_update_br": "{self.infos_config['database_update_br']}",
+        "database_update_mx": "{self.infos_config['database_update_mx']}",
+        "database_update_pt": "{self.infos_config['database_update_pt']}",
+        "database_update_md": "{self.infos_config['database_update_md']}"
+    }},
+    "bases_muro": [
+        {format_bases_utilizadas}
+    ],
+    "conexoes": [{conexoes_formatados["conexoes"]}],
+    "redis_qa": {{{redis_formatados['redis_qa']}	
+    }}
+}}"""
+            config_selecionado = config_selecionado.split('.')
+            self.escrever_arquivo_config(config_selecionado[0], json_atualizado, config_selecionado[1])
+            self.criar_popup_mensagem(f"O Arquivo json foi atualizado, selecione novamente")
+            self.infos_config['status'] = False
+            return self.infos_config['status']
         except Exception as name_error:
             self.criar_popup_mensagem(f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
-            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                      f"INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
-            self.trocar_tela_config()
-        else:
-            try:
-                if params_dict['controle_versao_json']['versao'] >= self.version_json:
-                    versao_config = "atual"
-                else:
-                    versao_config = "desatualizada"
-            except Exception as _:
-                versao_config = "desatualizada"
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],f"INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
+            self.infos_config['status'] = False
+            return self.infos_config['status']
 
+    def ler_parametros_arquivo_json(self, params_dict, versao_config):
+        self.infos_config['status'] = False
+        try:
             match versao_config:
                 case "atual":
                     tam_conexoes = len(params_dict["conexoes"])
@@ -532,8 +619,48 @@ class Aplicativo:
                         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
                                                   f"INFO - Valores não foram especificados no json, edite o arquivo e tente novamente")
                         return
-                    try:
-                        # Carregar json
+                    else:
+                        try:
+                            self.infos_config["controle_versao_json"] = params_dict["controle_versao_json"]
+                            self.infos_config["database_update_br"] = params_dict["bancos_update"]["database_update_br"]
+                            self.infos_config["database_update_mx"] = params_dict["bancos_update"]["database_update_mx"]
+                            self.infos_config["database_update_pt"] = params_dict["bancos_update"]["database_update_pt"]
+                            self.infos_config["database_update_md"] = params_dict["bancos_update"]["database_update_md"]
+                            self.infos_config['bases_muro'] = params_dict["bases_muro"]
+                            self.infos_config['conexoes'] = params_dict["conexoes"]
+                            self.infos_config['redis_qa'] = params_dict["redis_qa"]
+                            self.infos_config['server'] = ''
+                            self.infos_config['username'] = ''
+                            self.infos_config['password'] = ''
+                            self.infos_config['server_principal'] = ''
+                            self.infos_config['username_principal'] = ''
+                            self.infos_config['password_principal'] = ''
+                            self.criar_dict_conexoes()
+                            self.infos_config['status'] = True
+                            return
+                        except Exception as name_error:
+                            self.criar_popup_mensagem(
+                                f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
+                            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                                      f"INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
+                case "desatualizada":
+                    tam_conexoes = len(params_dict["conexoes"])
+                    for con in range(tam_conexoes):
+                        if params_dict["conexoes"][con]['server'] != '':
+                            validacao_conexoes = True
+                            break
+                        else:
+                            validacao_conexoes = False
+                            continue
+
+                    if not validacao_conexoes:
+                        self.criar_popup_mensagem(
+                            "Valores não foram especificados no json, edite o arquivo e tente novamente")
+                        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                                  f"INFO - Valores não foram especificados no json, edite o arquivo e tente novamente")
+                        return
+
+                    else:
                         self.infos_config["controle_versao_json"] = params_dict["controle_versao_json"]
                         self.infos_config["database_update_br"] = params_dict["bancos_update"]["database_update_br"]
                         self.infos_config["database_update_mx"] = params_dict["bancos_update"]["database_update_mx"]
@@ -542,59 +669,129 @@ class Aplicativo:
                         self.infos_config['bases_muro'] = params_dict["bases_muro"]
                         self.infos_config['conexoes'] = params_dict["conexoes"]
                         self.infos_config['redis_qa'] = params_dict["redis_qa"]
-                        self.criar_dict_conexoes()
+                        self.infos_config['server'] = ''
+                        self.infos_config['username'] = ''
+                        self.infos_config['password'] = ''
+                        self.infos_config['server_principal'] = ''
+                        self.infos_config['username_principal'] = ''
+                        self.infos_config['password_principal'] = ''
                         self.infos_config['status'] = True
-                    except Exception as name_error:
-                        self.criar_popup_mensagem(
-                            f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
-                        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                                  f"INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
-
-                case "desatualizada":
-                    if params_dict['conexao']['server'] == '' or params_dict["conexao"]["username"] == '' or \
-                            params_dict["conexao"]["password"] == '':
-                        self.criar_popup_mensagem(
-                            "Valores não foram especificados no json, edite o arquivo e tente novamente")
-                        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                                  f"INFO - Valores não foram especificados no json, edite o arquivo e tente novamente")
-                        self.trocar_tela_config()
-                    elif not params_dict["bases_muro"]:
-                        self.criar_popup_mensagem(
-                            "Valores não foram especificados no json, edite o arquivo e tente novamente")
-                        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                                  f"INFO - Valores não foram especificados no json, edite o arquivo e tente novamente")
-                        self.trocar_tela_config()
-
+                        self.atualizar_arquivo_json(self.config_selecionado, versao_config)
+                case "antiga":
                     try:
-                        # Carregar json
-                        self.infos_config['server'] = params_dict["conexao"]["server"]
-                        self.infos_config['username'] = params_dict["conexao"]["username"]
-                        self.infos_config['password'] = params_dict["conexao"]["password"]
-                        self.infos_config['database_update_br'] = params_dict["database_update_br"]
-                        self.infos_config['database_update_mx'] = params_dict["database_update_mx"]
-                        self.infos_config['database_update_pt'] = params_dict["database_update_pt"]
-                        self.infos_config['database_update_md'] = params_dict["database_update_md"]
-                        self.infos_config['bases_muro'] = params_dict["bases_muro"]
-                        self.infos_config['server_principal'] = (params_dict)["configs_restaurar_download"]["server_principal"]
-                        self.infos_config['username_principal'] = (params_dict)["configs_restaurar_download"]["username_principal"]
-                        self.infos_config['password_principal'] = (params_dict)["configs_restaurar_download"]["password_principal"]
-                        self.infos_config['redis_qa'] = params_dict["redis_qa"]
-                        self.infos_config['status'] = True
-                        self.atualizar_arquivo_json(self.config_selecionado)
+                        if params_dict['conexao']['server'] == '' or params_dict["conexao"]["username"] == '' or \
+                                params_dict["conexao"]["password"] == '':
+                            self.criar_popup_mensagem(
+                                "Valores não foram especificados no json, edite o arquivo e tente novamente")
+                            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                                      f"INFO - Valores não foram especificados no json, edite o arquivo e tente novamente")
+                            self.trocar_tela_config()
+                        elif not params_dict["bases_muro"]:
+                            self.criar_popup_mensagem(
+                                "Valores não foram especificados no json, edite o arquivo e tente novamente")
+                            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                                      f"INFO - Valores não foram especificados no json, edite o arquivo e tente novamente")
+                            self.trocar_tela_config()
                     except Exception as name_error:
                         self.criar_popup_mensagem(
-                            f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
+                            "Ocorreu um erro ao tentar validar as tags de conexão, verifique o config e tente novamente")
                         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                                  f"INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
+                                                  f"INFO - Ocorreu um erro ao tentar validar as tags de conexão, verifique o config e tente novamente")
+                        self.trocar_tela_config()
+                    # Carregar json
+                    self.infos_config['server'] = params_dict["conexao"]["server"]
+                    self.infos_config['username'] = params_dict["conexao"]["username"]
+                    self.infos_config['password'] = params_dict["conexao"]["password"]
+                    self.infos_config['database_update_br'] = params_dict["database_update_br"]
+                    self.infos_config['database_update_mx'] = params_dict["database_update_mx"]
+                    self.infos_config['database_update_pt'] = params_dict["database_update_pt"]
+                    self.infos_config['database_update_md'] = params_dict["database_update_md"]
+                    self.infos_config['bases_muro'] = params_dict["bases_muro"]
+                    self.infos_config['conexoes'] = ''
+                    try:
+                        if (params_dict)["configs_restaurar_download"]["server_principal"] != '':
+                            self.infos_config['server_principal'] = (params_dict)["configs_restaurar_download"]["server_principal"]
+                            self.infos_config['username_principal'] = (params_dict)["configs_restaurar_download"]["username_principal"]
+                            self.infos_config['password_principal'] = (params_dict)["configs_restaurar_download"]["password_principal"]
+                    except Exception as name_error:
+                        self.criar_popup_mensagem(
+                            "Ocorreu um erro ao tentar validar as tags do server_principal, foram preenchidas vazias")
+                        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                                  f"INFO - Ocorreu um erro ao tentar validar as tags de conexão, foram preenchidas vazias")
+                        self.infos_config['server_principal'] = ""
+                        self.infos_config['username_principal'] = ""
+                        self.infos_config['password_principal'] = ""
+                    try:
+                        if params_dict["redis_qa"] != '':
+                            self.infos_config['redis_qa'] = params_dict["redis_qa"]
+                    except Exception as name_error:
+                        self.criar_popup_mensagem("Ocorreu um erro ao tentar validar as tags do redis_qa, foram preenchidas vazias")
+                        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                                  f"INFO - Ocorreu um erro ao tentar validar as tags de conexão, foram preenchidas vazias")
+                        self.infos_config['redis_qa'] = ""
+                    self.atualizar_arquivo_json(self.config_selecionado, versao_config)
+                    return
                 case _:
                     self.criar_popup_mensagem("Erro ao ler arquivo config")
+        except Exception as name_error:
+            self.criar_popup_mensagem(
+                f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                      f"INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
+            self.trocar_tela_config()
+
+    def escrever_arquivo_config(self, nome_arquivo, texto, extensao):
+        self.arquivo_config = open(f"{self.nomes['diretorio_config']}\\{nome_arquivo}.{extensao}", "w")
+        self.arquivo_config.close()
+        self.arquivo_config = open(f"{self.nomes['diretorio_config']}\\{nome_arquivo}.{extensao}", "w")
+        self.arquivo_config.write(texto)
+        self.arquivo_config.close()
+
+    def escolher_config_existente(self):
+        params_dict = ''
+        versao = 0
+        self.infos_config['status'] = False
+
+        # Validando se o metodo esta escolhendo o config de forma manual ou automatica
+        if self.infos_config_prog['escolha_manual']:
+            self.config_selecionado = self.combobox.get()
+        elif self.infos_config_prog['escolha_manual'] is False and self.infos_config_prog['config_default'] != "":
+            self.config_selecionado = self.infos_config_prog['config_default']
+        else:
+            self.criar_popup_mensagem(
+                f"Erro na validação do arquivo config: {self.infos_config_prog['escolha_manual']} e {self.infos_config_prog['config_default']}")
+
+        # Validando o arquivo de config
+        try:
+            if os.path.isfile(f"{self.nomes['diretorio_config']}\\{self.config_selecionado}"):
+                config_bjt = open(f"{self.nomes['diretorio_config']}\\{self.config_selecionado}", "r")
+                config_json = config_bjt.read().lower()
+                params_dict = json.loads(config_json)
+            else:
+                self.criar_popup_mensagem(f"Não foi possível encontrar um .JSON com esse nome na pasta {self.nomes['diretorio_config']}!")
+                self.trocar_tela_config()
+                return
+        except Exception as name_error:
+            self.criar_popup_mensagem(f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                      f"INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
+            self.trocar_tela_config()
+        else:
+            try:
+                if float(params_dict['controle_versao_json']['versao']) >= float(self.version_json):
+                    versao_config = "atual"
+                else:
+                    versao_config = "desatualizada"
+            except Exception as error:
+                versao_config = "antiga"
+
+            self.ler_parametros_arquivo_json(params_dict, versao_config)
 
         if self.infos_config['status']:
             self.atualizar_config_default(self.config_selecionado)
             self.trocar_tela_menu_geral()
         else:
             self.trocar_tela_config()
-        return self.infos_config
 
 # Processos arquivo .config
     def criar_arquivo_config_prog(self):
@@ -699,11 +896,10 @@ class Aplicativo:
 # Subprocessos
     def buscar_redis_dict(self):
         opcoes_grupo_redis = []
-        count = 1
-        redis = self.infos_config["redis_qa"]
-        for red in redis:
-            grupo = "grupo_" + str(count)
-            opcoes_grupo_redis.append(red.get(grupo)[0]['nome'])
+        count = 0
+        for red in self.infos_config['redis_qa']:
+            if red != '':
+                opcoes_grupo_redis.append(red)
             count += 1
 
         return opcoes_grupo_redis
@@ -714,37 +910,22 @@ class Aplicativo:
         nome_redis = []
         grupo_redis_selecionado = self.combobox_redis_grupo.get()
 
-        for red_grupo_atual in self.infos_config['redis_qa']:
+        for red_grupo_atual in self.infos_config['redis_qa'][grupo_redis_selecionado]:
             try:
-                redis_atual = red_grupo_atual
-                key_atual = list(redis_atual.keys())
-                grupo_redis = redis_atual[key_atual[0]][0].get('nome')
-                if grupo_redis == grupo_redis_selecionado:
-                    chaves = list(redis_atual.keys())
-                    redis_parcial = redis_atual[chaves[0]]
-                    redis_total = list(redis_total) + redis_parcial
-                else:
-                    continue
+                nome_redis.append(red_grupo_atual["nome_redis"])
             except Exception as error:
                 continue
-            else:
-                for red in redis_total:
-                    try:
-                        if red["nome_redis"] != '':
-                            nome_redis.append(red["nome_redis"])
-                    except Exception as error:
-                        continue
 
-                if len(nome_redis) <= 0 or nome_redis == '':
-                    self.combobox_redis['values'] = nome_redis
-                    self.combobox_redis.set(nome_redis)
-                    self.combobox_redis['values'] = nome_redis
-                    self.escrever_no_input("- A tag ou Grupo do redis se encontra vazio")
-                    self.escrever_arquivo_log(self.nomes['arquivo_redis'],
-                                              f"ERRO - A tag ou Grupo do redis se encontra vazio")
-                else:
-                    self.combobox_redis['values'] = nome_redis
-                    self.combobox_redis.set(nome_redis[0])
+        if len(nome_redis) <= 0 or nome_redis == '':
+            self.combobox_redis['values'] = nome_redis
+            self.combobox_redis.set(nome_redis)
+            self.combobox_redis['values'] = nome_redis
+            self.escrever_no_input("- A tag ou Grupo do redis se encontra vazio")
+            self.escrever_arquivo_log(self.nomes['arquivo_redis'],
+                                      f"ERRO - A tag ou Grupo do redis se encontra vazio")
+        else:
+            self.combobox_redis['values'] = nome_redis
+            self.combobox_redis.set(nome_redis[0])
 
     def criar_dict_conexoes(self):
         grupo_con = dict()
@@ -1353,7 +1534,7 @@ Usuario: {lista_limpa_usuarios[emp]}
 
                     try:
                         cnxnrp2 = pyodbc.connect(
-                            f"DRIVER=SQL Server;SERVER={servidor_selecionado['server']};DATABASE={database_update};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
+                            f"DRIVER=SQL Server;SERVER={servidor_selecionado['server']};DATABASE={self.infos_config['bases_muro'][num]};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
                         cursorrp2 = cnxnrp2.cursor()
                         for teste2 in range(tam_busca_realizada):
                             montar_comando = f"update [dbo].[KAIROS_DATABASES] set [DATABASE_VERSION] = {lista_versions[teste2]} where [DATABASE_ID] = {lista_ids[teste2]} and [CONNECTION_STRING] = '{lista_connection_string[teste2]}' "
@@ -1870,6 +2051,7 @@ Usuario: {lista_limpa_usuarios[emp]}
             self.button_menu_sair.config(state='disabled')
             self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"INFO - Inicio da operação Limpar todos Redis ")
             grupo_redis = self.combobox_redis_grupo.get()
+            conexoes_atual = ''
             if grupo_redis == "":
                 self.escrever_no_input("- Nenhum grupo selecionado, favor escolher e tentar novamente")
                 self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"ERRO - Nenhum grupo selecionado, favor escolher e tentar novamente ")
@@ -1880,30 +2062,18 @@ Usuario: {lista_limpa_usuarios[emp]}
                 self.button_menu_sair.config(state='normal')
                 return
             else:
+                tam_redis = len(self.infos_config['redis_qa'])
                 for red_grupo_atual in self.infos_config['redis_qa']:
-                    try:
-                        if red_grupo_atual.get(grupo_redis):
-                            grupo_escolhido = red_grupo_atual[grupo_redis]
-                    except Exception as error:
-                        self.escrever_no_input(f"- Erro ao selecionar redis: {error}")
-                        continue
-
-                for red_atual in grupo_escolhido:
-                    try:
-                        if red_atual.get('nome'):
-                            continue
-                        elif red_atual.get('ip') == "" or len(red_atual) == 0:
-                            self.escrever_no_input("- A tag ou Grupo do redis se encontra vazio")
-                            self.escrever_arquivo_log(self.nomes['arquivo_redis'],
-                                                      f"ERRO - A tag ou Grupo do redis se encontra vazio")
-                            continue
-                        else:
-                            self.escrever_no_input(
-                                f"- Iniciado processo no Redis {red_atual['nome_redis']}")
-                            self.escrever_arquivo_log(self.nomes['arquivo_redis'],
-                                                      f"INFO - Iniciado processo no Redis {red_atual['nome_redis']} ")
-                            redis_host = red_atual['ip']  # ou o endereço do seu servidor Redis
-                            redis_port = red_atual['port']  # ou a porta que o seu servidor Redis está ouvindo
+                    grupo_atual = self.infos_config['redis_qa'][red_grupo_atual]
+                    conexoes_atual = grupo_atual
+                    break
+                if conexoes_atual != '':
+                    for redis_atual in conexoes_atual:
+                        try:
+                            self.escrever_no_input(f"- Iniciado processo no Redis {redis_atual['nome_redis']}")
+                            self.escrever_arquivo_log(self.nomes['arquivo_redis'],f"INFO - Iniciado processo no Redis {redis_atual['nome_redis']} ")
+                            redis_host = redis_atual['ip']  # ou o endereço do seu servidor Redis
+                            redis_port = redis_atual['port']  # ou a porta que o seu servidor Redis está ouvindo
 
                             # Criando uma instância do cliente Redis
                             redis_client = redis.StrictRedis(host=redis_host, port=redis_port, decode_responses=True)
@@ -1919,15 +2089,17 @@ Usuario: {lista_limpa_usuarios[emp]}
                                 self.escrever_no_input(f"- FLUSHALL executado com sucesso no redis")
                                 self.escrever_arquivo_log(
                                     self.nomes['arquivo_redis'], f"INFO - FLUSHALL executado com sucesso no redis")
-                    except Exception as error:
-                        self.escrever_no_input(f"- Erro ao selecionar redis: {error}")
-                        continue
+                        except Exception as error:
+                            self.escrever_no_input(f"- Erro ao selecionar redis: {error}")
+                            continue
+                else:
+                    self.escrever_no_input(f"- Não foi encontrado conexões do redis")
+
             self.escrever_no_input("- Processo finalizado")
             self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"INFO - Processo finalizado ")
             self.button_atualizacao_inicio.config(state='normal')
             self.button_atualizacao_voltar.config(state='normal')
             self.button_menu_sair.config(state='normal')
-
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
             self.button_atualizacao_inicio.config(state='normal')
@@ -1969,29 +2141,15 @@ Usuario: {lista_limpa_usuarios[emp]}
             self.escrever_no_input(f"- Iniciado processo no Redis {redis_selecionado}")
             self.escrever_arquivo_log(
                 self.nomes['arquivo_redis'], f"INFO - Iniciado processo no Redis {redis_selecionado} ")
-            todos_valores_redis = self.infos_config["redis_qa"]
-            status_operacao = False
-            for redis_grupo in todos_valores_redis:
-                if not status_operacao:
-                    try:
-                        selecionar_redis_dict = redis_grupo[grupo_selecionado]
-                        status_operacao = True
-                    except Exception as error:
-                        self.escrever_no_input(f"- Erro ao selecionar redis: {error}")
-                        continue
-                    else:
-                        for redis_unico in selecionar_redis_dict:
-                            if redis_unico.get('nome'):
-                                continue
-                            elif redis_selecionado in redis_unico["nome_redis"]:
-                                self.redis_certo = redis_unico
-                                redis_host = self.redis_certo["ip"]
-                                redis_port = self.redis_certo["port"]
-                                break
-                            else:
-                                continue
-                else:
+            redis_grupo_escolhido = self.infos_config["redis_qa"][grupo_selecionado]
+            for redis_grupo in redis_grupo_escolhido:
+                nome_redis_atual = redis_grupo["nome_redis"]
+                if nome_redis_atual == redis_selecionado:
+                    redis_host = redis_grupo["ip"]
+                    redis_port = redis_grupo["port"]
                     break
+                else:
+                    continue
 
             # Criando uma instância do cliente Redis
             redis_client = redis.StrictRedis(host=redis_host, port=redis_port, decode_responses=True)
@@ -2773,7 +2931,7 @@ Usuario: {lista_limpa_usuarios[emp]}
         while True:
             if self.infos_config['status']:
                 try:
-                    servidores_redis = list(self.infos_config['redis_qa'][0])
+                    servidores_redis = list(self.infos_config['redis_qa'])
                     if servidores_redis != "":
                         self.iniciar_processo_limpar_redis_todos()
                         break
@@ -3380,6 +3538,7 @@ Usuario: {lista_limpa_usuarios[emp]}
         self.tela_alterar_aparencia(self.app, self.version, self.coluna)
 
     def trocar_tela_config(self):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Config")
         peso_linha = 0
         self.app.rowconfigure(1, weight=self.peso_linha_um)
         self.app.rowconfigure(2, weight=0)
