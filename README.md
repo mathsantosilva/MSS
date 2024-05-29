@@ -23,72 +23,56 @@ O MSS foi desenvolvido para resolver um problema em particular "Atualização da
 - Exemplo: Config.json
 
 ```json
-  {
-  	"controle_versao_json": {
-  		"versao": "2.0",
-  		"data": "2024-02-01 20:22:17",
-  		"comentario": "Refatorado json para aceitar varias conex�es e redis"
-  	},
-  	"bancos_update": {
-  		"database_update_br": "",
-  		"database_update_mx": "",
-  		"database_update_pt": "",
-  		"database_update_md": ""
-  	},
-  	"bases_muro": [
-  
-  	],
-      "conexoes": [
-  		{
-  			"nome": "",
-  			"server": "",
-  			"username": "",
-  			"password": ""
-  		},
-  		{
-  			"nome":"",
-  			"server": "",
-  			"username": "",
-  			"password": ""
-  		}
-  	],
-  	"redis_qa": [
-  		{
-  			"grupo_1": [
-  			{
-  				"nome": ""
-  			},
-  			{
-  				"nome_redis": "",
-  				"ip": "",
-  				"port": ""
-  			},
-  			{
-  				"nome_redis": "",
-  				"ip": "",
-  				"port": ""
-  			}
-  			]
-  		},
-  		{
-  			"grupo_2":[
-  			{
-  				"nome": ""
-  			},
-  			{
-  				"nome_redis": "",
-  				"ip": "",
-  				"port": ""
-  			},
-  			{
-  				"nome_redis": "",
-  				"ip": "",
-  				"port": ""
-  			}
-  			]
-  		}
-  	]
-  }
+{
+    "controle_versao_json": {
+        "versao": "2.1",
+  		"data": "2024-05-29 19:00:00",
+  		"comentario": "Refatorado json para melhorar a estrutura do redis_qa"
+    },
+    "bancos_update": {
+        "database_update_br": "",
+        "database_update_mx": "",
+        "database_update_pt": "",
+        "database_update_md": ""
+    },
+    "bases_muro": [
+        ""
+    ],
+    "conexoes": [
+        {
+            "nome": "",
+            "server": "",
+            "username": "",
+            "password": ""
+        }
+    ],
+    "redis_qa": {
+        "grupo_1":[
+            {
+                "nome_redis": "",
+                "ip": "",
+                "port": ""
+            },
+            {
+                "nome_redis": "",
+                "ip": "",
+                "port": ""
+            }
+        ],
+        "grupo_2":[
+            {
+                "nome_redis": "",
+                "ip": "",
+                "port": ""
+            },
+            {
+                "nome_redis": "",
+                "ip": "",
+                "port": ""
+            }
+        ]	
+    }
+}
 ```
 
 - Exemplo: prog.conf
