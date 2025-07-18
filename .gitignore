@@ -10,3 +10,4 @@ BuscaMuro.spec
 dist/BuscaMuro.exe
 dist/Log/base_muro.txt
 /dist/Config/prog.conf
+.idea

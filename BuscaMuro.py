@@ -1701,6 +1701,13 @@ drop table DBCCPAGE
                     else:
                         self.escrever_no_input(
                             "- Não foi inserido no arquivo de config o apontamento para o banco Muro update BR")
+                case 'qcdev2_kairos_base_muro':
+                    if self.infos_config['database_update_br'] != '':
+                        database_update = self.infos_config['database_update_br']
+                        return database_update
+                    else:
+                        self.escrever_no_input(
+                            "- Não foi inserido no arquivo de config o apontamento para o banco Muro update BR")
                 case "qcmaint_kairos_base_muro_mx":
                     if self.infos_config['database_update_mx'] != '':
                         database_update = self.infos_config['database_update_mx']
@@ -1709,6 +1716,13 @@ drop table DBCCPAGE
                         self.escrever_no_input(
                             "-  Não foi inserido no arquivo de config o apontamento para o banco Muro update MX")
                 case "qcdev_kairos_base_muro_mx":
+                    if self.infos_config['database_update_mx'] != '':
+                        database_update = self.infos_config['database_update_mx']
+                        return database_update
+                    else:
+                        self.escrever_no_input(
+                            "-  Não foi inserido no arquivo de config o apontamento para o banco Muro update MX")
+                case "qcdev2_kairos_base_muro_mx":
                     if self.infos_config['database_update_mx'] != '':
                         database_update = self.infos_config['database_update_mx']
                         return database_update
@@ -1729,6 +1743,13 @@ drop table DBCCPAGE
                     else:
                         self.escrever_no_input(
                             "- Não foi inserido no arquivo de config o apontamento para o banco Muro update PT")
+                case "qcdev2_kairos_base_muro_pt":
+                    if self.infos_config['database_update_pt'] != '':
+                        database_update = self.infos_config['database_update_pt']
+                        return database_update
+                    else:
+                        self.escrever_no_input(
+                            "- Não foi inserido no arquivo de config o apontamento para o banco Muro update PT")
                 case "qcmaint_mdcomune_base_muro":
                     if self.infos_config['database_update_md'] != '':
                         database_update = self.infos_config['database_update_md']
@@ -1737,6 +1758,13 @@ drop table DBCCPAGE
                         self.escrever_no_input(
                             "- Não foi inserido no arquivo de config o apontamento para o banco Muro update MD")
                 case "qcdev_mdcomune_base_muro":
+                    if self.infos_config['database_update_md'] != '':
+                        database_update = self.infos_config['database_update_md']
+                        return database_update
+                    else:
+                        self.escrever_no_input(
+                            "- Não foi inserido no arquivo de config o apontamento para o banco Muro update MD")
+                case "qcdev2_mdcomune_base_muro":
                     if self.infos_config['database_update_md'] != '':
                         database_update = self.infos_config['database_update_md']
                         return database_update
