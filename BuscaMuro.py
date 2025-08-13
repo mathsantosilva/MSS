@@ -4,6 +4,7 @@ import json
 import os
 import re
 import sys
+import pstats
 from tkinter import colorchooser
 from tkinter.ttk import *
 from tkinter import *
@@ -39,7 +40,7 @@ def comparar_tags(tag1, tag2):
 
     return 0
 
-def pesquisar_maior_tag(username, repository, tag_atual, criar_popup_mensagem):
+def pesquisar_maior_tag(username, repository, tag_atual, criar_popup_mensagem, nomes, escrever_arquivo_log):
     github = Github()
     tags = []
     try:
@@ -48,7 +49,9 @@ def pesquisar_maior_tag(username, repository, tag_atual, criar_popup_mensagem):
         for tag_in in tags_on:
             tags.append(tag_in.name)
     except Exception as error:
-        criar_popup_mensagem(f"Erro ao consultar tags para atualização: {error} ")
+        criar_popup_mensagem(f"Erro ao consultar tags para atualização: {error}")
+        escrever_arquivo_log(nomes['arquivo_base_muro'],
+                                  f"ERRO - Erro ao consultar tags para atualização: {error}")
     else:
         maior_tag = None
         try:
@@ -58,16 +61,20 @@ def pesquisar_maior_tag(username, repository, tag_atual, criar_popup_mensagem):
                         maior_tag = tag
                         break
         except Exception as error:
-            criar_popup_mensagem(f"Erro ao consultar tags para atualização: {error} ")
+            criar_popup_mensagem(f"Erro ao consultar tags para atualização: {error}")
+            escrever_arquivo_log(nomes['arquivo_base_muro'],
+                                  f"ERRO - Erro ao consultar tags para atualização: {error}")
 
         return maior_tag
 
-def realizar_download(maior_tag, criar_popup_mensagem):
+def realizar_download(maior_tag, criar_popup_mensagem, nomes, escrever_arquivo_log):
     try:
         caminho = f"https://github.com/mathsantosilva/MSS/releases/download/{maior_tag}/BuscaMuro.exe"
         response = requests.get(caminho)
     except Exception as error:
-        criar_popup_mensagem(f"Erro ao consultar tags para atualização: {error} ")
+        criar_popup_mensagem(f"Erro ao consultar tags para atualização: {error}")
+        escrever_arquivo_log(nomes['arquivo_base_muro'],
+                                  f"ERRO - Erro ao consultar tags para atualização: {error}")
     else:
         try:
             if os.path.exists("C:/MSS_temp"):
@@ -75,7 +82,9 @@ def realizar_download(maior_tag, criar_popup_mensagem):
             else:
                 os.makedirs("C:/MSS_temp")
         except Exception as error:
-            criar_popup_mensagem(f"Erro ao criar/validar a pasta C:/MSS_temp: {error} ")
+            criar_popup_mensagem(f"Erro ao criar/validar a pasta C:/MSS_temp: {error}")
+            escrever_arquivo_log(nomes['arquivo_base_muro'],
+                                 f"ERRO - Erro ao criar/validar a pasta C:/MSS_temp: {error}")
         with open("C:/MSS_temp/BuscaMuro.exe", "wb") as arquivo:
             arquivo.write(response.content)
             arquivo.close()
@@ -123,34 +132,24 @@ def validar_linha(diretorio, nome):
 
     return pula_linha
 
-def validar_diretorio(nomes, criar_popup_mensagem):
-    # Criar diretorio log
-    try:
-        if not os.path.exists(nomes['diretorio_log']):
-            os.makedirs(nomes['diretorio_log'])
-    except Exception as error:
-        criar_popup_mensagem(
-            f"\n{data_hora_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_log']}: {error} ")
+def validar_diretorio(nomes, criar_popup_mensagem, escrever_arquivo_log):
+    diretorios = {
+        "log": nomes["diretorio_log"],
+        "config": nomes["diretorio_config"],
+        "txt": nomes["diretorio_txt"]
+    }
 
-    # Criar diretorio config
-    try:
-        if not os.path.exists(nomes['diretorio_config']):
-            os.makedirs(nomes['diretorio_config'])
-    except Exception as error:
-        criar_popup_mensagem(
-            f"\n{data_hora_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_config']}: {error} ")
-
-    # Criar diretorio txt
-    try:
-        if not os.path.exists(nomes['diretorio_txt']):
-            os.makedirs(nomes['diretorio_txt'])
-    except Exception as error:
-        criar_popup_mensagem(
-            f"\n{data_hora_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_txt']}: {error} ")
+    for nome, caminho in diretorios.items():
+        try:
+            os.makedirs(caminho, exist_ok=True)
+        except Exception as error:
+            mensagem = f"Erro ao criar/validar a pasta {caminho}: {error}"
+            criar_popup_mensagem(mensagem)
+            escrever_arquivo_log(nomes['arquivo_base_muro'], f"ERRO - {mensagem}")
 
 class Aplicativo:
-    version = "4.1.0"
-    version_json = '2.1'
+    version = "4.2.0"
+    version_json = '2.3'
     mensagem_json = "Refatorado json para melhorar a estrutura do redis_qa"
     coluna = 0
     widget = []
@@ -223,9 +222,9 @@ class Aplicativo:
         self.button_config_existente = None
         self.button_config_novo = None
         self.button_config_sair = None
-        self.app = None
         self.status_thread = None
         self.app = None
+        self.file_extension = None
         self.main()
 
 # Processo inicial/final
@@ -238,10 +237,10 @@ class Aplicativo:
             username = "mathsantosilva"
             repository = "MSS"
             tag_atual = self.version
-            maior_tag = pesquisar_maior_tag(username, repository, tag_atual, self.criar_popup_mensagem)
+            maior_tag = pesquisar_maior_tag(username, repository, tag_atual, self.criar_popup_mensagem, self.nomes, self.escrever_arquivo_log)
 
             if maior_tag is not None:
-                realizar_download(maior_tag, self.criar_popup_mensagem)
+                realizar_download(maior_tag, self.criar_popup_mensagem, self.nomes, self.escrever_arquivo_log)
                 if os.path.exists("C:/MSS_temp"):
                     dir_atual = os.getcwd()
                     executar_comando_batch(dir_atual)
@@ -256,7 +255,10 @@ class Aplicativo:
                     else:
                         return
                 except Exception as error:
-                    self.criar_popup_mensagem(f"Erro ao criar/validar a pasta {self.nomes['diretorio_log']}: {error} ")
+                    self.criar_popup_mensagem(f"Erro ao criar/validar a pasta {self.nomes['diretorio_log']}: {error}")
+                    self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                         f"ERRO - Erro ao criar/validar a pasta {self.nomes['diretorio_txt']}: {error}")
+
         else:
             return
 
@@ -272,8 +274,7 @@ class Aplicativo:
             nome_config = nome_banco_escolhido
 
             if os.path.exists(f"{self.nomes['diretorio_config']}\\{nome_config}.json"):
-                self.criar_popup_mensagem(
-                    "Já existe um arquivo .json com o mesmo nome\nInforme outro nome para o arquivo config")
+                self.criar_popup_mensagem("Já existe um arquivo .json com o mesmo nome, informe outro nome para o arquivo config")
             else:
                 arquivo_config = (f"""{{
     "controle_versao_json": {{
@@ -325,150 +326,189 @@ class Aplicativo:
         ]	
     }}
 }}""")
-                self.escrever_arquivo_config(nome_config, arquivo_config, "json")
-                self.criar_popup_mensagem("Novo config criado com sucesso")
+                self.escrever_arquivo_config(nome_config, arquivo_config, ".json")
+                self.criar_popup_mensagem("Novo config criado com sucesso, configure e selecione para ser utilizado {nome_config}")
                 self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
                                           f"INFO - Novo config criado com sucesso, configure e selecione para ser utilizado {nome_config}")
+                self.trocar_tela_config()
 
-    def atualizar_arquivo_json(self, config_selecionado, versao_config):
+    def atualizar_arquivo_json(self, config_selecionado):
         try:
-            formatar_redis = ''
             formatar_conexoes = ''
             formatar_conexoes_antiga = ''
             redis_formatados = dict()
             conexoes_formatados = dict()
             format_bases_utilizadas = ''
-            nome_redis = []
-            nome_redis_atual = ''
-            count = 0
-            redis_atual_form = []
+            count_item = 1
+            count_grupo = 1
+            virgula_item = ''
+            virgula_grupo = ''
             bases_utilizadas = self.infos_config['bases_muro']
             tam_bases_utilizadas = len(bases_utilizadas)
             redis_qa = self.infos_config['redis_qa']
-            server_principal = ''
-            count_redis_qa = len(redis_qa)
-            count_redis_final = 1
-            if versao_config != "antiga":
-                if redis_qa != '':
-                    for red in redis_qa:
-                        count_redis = 1
-                        for key_red in red:
-                            tam_lista_redis = len(red[key_red])
-                            for item_red in red[key_red]:
-                                if count_redis >= tam_lista_redis:
-                                    virgula_redis = ''
-                                else:
-                                    virgula_redis = ','
-                                if count_redis_final >= count_redis_qa:
-                                    virgula_redis_final = ''
-                                else:
-                                    virgula_redis_final = ','
-                                if len(item_red) > 1:
-                                    pre_formato_redis = f"""
+            final_formato_redis = ''
+            try:
+                versao_config = self.infos_config['controle_versao_json']['versao']
+            except Exception as name_error:
+                versao_config = ""
+            tam_redis = len(redis_qa)
+
+            if versao_config == '2.0':
+                for redis in redis_qa:
+                    formato_redis = ''
+                    pre_formato_redis = ''
+                    pos_formato_redis = ''
+                    if tam_redis == 1 and count_grupo == 1:
+                        virgula = ''
+                    elif count_grupo == tam_redis:
+                        virgula = ''
+                    elif tam_redis > 1:
+                        virgula = ','
+                    else:
+                        virgula = ''
+                    keys = redis.keys()
+                    for key in keys:
+                        keys = key
+                    for red in redis[keys]:
+                        tam_redis_key = len(redis[keys])
+                        if tam_redis_key <= count_item:
+                            virgula_itens = ''
+                        else:
+                            virgula_itens = ','
+                        try:
+                            nome_redis = red['nome']
+                        except Exception as error:
+                            print('continue')
+                        try:
+                            ip = red['ip']
+                            port = red['port']
+                            pre_formato_redis = f"""    
             {{
-                "nome_redis": "{item_red["nome_redis"]}",
-                "ip": "{item_red['ip']}",
-                "port": "{item_red['port']}"
-            }}"""
-                                    tam_pre_formato_redis = len(pre_formato_redis)
-                                    pre_formato_redis = pre_formato_redis[0:tam_pre_formato_redis]
-                                    formatar_redis = formatar_redis[0:len(formatar_redis)-2] + pre_formato_redis + virgula_redis + "]" + virgula_redis_final
-                                else:
-                                    nome_redis_atual = item_red['nome']
-                                    pre_formato_redis = f"""
-        "{nome_redis_atual}": [  """
-                                    tam_pre_formato_redis = len(pre_formato_redis)
-                                    pre_formato_redis = pre_formato_redis[0:(tam_pre_formato_redis)]
-                                    formatar_redis = formatar_redis + pre_formato_redis
-                                count_redis += 1
-                            count_redis_final += 1
-                    redis_formatados["redis_qa"] = formatar_redis
-                else:
-                    redis_padrao = f"""
-        "grupo_1":[
+                "nome_redis": "{nome_redis}",
+                "ip": "{ip}",
+                "port": "{port}"
+            }}{virgula_itens}"""
+                            formato_redis = formato_redis + pre_formato_redis
+                        except Exception as error:
+                            print('continue')
+                        count_item += 1
+                    pos_formato_redis = f"""
+        \"{keys}\":[{formato_redis}
+        ]{virgula}"""
+                    final_formato_redis = final_formato_redis + pos_formato_redis
+                    count_grupo += 1
+            elif versao_config == '2.1':
+                keys = redis_qa.keys()
+                for key in keys:
+                    if tam_redis == 1 and count_grupo == 1:
+                        virgula = ''
+                    elif count_grupo == tam_redis:
+                        virgula = ''
+                    elif tam_redis > 1:
+                        virgula = ','
+                    else:
+                        virgula = ''
+                    formato_redis = ''
+                    pre_formato_redis = ''
+                    pos_formato_redis = ''
+                    tam_redis_key = len(redis_qa[key])
+                    for redis in redis_qa[key]:
+                        if tam_redis_key <= count_item:
+                            virgula_itens = ''
+                        else:
+                            virgula_itens = ','
+                        key_atual = key
+                        try:
+                            ip = redis['ip']
+                            nome_redis = redis['nome_redis']
+                            port = redis['port']
+                            pre_formato_redis = f"""    
             {{
-                "nome_redis": "",
-                "ip": "",
-                "port": ""
-            }},
+                "nome_redis": "{nome_redis}",
+                "ip": "{ip}",
+                "port": "{port}"
+            }}{virgula_itens}"""
+                            formato_redis = formato_redis + pre_formato_redis
+                            count_item += 1
+                        except Exception as error:
+                            print(f'continue: {error}')
+                    pos_formato_redis = f"""
+        \"{key_atual}\":[{formato_redis}
+        ]{virgula}"""
+                    final_formato_redis = final_formato_redis + pos_formato_redis
+                    count_grupo += 1
+            elif versao_config >= '2.2':
+                for redis in redis_qa:
+                    formato_redis = ''
+                    pre_formato_redis = ''
+                    pos_formato_redis = ''
+                    count_item = 1
+                    if tam_redis == 1 and count_grupo == 1:
+                        virgula = ''
+                    elif count_grupo == tam_redis:
+                        virgula = ''
+                    elif tam_redis > 1:
+                        virgula = ','
+                    else:
+                        virgula = ''
+                    tam_redis_key = len(redis_qa[redis])
+                    for redis_key in redis_qa[redis]:
+                        if tam_redis_key <= count_item:
+                            virgula_itens = ''
+                        else:
+                            virgula_itens = ','
+                        try:
+                            ip = redis_key['ip']
+                            nome_redis = redis_key['nome_redis']
+                            port = redis_key['port']
+                            pre_formato_redis = f"""    
             {{
-                "nome_redis": "",
-                "ip": "",
-                "port": ""
-            }}
-        ],
-        "grupo_2":[
-            {{
-                "nome_redis": "",
-                "ip": "",
-                "port": ""
-            }},
-            {{
-                "nome_redis": "",
-                "ip": "",
-                "port": ""
-            }}
-        ]"""
-                    redis_formatados["redis_qa"] = redis_padrao
+                "nome_redis": "{nome_redis}",
+                "ip": "{ip}",
+                "port": "{port}"
+            }}{virgula_itens}"""
+                            formato_redis = formato_redis + pre_formato_redis
+                            count_item += 1
+                        except Exception as error:
+                            print('continue')
+                    pos_formato_redis = f"""
+        \"{redis}\":[{formato_redis}
+        ]{virgula}"""
+                    final_formato_redis = final_formato_redis + pos_formato_redis
+                    count_grupo += 1
             else:
-                tam_lista_redis_ant = len(redis_qa)
-                count_redis = 1
-                if redis_qa != '':
-                    for red in redis_qa:
-                        if count_redis >= tam_lista_redis_ant:
-                            virgula_redis = ''
-                        else:
-                            virgula_redis = ','
-                        if count_redis_final >= count_redis_qa:
-                            virgula_redis_final = ''
-                        else:
-                            virgula_redis_final = ','
-                        if count_redis == 1:
-                            nome_redis_atual = "grupo_1"
-                            pre_formato_redis = f"""
-            "{nome_redis_atual}": [  """
-                            tam_pre_formato_redis = len(pre_formato_redis)
-                            pre_formato_redis = pre_formato_redis[0:(tam_pre_formato_redis)]
-                            formatar_redis = formatar_redis + pre_formato_redis
-                        pre_formato_redis = f"""
-                {{
-                    "nome_redis": "{red["nome_redis"]}",
-                    "ip": "{red['ip']}",
-                    "port": "{red['port']}"
-                }}"""
-                        tam_pre_formato_redis = len(pre_formato_redis)
-                        pre_formato_redis = pre_formato_redis[0:tam_pre_formato_redis]
-                        formatar_redis = formatar_redis[0:len(formatar_redis)-2] + pre_formato_redis + virgula_redis + "]" + virgula_redis_final
-                        count_redis += 1
-                        count_redis_final += 1
-                    redis_formatados["redis_qa"] = formatar_redis
-                else:
-                    redis_padrao = f"""
-        "grupo_1":[
+                formato_redis = ''
+                pre_formato_redis = ''
+                pos_formato_redis = ''
+                for redis in redis_qa:
+                    if tam_redis == 1 and count_item == 1:
+                        virgula = ''
+                    elif count_item == tam_redis:
+                        virgula = ''
+                    elif tam_redis > 1:
+                        virgula = ','
+                    else:
+                        virgula = ''
+                    try:
+                        ip = redis['ip']
+                        nome_redis = redis['nome_redis']
+                        port = redis['port']
+                        pre_formato_redis = f"""    
             {{
-                "nome_redis": "",
-                "ip": "",
-                "port": ""
-            }},
-            {{
-                "nome_redis": "",
-                "ip": "",
-                "port": ""
-            }}
-        ],
-        "grupo_2":[
-            {{
-                "nome_redis": "",
-                "ip": "",
-                "port": ""
-            }},
-            {{
-                "nome_redis": "",
-                "ip": "",
-                "port": ""
-            }}
-        ]"""
-                    redis_formatados["redis_qa"] = redis_padrao
+                "nome_redis": "{nome_redis}",
+                "ip": "{ip}",
+                "port": "{port}"
+            }}{virgula}"""
+                        formato_redis = formato_redis + pre_formato_redis
+                    except Exception as error:
+                        print('continue')
+                    count_item += 1
+                pos_formato_redis = f"""
+        "grupo_1":[{formato_redis}
+        ]{virgula_item}"""
+                final_formato_redis = final_formato_redis + pos_formato_redis
+            redis_formatados["redis_qa"] = final_formato_redis
+            count = 0
             for base in bases_utilizadas:
                 if tam_bases_utilizadas > 1:
                     if count > 0:
@@ -554,14 +594,26 @@ class Aplicativo:
                         virgula_con = ''
                     else:
                         virgula_con = ','
-                    if '\\' in con_atual['server']:
-                        con_atual['server'] = con_atual['server'].replace('\\', '\\\\')
-                    pre_formato_conexoes = f"""
+                    if type(con_atual) != str:
+                        if '\\' in con_atual['server']:
+                            con_atual['server'] = con_atual['server'].replace('\\', '\\\\')
+                        pre_formato_conexoes = f"""
         {{
             "nome": "{con_atual['nome']}",
             "server": "{con_atual['server']}",
             "username": "{con_atual['username']}",
             "password": "{con_atual['password']}"
+        }}"""
+                    else:
+                        con_atual_str = self.infos_config['conexoes'][con_atual]
+                        if '\\' in con_atual_str['server']:
+                            con_atual_str['server'] = con_atual_str['server'].replace('\\', '\\\\')
+                        pre_formato_conexoes = f"""
+        {{
+            "nome": "{con_atual}",
+            "server": "{con_atual_str['server']}",
+            "username": "{con_atual_str['username']}",
+            "password": "{con_atual_str['password']}"
         }}"""
                     tam_pre_formato_conexoes = len(pre_formato_conexoes)
                     pre_formato_conexoes = pre_formato_conexoes[0:tam_pre_formato_conexoes]
@@ -584,17 +636,19 @@ class Aplicativo:
     "bases_muro": [
         {format_bases_utilizadas}
     ],
-    "conexoes": [{conexoes_formatados["conexoes"]}],
+    "conexoes": [{conexoes_formatados["conexoes"]}
+    ],
     "redis_qa": {{{redis_formatados['redis_qa']}	
     }}
 }}"""
-            config_selecionado = config_selecionado.split('.')
-            self.escrever_arquivo_config(config_selecionado[0], json_atualizado, config_selecionado[1])
-            self.criar_popup_mensagem(f"O Arquivo json foi atualizado, selecione novamente")
+            config_selecionado = config_selecionado.split(f'{self.file_extension}')
+            self.escrever_arquivo_config(config_selecionado[0], json_atualizado, self.file_extension)
+            self.criar_popup_mensagem(f"O Arquivo json foi atualizado")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - O Arquivo json foi atualizado")
             self.infos_config['status'] = False
             return self.infos_config['status']
         except Exception as name_error:
-            self.criar_popup_mensagem(f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
+            self.criar_popup_mensagem(f"Existem erros de formatação no arquivo de config escolhido: {name_error}")
             self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],f"INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
             self.infos_config['status'] = False
             return self.infos_config['status']
@@ -614,10 +668,9 @@ class Aplicativo:
                             continue
 
                     if not validacao_conexoes:
-                        self.criar_popup_mensagem(
-                            "Valores não foram especificados no json, edite o arquivo e tente novamente")
+                        self.criar_popup_mensagem("Valores não foram especificados no json, edite o arquivo e tente novamente")
                         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                                  f"INFO - Valores não foram especificados no json, edite o arquivo e tente novamente")
+                                                  f"ERRO - Valores não foram especificados no json, edite o arquivo e tente novamente")
                         return
                     else:
                         try:
@@ -639,10 +692,9 @@ class Aplicativo:
                             self.infos_config['status'] = True
                             return
                         except Exception as name_error:
-                            self.criar_popup_mensagem(
-                                f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
+                            self.criar_popup_mensagem(f"Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error}")
                             self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                                      f"INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
+                                                      f"ERRO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
                 case "desatualizada":
                     tam_conexoes = len(params_dict["conexoes"])
                     for con in range(tam_conexoes):
@@ -654,10 +706,9 @@ class Aplicativo:
                             continue
 
                     if not validacao_conexoes:
-                        self.criar_popup_mensagem(
-                            "Valores não foram especificados no json, edite o arquivo e tente novamente")
+                        self.criar_popup_mensagem("Valores não foram especificados no json, edite o arquivo e tente novamente")
                         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                                  f"INFO - Valores não foram especificados no json, edite o arquivo e tente novamente")
+                                                  f"ERRO - Valores não foram especificados no json, edite o arquivo e tente novamente")
                         return
 
                     else:
@@ -676,27 +727,24 @@ class Aplicativo:
                         self.infos_config['username_principal'] = ''
                         self.infos_config['password_principal'] = ''
                         self.infos_config['status'] = True
-                        self.atualizar_arquivo_json(self.config_selecionado, versao_config)
+                        self.atualizar_arquivo_json(self.config_selecionado)
                 case "antiga":
                     try:
                         if params_dict['conexao']['server'] == '' or params_dict["conexao"]["username"] == '' or \
                                 params_dict["conexao"]["password"] == '':
-                            self.criar_popup_mensagem(
-                                "Valores não foram especificados no json, edite o arquivo e tente novamente")
+                            self.criar_popup_mensagem("Valores não foram especificados no json, edite o arquivo e tente novamente")
                             self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                                      f"INFO - Valores não foram especificados no json, edite o arquivo e tente novamente")
+                                                      f"ERRO - Valores não foram especificados no json, edite o arquivo e tente novamente")
                             self.trocar_tela_config()
                         elif not params_dict["bases_muro"]:
-                            self.criar_popup_mensagem(
-                                "Valores não foram especificados no json, edite o arquivo e tente novamente")
+                            self.criar_popup_mensagem("Valores não foram especificados no json, edite o arquivo e tente novamente")
                             self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                                      f"INFO - Valores não foram especificados no json, edite o arquivo e tente novamente")
+                                                      f"ERRO - Valores não foram especificados no json, edite o arquivo e tente novamente")
                             self.trocar_tela_config()
                     except Exception as name_error:
-                        self.criar_popup_mensagem(
-                            "Ocorreu um erro ao tentar validar as tags de conexão, verifique o config e tente novamente")
+                        self.criar_popup_mensagem("Ocorreu um erro ao tentar validar as tags de conexão, verifique o config e tente novamente")
                         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                                  f"INFO - Ocorreu um erro ao tentar validar as tags de conexão, verifique o config e tente novamente")
+                                                  f"ERRO - Ocorreu um erro ao tentar validar as tags de conexão, verifique o config e tente novamente")
                         self.trocar_tela_config()
                     # Carregar json
                     self.infos_config['server'] = params_dict["conexao"]["server"]
@@ -714,10 +762,9 @@ class Aplicativo:
                             self.infos_config['username_principal'] = (params_dict)["configs_restaurar_download"]["username_principal"]
                             self.infos_config['password_principal'] = (params_dict)["configs_restaurar_download"]["password_principal"]
                     except Exception as name_error:
-                        self.criar_popup_mensagem(
-                            "Ocorreu um erro ao tentar validar as tags do server_principal, foram preenchidas vazias")
+                        self.criar_popup_mensagem("Ocorreu um erro ao tentar validar a tag  \"server_principal\", elas foram atualizadas sem valor no arquivo .json")
                         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                                  f"INFO - Ocorreu um erro ao tentar validar as tags de conexão, foram preenchidas vazias")
+                                                  f"ERRO - Ocorreu um erro ao tentar validar a tag \"server_principal\", elas foram atualizadas sem valor no arquivo .json")
                         self.infos_config['server_principal'] = ""
                         self.infos_config['username_principal'] = ""
                         self.infos_config['password_principal'] = ""
@@ -725,25 +772,26 @@ class Aplicativo:
                         if params_dict["redis_qa"] != '':
                             self.infos_config['redis_qa'] = params_dict["redis_qa"]
                     except Exception as name_error:
-                        self.criar_popup_mensagem("Ocorreu um erro ao tentar validar as tags do redis_qa, foram preenchidas vazias")
+                        self.criar_popup_mensagem("Ocorreu um erro ao tentar validar a tag \"redis_qa\", ela foram atualizadas sem valor no arquivo .json")
                         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                                  f"INFO - Ocorreu um erro ao tentar validar as tags de conexão, foram preenchidas vazias")
+                                                  f"ERRO - Ocorreu um erro ao tentar validar a tag \"redis_qa\", ela foram atualizadas sem valor no arquivo .json")
                         self.infos_config['redis_qa'] = ""
-                    self.atualizar_arquivo_json(self.config_selecionado, versao_config)
+                    self.atualizar_arquivo_json(self.config_selecionado)
                     return
                 case _:
-                    self.criar_popup_mensagem("Erro ao ler arquivo config")
+                    self.criar_popup_mensagem("Erro ao ler arquivo config - Case Default")
+                    self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                      f"ERRO - Erro ao ler arquivo config - Case Default")
         except Exception as name_error:
-            self.criar_popup_mensagem(
-                f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
+            self.criar_popup_mensagem(f"Existem erros de formatação no arquivo de config escolhido: {name_error}")
             self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                      f"INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
+                                      f"ERRO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error}")
             self.trocar_tela_config()
 
     def escrever_arquivo_config(self, nome_arquivo, texto, extensao):
-        self.arquivo_config = open(f"{self.nomes['diretorio_config']}\\{nome_arquivo}.{extensao}", "w")
+        self.arquivo_config = open(f"{self.nomes['diretorio_config']}\\{nome_arquivo}{extensao}", "w")
         self.arquivo_config.close()
-        self.arquivo_config = open(f"{self.nomes['diretorio_config']}\\{nome_arquivo}.{extensao}", "w")
+        self.arquivo_config = open(f"{self.nomes['diretorio_config']}\\{nome_arquivo}{extensao}", "w")
         self.arquivo_config.write(texto)
         self.arquivo_config.close()
 
@@ -758,23 +806,28 @@ class Aplicativo:
         elif self.infos_config_prog['escolha_manual'] is False and self.infos_config_prog['config_default'] != "":
             self.config_selecionado = self.infos_config_prog['config_default']
         else:
-            self.criar_popup_mensagem(
-                f"Erro na validação do arquivo config: {self.infos_config_prog['escolha_manual']} e {self.infos_config_prog['config_default']}")
+            self.criar_popup_mensagem(f"Erro na validação do arquivo config: {self.infos_config_prog['escolha_manual']} e {self.infos_config_prog['config_default']}")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                      f"ERRO - Erro na validação do arquivo config: {self.infos_config_prog['escolha_manual']} e {self.infos_config_prog['config_default']}")
 
         # Validando o arquivo de config
         try:
             if os.path.isfile(f"{self.nomes['diretorio_config']}\\{self.config_selecionado}"):
+                # Caminho do arquivo
+                file_path = f"{self.nomes['diretorio_config']}\\{self.config_selecionado}"
+                # Obtendo a extensão
+                self.file_extension = os.path.splitext(file_path)[1]
                 config_bjt = open(f"{self.nomes['diretorio_config']}\\{self.config_selecionado}", "r")
                 config_json = config_bjt.read().lower()
                 params_dict = json.loads(config_json)
             else:
-                self.criar_popup_mensagem(f"Não foi possível encontrar um .JSON com esse nome na pasta {self.nomes['diretorio_config']}!")
+                self.criar_popup_mensagem(f"Não foi encontrado um .json com esse nome ({self.config_selecionado}) na pasta {self.nomes['diretorio_config']}")
                 self.trocar_tela_config()
                 return
         except Exception as name_error:
-            self.criar_popup_mensagem(f"Existem erros de formatação no arquivo de config escolhido:\n {name_error}")
+            self.criar_popup_mensagem(f"Existem erros de formatação no arquivo de config escolhido: {name_error}")
             self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                      f"INFO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
+                                      f"ERRO - Existem erros de formatação no arquivo de config escolhido, corrija e tente novamente: {name_error} ")
             self.trocar_tela_config()
         else:
             try:
@@ -816,6 +869,8 @@ class Aplicativo:
             self.infos_config_prog['config_default'] = config_setado
         except Exception as error:
             self.criar_popup_mensagem(f"Erro ao atualizar o arquivo config: {error}")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                      f"ERRO - Erro ao atualizar o arquivo config: {error}")
 
     def salvar_alteracoes_config(self, config):
         try:
@@ -823,6 +878,8 @@ class Aplicativo:
                 config.write(config_file)
         except Exception as error:
             self.criar_popup_mensagem(f"Erro ao atualizar o arquivo config: {error}")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                      f"ERRO - Erro ao atualizar o arquivo config: {error}")
 
     def ler_arquivo_config(self):
         try:
@@ -855,6 +912,8 @@ class Aplicativo:
             return background_color_fundo, background_color_titulos, background_color_botoes, background_color_botoes_navs, background_color_fonte
         except Exception as error:
             self.criar_popup_mensagem(f"Erro ao acessar arquivo de configuração default {error}")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                      f"ERRO - Erro ao acessar arquivo de configuração default {error}")
 
     def alterar_data_atualizacao_config(self):
         data = data_atual()
@@ -865,6 +924,8 @@ class Aplicativo:
             self.salvar_alteracoes_config(config)
         except Exception as error:
             self.criar_popup_mensagem(f"Erro ao atualizar a data da ultima atualização: {error}")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                      f"ERRO - Erro ao atualizar a data da ultima atualização: {error}")
 
     def validar_data_atualizacao_config(self):
         data = data_atual()
@@ -888,12 +949,99 @@ class Aplicativo:
                     self.alterar_data_atualizacao_config()
             except Exception as error:
                 self.criar_popup_mensagem(f"Erro ao validar a ultima atualização: {error}")
+                self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                          f"ERRO - Erro ao validar a ultima atualização: {error}")
                 self.infos_config_prog["atualizar"] = False
         else:
             self.infos_config_prog["atualizar"] = False
             return
 
 # Subprocessos
+    def atualizar_opcoes_grupo_redis(self, event):
+        redis_total = dict()
+        red_grupo_atual = ''
+        nome_redis = []
+        valores_entries = []
+        grupo_redis_selecionado = self.combobox_redis_grupo.get()
+
+        for entry_atual in self.entries:
+            valores_entries.append(entry_atual)
+        try:
+            valores_entries[0].delete(0, END)
+            valores_entries[0].insert(0, grupo_redis_selecionado)
+        except:
+            return
+
+    def quebra_mensagem_popup(self, mensagem):
+        texto_em_lines = []
+        largura = 70
+
+        while len(mensagem) > 0:
+            # Limite o texto a 'largura' caracteres
+            if len(mensagem) > largura:
+                linha = mensagem[:largura]
+                # Procura por espaço mais próximo antes ou depois da largura
+                espaco_pos = linha.rfind(' ')
+                if espaco_pos == -1:  # Se não encontrar, quebre no limite
+                    espaco_pos = largura
+                texto_em_lines.append(mensagem[:espaco_pos] + "\n")
+                mensagem = mensagem[espaco_pos:].lstrip()  # Remove espaços à esquerda
+            else:
+                texto_em_lines.append(mensagem[:70] + "\n")
+                mensagem = mensagem[70:].lstrip()
+
+        return ''.join(texto_em_lines)
+
+    def consultar_preencher_infos_conexoes_redis(self, event):
+        for entry_atual in self.entries:
+            entry_atual.delete(0, END)
+        grupo_redis = self.combobox_redis_grupo.get()
+        conexao_redis = self.combobox_redis.get()
+
+        if conexao_redis or grupo_redis:
+            lista_grupo_selecionado = self.infos_config["redis_qa"][grupo_redis]
+            for redis in lista_grupo_selecionado:
+                if redis['nome_redis'] == conexao_redis:
+                    self.label_nome_conexao_alterar.config(text=conexao_redis)
+                    count = 0
+                    for entry_atual in self.entries:
+                        if count == 0:
+                            entry_atual.insert(0, redis['nome_redis'])
+                        elif count == 1:
+                            if '\\\\' in redis['ip']:
+                                redis['ip'] = redis['ip'].replace('\\\\', '\\')
+                            entry_atual.insert(0, redis['ip'])
+                        elif count == 2:
+                            entry_atual.insert(0, redis['port'])
+                        else:
+                            entry_atual.insert(0, "Erro")
+                        count += 1
+                else:
+                    continue
+
+    def consultar_preencher_infos_conexoes_sql(self, event):
+        for entry_atual in self.entries:
+            entry_atual.delete(0, END)
+        conexao = self.combobox_conexoes_alterar.get()
+        if conexao:
+            servidor_selecionado = self.infos_config["conexoes"][conexao]
+            self.label_nome_conexao_alterar.config(text=conexao)
+            count = 0
+            for entry_atual in self.entries:
+                if count == 0:
+                    entry_atual.insert(0, conexao)
+                elif count == 1:
+                    if '\\\\' in servidor_selecionado['server']:
+                        servidor_selecionado['server'] = servidor_selecionado['server'].replace('\\\\', '\\')
+                    entry_atual.insert(0, servidor_selecionado['server'])
+                elif count == 2:
+                    entry_atual.insert(0, servidor_selecionado['username'])
+                elif count == 3:
+                    entry_atual.insert(0, servidor_selecionado['password'])
+                else:
+                    entry_atual.insert(0, "Erro")
+                count += 1
+
     def alterar_status_campos_tela(self, status):
         if status:
             for entry_atual in self.entries:
@@ -922,7 +1070,21 @@ class Aplicativo:
 
         return opcoes_grupo_redis
 
-    def atualizar_opcoes(self, event):
+    def alterar_state_checkbox(self, event):
+        operacao = self.combobox_operacoes.get()
+        if operacao == "CPF":
+            self.checkbox_check_estado.config(state="normal")
+        else:
+            self.checkbox_check_estado.config(state="disabled")
+
+    def alterar_state_select(self, event):
+        operacao = self.combobox_operacoes.get()
+        if operacao == "CPF":
+            self.combobox_estados.config(state="normal")
+        else:
+            self.combobox_estados.config(state="disabled")
+
+    def atualizar_opcoes_redis(self, event):
         redis_total = dict()
         red_grupo_atual = ''
         nome_redis = []
@@ -938,12 +1100,17 @@ class Aplicativo:
             self.combobox_redis['values'] = nome_redis
             self.combobox_redis.set(nome_redis)
             self.combobox_redis['values'] = nome_redis
-            self.escrever_no_input("- A tag ou Grupo do redis se encontra vazio")
+            self.escrever_no_input("- A tag ou Grupo do redis se encontra vazia")
             self.escrever_arquivo_log(self.nomes['arquivo_redis'],
-                                      f"ERRO - A tag ou Grupo do redis se encontra vazio")
+                                      f"ERRO - A tag ou Grupo do redis se encontra vazia")
         else:
             self.combobox_redis['values'] = nome_redis
             self.combobox_redis.set(nome_redis[0])
+
+        try:
+            self.consultar_preencher_infos_conexoes_redis("<<ComboboxSelected>>")
+        except:
+            return
 
     def criar_dict_conexoes(self):
         grupo_con = dict()
@@ -960,14 +1127,14 @@ class Aplicativo:
             self.infos_config['conexoes'] = grupo_con
 
     def escrever_arquivo_log(self, nome_arquivo, texto):
-        validar_diretorio(self.nomes, self.criar_popup_mensagem)
+        validar_diretorio(self.nomes, self.criar_popup_mensagem, self.escrever_arquivo_log)
         self.arquivo_log = open(f"{self.nomes['diretorio_log']}\\{nome_arquivo}.txt", "a")
         pula_linha = validar_linha(self.nomes['diretorio_log'], nome_arquivo)
         self.arquivo_log.write(f"{pula_linha}{data_hora_atual()} - {texto}")
         self.arquivo_log.close()
 
     def escrever_arquivo_txt(self, nome_arquivo, texto):
-        validar_diretorio(self.nomes, self.criar_popup_mensagem)
+        validar_diretorio(self.nomes, self.criar_popup_mensagem, self.escrever_arquivo_log)
         self.arquivo_txt = open(f"{self.nomes['diretorio_txt']}\\{nome_arquivo}.txt", "a")
         pula_linha = validar_linha(self.nomes['diretorio_txt'], nome_arquivo)
         self.arquivo_txt.write(f"{pula_linha}{data_hora_atual()} - {texto}")
@@ -998,15 +1165,18 @@ class Aplicativo:
 
     def criar_popup_mensagem(self, mensagem):
         msg = Tk()
-        msg.geometry(f"{self.largura}x200+{self.metade_wid}+{self.metade_hei}")
+        #msg.geometry(f"70x200+{self.metade_wid}+{self.metade_hei}")
+        msg.maxsize(450, 450)
+        msg.minsize(300, 200)
+        mensagem_em_linhas = self.quebra_mensagem_popup(mensagem)
         msg.configure(bg=self.infos_config_prog["background_color_fundo"])
         msg.grid_rowconfigure(0, weight=1)
         msg.grid_columnconfigure(0, weight=1)
         msg.config(padx=10, pady=10)
-        msg.title("MSS - " + self.version + " - ALERTA")
+        msg.title("MSS - " + self.version + " - ATENÇÂO")
         label_mensagem = Label(
             msg,
-            text=f"{mensagem}",
+            text=f"{mensagem_em_linhas}",
             padx=20,
             pady=20,
             bg=self.infos_config_prog["background_color_titulos"]
@@ -1083,6 +1253,8 @@ class Aplicativo:
             self.trocar_tela_menu_geral()
         except Exception as error:
             self.criar_popup_mensagem(f"Erro ao Alterar o background: {error}")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                      f"ERRO - Erro ao Alterar o background: {error}")
 
     def redefinir_background(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Background Redefinido")
@@ -1109,6 +1281,8 @@ class Aplicativo:
             self.trocar_tela_menu_geral()
         except Exception as error:
             self.criar_popup_mensagem(f"Erro ao Alterar o background: {error}")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                      f"ERRO - Erro ao Alterar o background: {error}")
 
     def percorrer_widgets(self, app):
         self.widget.clear()
@@ -1128,7 +1302,143 @@ class Aplicativo:
             self.entry.insert(0, self.placeholder_text)
             self.entry.config(foreground='gray')
 
-# Processos principais
+# Process principais
+    def manipular_grupo_redis_config_excluir(self, grupo_redis):
+        try:
+            self.infos_config['redis_qa'].pop(grupo_redis)
+            self.atualizar_arquivo_json(self.infos_config_prog['config_default'])
+            self.criar_popup_mensagem("Grupo de Redis excluido com sucesso!")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Grupo de Redis excluido com sucesso!")
+            self.trocar_tela_configuracao_conexoes_redis_grupo_excluir()
+        except Exception as error:
+            self.criar_popup_mensagem(f"Erro ao Excluir o Grupo de Redis: {error}")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                      f"ERRO - Erro ao Excluir o Grupo de Redis: {error}")
+
+    def manipular_grupo_redis_config_alterar(self, descricao, grupo_redis):
+        try:
+                self.infos_config['redis_qa'][descricao] =  self.infos_config['redis_qa'].pop(grupo_redis)
+                self.atualizar_arquivo_json(self.infos_config_prog['config_default'])
+                self.criar_popup_mensagem("Grupo de Redis alterado com sucesso!")
+                self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Grupo de Redis alterado com sucesso!")
+                self.trocar_tela_configuracao_conexoes_redis_grupo_alterar()
+        except Exception as error:
+            self.criar_popup_mensagem(f"Erro ao Alterar o Grupo de Redis: {error}")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                      f"ERRO - Erro ao Alterar o Grupo de Redis: {error}")
+
+    def manipular_grupo_redis_config_criar(self, descricao, grupo_redis):
+        try:
+            self.infos_config['redis_qa'][descricao] = [{'ip': '127.0.0.1', 'nome_redis': 'exemplo_redis', 'port': '1234'}]
+            self.atualizar_arquivo_json(self.infos_config_prog['config_default'])
+            self.criar_popup_mensagem("Grupo de Redis criado com sucesso!")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Grupo de Redis criado com sucesso!")
+            self.trocar_tela_configuracao_conexoes_redis_grupo_criar()
+        except Exception as error:
+            self.criar_popup_mensagem(f"Erro ao Criar o Grupo de Redis: {error}")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                      f"ERRO - Erro ao Criar o Grupo de Redis: {error}")
+
+    def manipular_redis_config(self, funcao):
+        try:
+            conexao = self.combobox_conexoes_alterar.get()
+        except:
+            conexao = ''
+        valores_entries = []
+        for entry_atual in self.entries:
+            valores_entries.append(entry_atual.get())
+        try:
+            nome_conexao_entry = str(valores_entries[0])
+        except:
+            nome_conexao_entry = ''
+        if funcao == 'alterar':
+            if conexao == nome_conexao_entry:
+                self.infos_config['conexoes'][conexao].update({'server': valores_entries[1], 'username': valores_entries[2], 'password': valores_entries[3]})
+                self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - {funcao} conexão: {conexao}")
+            else:
+                self.infos_config['conexoes'].pop(conexao)
+                self.infos_config['conexoes'][nome_conexao_entry] = {'server': valores_entries[1], 'username': valores_entries[2], 'password': valores_entries[3]}
+                self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],f"INFO - Rotina - {funcao} conexão: {conexao}")
+        elif funcao == 'criar':
+            self.infos_config['conexoes'][nome_conexao_entry] = {'server': valores_entries[1], 'username': valores_entries[2], 'password': valores_entries[3]}
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - {funcao} conexão: {nome_conexao_entry}")
+        elif funcao == 'excluir':
+            self.infos_config['conexoes'].pop(conexao)
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - {funcao} conexão: {conexao}")
+        else:
+            self.criar_popup_mensagem("funcao invalida")
+        self.atualizar_arquivo_json(self.infos_config_prog['config_default'])
+
+        self.trocar_tela_configuracao_conexoes_sql()
+
+    def manipular_redis_config2(self, funcao):
+        grupo_redis = self.combobox_redis_grupo.get()
+        redis = self.combobox_redis.get()
+        valores_entries = []
+        for entry_atual in self.entries:
+            valores_entries.append(entry_atual.get())
+        if funcao == 'alterar':
+            count = 0
+            for red in self.infos_config['redis_qa'][grupo_redis]:
+                if red['nome_redis'] == redis:
+                    self.infos_config['redis_qa'][grupo_redis][count]['nome_redis'] = str(valores_entries[0])
+                    self.infos_config['redis_qa'][grupo_redis][count]['ip'] = str(valores_entries[1])
+                    self.infos_config['redis_qa'][grupo_redis][count]['port'] = str(valores_entries[2])
+                    count += 1
+                else:
+                    count += 1
+                    continue
+        elif funcao == 'criar':
+            redis_dict = {
+                "ip": str(valores_entries[0]),
+                "nome_redis": str(valores_entries[1]),
+                "port": str(valores_entries[2])
+            }
+            self.infos_config['redis_qa'][grupo_redis].append(redis_dict)
+        elif funcao == 'excluir':
+            count = 0
+            for red in self.infos_config['redis_qa'][grupo_redis]:
+                if red['nome_redis'] == redis:
+                    self.infos_config['redis_qa'][grupo_redis].pop(count)
+                    count += 1
+                else:
+                    count += 1
+                    continue
+
+        self.trocar_tela_configuracao_conexoes_redis_menu()
+
+    def manipular_conexoes_config(self, funcao):
+        try:
+            conexao = self.combobox_conexoes_alterar.get()
+        except:
+            conexao = ''
+        valores_entries = []
+        for entry_atual in self.entries:
+            valores_entries.append(entry_atual.get())
+        try:
+            nome_conexao_entry = str(valores_entries[0])
+        except:
+            nome_conexao_entry = ''
+        if funcao == 'alterar':
+            if conexao == nome_conexao_entry:
+                self.infos_config['conexoes'][conexao].update({'server': valores_entries[1], 'username': valores_entries[2], 'password': valores_entries[3]})
+                self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - {funcao} conexão: {conexao}")
+            else:
+                self.infos_config['conexoes'].pop(conexao)
+                self.infos_config['conexoes'][nome_conexao_entry] = {'server': valores_entries[1], 'username': valores_entries[2], 'password': valores_entries[3]}
+                self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],f"INFO - Rotina - {funcao} conexão: {conexao}")
+        elif funcao == 'criar':
+            self.infos_config['conexoes'][nome_conexao_entry] = {'server': valores_entries[1], 'username': valores_entries[2], 'password': valores_entries[3]}
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - {funcao} conexão: {nome_conexao_entry}")
+        elif funcao == 'excluir':
+            self.infos_config['conexoes'].pop(conexao)
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - {funcao} conexão: {conexao}")
+        else:
+            self.criar_popup_mensagem("funcao invalida")
+        self.atualizar_arquivo_json(self.infos_config_prog['config_default'])
+
+        self.trocar_tela_configuracao_conexoes_sql()
+
     def atualizar_bancos_update(self):
         print("Não implementado")
 
@@ -2228,7 +2538,7 @@ drop table DBCCPAGE
 
     def validador_nif(self, documento_inserido):
         try:
-            self.combobox.config(state='disabled')
+            self.combobox_operacoes.config(state='disabled')
             self.entry.config(state='disabled')
             self.button_gerador_inicio.config(state='disabled')
             self.button_gerador_voltar.config(state='disabled')
@@ -2277,7 +2587,7 @@ drop table DBCCPAGE
                 else:
                     self.escrever_no_input(f"- Documento invalido")
 
-            self.combobox.config(state='normal')
+            self.combobox_operacoes.config(state='normal')
             self.entry.config(state='normal')
             self.button_gerador_inicio.config(state='normal')
             self.button_gerador_voltar.config(state='normal')
@@ -2285,7 +2595,7 @@ drop table DBCCPAGE
             self.button_gerador_limpar.config(state='normal')
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.combobox.config(state='normal')
+            self.combobox_operacoes.config(state='normal')
             self.entry.config(state='normal')
             self.button_gerador_inicio.config(state='normal')
             self.button_gerador_voltar.config(state='normal')
@@ -2294,7 +2604,7 @@ drop table DBCCPAGE
 
     def validador_cnpj(self, documento_inserido):
         try:
-            self.combobox.config(state='disabled')
+            self.combobox_operacoes.config(state='disabled')
             self.entry.config(state='disabled')
             self.button_gerador_inicio.config(state='disabled')
             self.button_gerador_voltar.config(state='disabled')
@@ -2361,7 +2671,7 @@ drop table DBCCPAGE
                     self.escrever_no_input(f"- CNPJ - {doc} - {status_checagem}")
                 else:
                     self.escrever_no_input(f"- Documento invalido")
-            self.combobox.config(state='normal')
+            self.combobox_operacoes.config(state='normal')
             self.entry.config(state='normal')
             self.button_gerador_inicio.config(state='normal')
             self.button_gerador_voltar.config(state='normal')
@@ -2369,16 +2679,16 @@ drop table DBCCPAGE
             self.button_gerador_limpar.config(state='normal')
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.combobox.config(state='normal')
+            self.combobox_operacoes.config(state='normal')
             self.entry.config(state='normal')
             self.button_gerador_inicio.config(state='normal')
             self.button_gerador_voltar.config(state='normal')
             self.button_menu_sair.config(state='normal')
             self.button_gerador_limpar.config(state='normal')
 
-    def validador_cpf(self, documento_inserido):
+    def validador_cpf(self, documento_inserido, checkbox_estado):
         try:
-            self.combobox.config(state='disabled')
+            self.combobox_operacoes.config(state='disabled')
             self.entry.config(state='disabled')
             self.button_gerador_inicio.config(state='disabled')
             self.button_gerador_voltar.config(state='disabled')
@@ -2386,11 +2696,13 @@ drop table DBCCPAGE
             self.button_gerador_limpar.config(state='disabled')
             self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Rotina - Gerador CPF")
             lista_sem_mascara = self.limpar_string(documento_inserido)
+            sigla_estado = ''
             for doc in lista_sem_mascara:
                 if doc.isdigit():
                     tam_documento = len(doc)
                     sem_digitos_validadores = doc[0:tam_documento - 2]
                     digitos_validadores = doc[tam_documento - 2:tam_documento]
+                    digitos_estado = doc[tam_documento - 3:tam_documento - 2]
                     divisor = 11
 
                     basecpf = []
@@ -2439,15 +2751,40 @@ drop table DBCCPAGE
 
                     digitos_gerados = str(dig1_cpf) + str(dig2_cpf)
 
+                    if checkbox_estado:
+                        match digitos_estado:
+                            case '0':
+                                sigla_estado = " - RS"
+                            case '1':
+                                sigla_estado = " - DF/GO/MS/TO"
+                            case '2':
+                                sigla_estado = " - PA/AM/AC/AP/RO/RR"
+                            case '3':
+                                sigla_estado = " - CE/MA/PI"
+                            case '4':
+                                sigla_estado = " - PE/RN/PB/AL"
+                            case '5':
+                                sigla_estado = " - BA/SE"
+                            case '6':
+                                sigla_estado = " - MG"
+                            case '7':
+                                sigla_estado = " - RJ"
+                            case '8':
+                                sigla_estado = " - ES"
+                            case '9':
+                                sigla_estado = " - SP"
+                            case _:
+                                sigla_estado = " - Erro"
+
                     if digitos_gerados == digitos_validadores:
                         status_checagem = "Verdadeiro"
                     else:
                         status_checagem = "Falso"
-                    self.escrever_no_input(f"- CPF - {doc} - {status_checagem}")
+                    self.escrever_no_input(f"- CPF - {doc} - {status_checagem}{sigla_estado}")
                 else:
                     self.escrever_no_input(f"- Documento invalido")
 
-            self.combobox.config(state='normal')
+            self.combobox_operacoes.config(state='normal')
             self.entry.config(state='normal')
             self.button_gerador_inicio.config(state='normal')
             self.button_gerador_voltar.config(state='normal')
@@ -2455,7 +2792,7 @@ drop table DBCCPAGE
             self.button_gerador_limpar.config(state='normal')
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.combobox.config(state='normal')
+            self.combobox_operacoes.config(state='normal')
             self.entry.config(state='normal')
             self.button_gerador_inicio.config(state='normal')
             self.button_gerador_voltar.config(state='normal')
@@ -2464,7 +2801,7 @@ drop table DBCCPAGE
 
     def validador_cei(self, documento_inserido):
         try:
-            self.combobox.config(state='disabled')
+            self.combobox_operacoes.config(state='disabled')
             self.entry.config(state='disabled')
             self.button_gerador_inicio.config(state='disabled')
             self.button_gerador_voltar.config(state='disabled')
@@ -2516,7 +2853,7 @@ drop table DBCCPAGE
                     self.escrever_no_input(f"- Documento invalido")
 
 
-            self.combobox.config(state='normal')
+            self.combobox_operacoes.config(state='normal')
             self.entry.config(state='normal')
             self.button_gerador_inicio.config(state='normal')
             self.button_gerador_voltar.config(state='normal')
@@ -2524,7 +2861,7 @@ drop table DBCCPAGE
             self.button_gerador_limpar.config(state='normal')
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.combobox.config(state='normal')
+            self.combobox_operacoes.config(state='normal')
             self.entry.config(state='normal')
             self.button_gerador_inicio.config(state='normal')
             self.button_gerador_voltar.config(state='normal')
@@ -2533,7 +2870,7 @@ drop table DBCCPAGE
 
     def validador_pis(self, documento_inserido):
         try:
-            self.combobox.config(state='disabled')
+            self.combobox_operacoes.config(state='disabled')
             self.entry.config(state='disabled')
             self.button_gerador_inicio.config(state='disabled')
             self.button_gerador_voltar.config(state='disabled')
@@ -2584,7 +2921,7 @@ drop table DBCCPAGE
                     self.escrever_no_input(f"- Documento invalido")
 
 
-            self.combobox.config(state='normal')
+            self.combobox_operacoes.config(state='normal')
             self.entry.config(state='normal')
             self.button_gerador_inicio.config(state='normal')
             self.button_gerador_voltar.config(state='normal')
@@ -2593,7 +2930,7 @@ drop table DBCCPAGE
 
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.combobox.config(state='normal')
+            self.combobox_operacoes.config(state='normal')
             self.entry.config(state='normal')
             self.button_gerador_inicio.config(state='normal')
             self.button_gerador_voltar.config(state='normal')
@@ -2602,7 +2939,7 @@ drop table DBCCPAGE
 
     def gerador_nif(self, linhas, checkbox_arquivo):
         try:
-            self.combobox.config(state='disabled')
+            self.combobox_operacoes.config(state='disabled')
             self.entry.config(state='disabled')
             self.button_gerador_inicio.config(state='disabled')
             self.button_gerador_voltar.config(state='disabled')
@@ -2636,7 +2973,7 @@ drop table DBCCPAGE
                 self.escrever_no_input(lista[0])
                 if checkbox_arquivo:
                     self.escrever_arquivo_txt(self.nomes['arquivo_doc_nif'], lista[0])
-            self.combobox.config(state='normal')
+            self.combobox_operacoes.config(state='normal')
             self.entry.config(state='normal')
             self.button_gerador_inicio.config(state='normal')
             self.button_gerador_voltar.config(state='normal')
@@ -2646,7 +2983,7 @@ drop table DBCCPAGE
 
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.combobox.config(state='normal')
+            self.combobox_operacoes.config(state='normal')
             self.entry.config(state='normal')
             self.button_gerador_inicio.config(state='normal')
             self.button_gerador_voltar.config(state='normal')
@@ -2655,7 +2992,7 @@ drop table DBCCPAGE
 
     def gerador_cnpj(self, linhas, checkbox_mascara, checkbox_arquivo):
         try:
-            self.combobox.config(state='disabled')
+            self.combobox_operacoes.config(state='disabled')
             self.entry.config(state='disabled')
             self.button_gerador_inicio.config(state='disabled')
             self.button_gerador_voltar.config(state='disabled')
@@ -2703,7 +3040,7 @@ drop table DBCCPAGE
 
                 if checkbox_arquivo:
                     self.escrever_arquivo_txt(self.nomes['arquivo_doc_cnpj'], lista[0])
-            self.combobox.config(state='normal')
+            self.combobox_operacoes.config(state='normal')
             self.entry.config(state='normal')
             self.button_gerador_inicio.config(state='normal')
             self.button_gerador_voltar.config(state='normal')
@@ -2713,16 +3050,17 @@ drop table DBCCPAGE
 
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.combobox.config(state='normal')
+            self.combobox_operacoes.config(state='normal')
             self.entry.config(state='normal')
             self.button_gerador_inicio.config(state='normal')
             self.button_gerador_voltar.config(state='normal')
             self.button_menu_sair.config(state='normal')
             self.button_gerador_limpar.config(state='normal')
 
-    def gerador_cpf(self, linhas, checkbox_mascara, checkbox_arquivo):
+    def gerador_cpf(self, linhas, checkbox_mascara, checkbox_arquivo, selecao_combobox_estados):
         try:
-            self.combobox.config(state='disabled')
+            self.combobox_operacoes.config(state='disabled')
+            self.combobox_estados.config(state='disabled')
             self.entry.config(state='disabled')
             self.button_gerador_inicio.config(state='disabled')
             self.button_gerador_voltar.config(state='disabled')
@@ -2730,8 +3068,13 @@ drop table DBCCPAGE
             self.button_gerador_limpar.config(state='disabled')
             self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Rotina - Gerador CPF")
             contador = int(linhas)
+            estado = int(selecao_combobox_estados[0:2].strip())
 
             while contador:
+                if estado == 10:
+                    n9 = random.randrange(0, 9, 1)
+                else:
+                    n9 = estado
                 lista = []
                 n1 = random.randrange(0, 9, 1)
                 n2 = random.randrange(0, 9, 1)
@@ -2741,7 +3084,6 @@ drop table DBCCPAGE
                 n6 = random.randrange(0, 9, 1)
                 n7 = random.randrange(0, 9, 1)
                 n8 = random.randrange(0, 9, 1)
-                n9 = random.randrange(0, 9, 1)
 
                 soma1 = (n1 * 10) + (n2 * 9) + (n3 * 8) + (n4 * 7) + (n5 * 6) + (n6 * 5) + (n7 * 4) + (n8 * 3) + (n9 * 2)
                 etapa1_cpf = math.floor(soma1/11)
@@ -2766,7 +3108,8 @@ drop table DBCCPAGE
 
                 if checkbox_arquivo:
                     self.escrever_arquivo_txt(self.nomes['arquivo_doc_cpf'], lista[0])
-            self.combobox.config(state='normal')
+            self.combobox_operacoes.config(state='normal')
+            self.combobox_estados.config(state='normal')
             self.entry.config(state='normal')
             self.button_gerador_inicio.config(state='normal')
             self.button_gerador_voltar.config(state='normal')
@@ -2776,7 +3119,8 @@ drop table DBCCPAGE
 
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.combobox.config(state='normal')
+            self.combobox_operacoes.config(state='normal')
+            self.combobox_estados.config(state='normal')
             self.entry.config(state='normal')
             self.button_gerador_inicio.config(state='normal')
             self.button_gerador_voltar.config(state='normal')
@@ -2785,7 +3129,7 @@ drop table DBCCPAGE
 
     def gerador_cei(self, linhas, checkbox_mascara, checkbox_arquivo):
         try:
-            self.combobox.config(state='disabled')
+            self.combobox_operacoes.config(state='disabled')
             self.entry.config(state='disabled')
             self.button_gerador_inicio.config(state='disabled')
             self.button_gerador_voltar.config(state='disabled')
@@ -2834,7 +3178,7 @@ drop table DBCCPAGE
 
                 if checkbox_arquivo:
                     self.escrever_arquivo_txt(self.nomes['arquivo_doc_cei'], lista[0])
-            self.combobox.config(state='normal')
+            self.combobox_operacoes.config(state='normal')
             self.entry.config(state='normal')
             self.button_gerador_inicio.config(state='normal')
             self.button_gerador_voltar.config(state='normal')
@@ -2844,7 +3188,7 @@ drop table DBCCPAGE
 
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.combobox.config(state='normal')
+            self.combobox_operacoes.config(state='normal')
             self.entry.config(state='normal')
             self.button_gerador_inicio.config(state='normal')
             self.button_gerador_voltar.config(state='normal')
@@ -2853,7 +3197,7 @@ drop table DBCCPAGE
 
     def gerador_pis(self, linhas, checkbox_mascara, checkbox_arquivo):
         try:
-            self.combobox.config(state='disabled')
+            self.combobox_operacoes.config(state='disabled')
             self.entry.config(state='disabled')
             self.button_gerador_inicio.config(state='disabled')
             self.button_gerador_voltar.config(state='disabled')
@@ -2905,7 +3249,7 @@ drop table DBCCPAGE
 
                 if checkbox_arquivo:
                     self.escrever_arquivo_txt(self.nomes['arquivo_doc_pis'], lista[0])
-            self.combobox.config(state='normal')
+            self.combobox_operacoes.config(state='normal')
             self.entry.config(state='normal')
             self.button_gerador_inicio.config(state='normal')
             self.button_gerador_voltar.config(state='normal')
@@ -2915,7 +3259,7 @@ drop table DBCCPAGE
 
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.combobox.config(state='normal')
+            self.combobox_operacoes.config(state='normal')
             self.entry.config(state='normal')
             self.button_gerador_inicio.config(state='normal')
             self.button_gerador_voltar.config(state='normal')
@@ -2924,7 +3268,8 @@ drop table DBCCPAGE
 
 # Menus que realizam as validar antes de inicar os processos
     def menu_gerador_documentos(self):
-        selecao_combobox = self.combobox.get()
+        selecao_combobox_operacoes = self.combobox_operacoes.get()
+        selecao_combobox_estados = self.combobox_estados.get()
         if self.entry.get() != self.placeholder_text and self.entry.get() != '':
             quant_insirada = self.entry.get()
         else:
@@ -2932,13 +3277,13 @@ drop table DBCCPAGE
         checkbox_mascara = self.valor_checkbox_mascara_num.get()
         checkbox_arquivo = self.valor_checkbox_gerar_arquivo.get()
         if str(quant_insirada).isdigit():
-            match selecao_combobox:
+            match selecao_combobox_operacoes:
                 case "CEI":
                     self.iniciar_processo_gerar_cei(quant_insirada, checkbox_mascara, checkbox_arquivo)
                 case "CNPJ":
                     self.iniciar_processo_gerar_cnpj(quant_insirada, checkbox_mascara, checkbox_arquivo)
                 case "CPF":
-                    self.iniciar_processo_gerar_cpf(quant_insirada, checkbox_mascara, checkbox_arquivo)
+                    self.iniciar_processo_gerar_cpf(quant_insirada, checkbox_mascara, checkbox_arquivo, selecao_combobox_estados)
                 case "NIF":
                     self.iniciar_processo_gerar_nif(quant_insirada, checkbox_arquivo)
                 case "PIS":
@@ -2950,7 +3295,8 @@ drop table DBCCPAGE
             return
 
     def menu_validador_documentos(self):
-        selecao_combobox = self.combobox.get()
+        selecao_combobox = self.combobox_operacoes.get()
+        checkbox_estado = self.valor_checkbox_check_estado.get()
         documento_inserido = self.entry.get()
         if documento_inserido != self.placeholder_text and documento_inserido != "":
             match selecao_combobox:
@@ -2959,7 +3305,7 @@ drop table DBCCPAGE
                 case "CNPJ":
                     self.iniciar_processo_validar_cnpj(documento_inserido)
                 case "CPF":
-                    self.iniciar_processo_validar_cpf(documento_inserido)
+                    self.iniciar_processo_validar_cpf(documento_inserido, checkbox_estado)
                 case "NIF":
                     self.iniciar_processo_validar_nif(documento_inserido)
                 case "PIS":
@@ -2984,7 +3330,7 @@ drop table DBCCPAGE
                         break
                     else:
                         self.escrever_no_input(f"- A tag de redis_qa parece estar vazia")
-                        self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"INFO - A tag de redis_qa parece estar vazia, preencha e recarregue o config novamente ")
+                        self.escrever_arquivo_log(self.nomes['arquivo_redis'], f"ERRO - A tag de redis_qa parece estar vazia, preencha e recarregue o config novamente ")
                         self.infos_config['status'] = False
                 except (Exception or pyodbc.DatabaseError) as err:
                     self.escrever_no_input(f"- Falha ao tentar ler o arquivo {err}")
@@ -3025,6 +3371,133 @@ drop table DBCCPAGE
                 break
 
 # iniciadores de processos
+    def iniciar_processo_excluir_redis(self):
+        funcao = 'excluir'
+        grupo_redis = self.combobox_redis_grupo.get()
+        redis = self.combobox_redis.get()
+        conexao = ''
+        if conexao == '':
+            self.criar_popup_mensagem("Necessario selecionar uma conexão")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Necessario selecionar uma conexão")
+            return
+        else:
+            self.manipular_redis_config(funcao)
+
+    def iniciar_processo_alterar_redis(self):
+        funcao = 'alterar'
+        valores_entries = []
+        grupo_redis = self.combobox_redis_grupo.get()
+        redis = self.combobox_redis.get()
+        for entry_atual in self.entries:
+            valores_entries.append(entry_atual.get())
+        descricao_conexao = valores_entries[0].lower()
+
+        if redis == '':
+            self.criar_popup_mensagem("Necessario selecionar uma conexão")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Necessario selecionar uma conexão")
+            return
+        elif descricao_conexao == '':
+            self.criar_popup_mensagem("Necessario inserir uma descrição para a conexão")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Necessario inserir uma descrição para a conexão")
+            return
+        else:
+            self.manipular_redis_config(funcao)
+
+    def iniciar_processo_grupo_redis(self, funcao):
+        valores_entries = []
+
+        for entry_atual in self.entries:
+            valores_entries.append(entry_atual.get())
+        try:
+            descricao = (valores_entries[0]).replace(' ', '_')
+        except:
+            descricao = ''
+        grupos_redis = self.infos_config['redis_qa']
+        try:
+            grupo_redis = self.combobox_redis_grupo.get()
+        except:
+            grupo_redis = ''
+
+        if descricao or grupo_redis:
+            match funcao:
+                case "criar":
+                    if not descricao in grupo_redis:
+                        self.manipular_grupo_redis_config_criar(descricao, grupos_redis)
+                    else:
+                        self.criar_popup_mensagem('Descrição de grupo já utilizado')
+                case "alterar":
+                    self.manipular_grupo_redis_config_alterar(descricao, grupo_redis)
+                case "excluir":
+                    self.manipular_grupo_redis_config_excluir(grupo_redis)
+        else:
+            self.criar_popup_mensagem("Campos Descrição e Grupo Redis devem ser preenchidos")
+
+    def iniciar_processo_criar_redis(self):
+        funcao = 'criar'
+        valores_entries = []
+
+        for entry_atual in self.entries:
+            valores_entries.append(entry_atual.get())
+        descricao_conexao = valores_entries[0].lower()
+        redis_selecionado = self.infos_config['redis_qa'].keys()
+        if descricao_conexao in redis_selecionado:
+            self.criar_popup_mensagem("Já existe uma conexão com essa descrição")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Já existe uma conexão com essa descrição")
+            return
+        elif descricao_conexao == '':
+            self.criar_popup_mensagem("Necessario inserir uma descrição para a conexão")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Necessario inserir uma descrição para a conexão")
+            return
+        else:
+            self.manipular_redis_config(funcao)
+
+    def iniciar_processo_excluir_conexoes(self):
+        funcao = 'excluir'
+        conexao =  self.combobox_conexoes_alterar.get()
+        if conexao == '':
+            self.criar_popup_mensagem("Necessario selecionar uma conexão")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Necessario selecionar uma conexão")
+            return
+        else:
+            self.manipular_conexoes_config(funcao)
+
+    def iniciar_processo_alterar_conexoes(self):
+        funcao = 'alterar'
+        valores_entries = []
+        conexao = self.combobox_conexoes_alterar.get()
+        for entry_atual in self.entries:
+            valores_entries.append(entry_atual.get())
+        descricao_conexao = valores_entries[0].lower()
+        conexoes = self.infos_config['conexoes'].keys()
+        if conexao == '':
+            self.criar_popup_mensagem("Necessario selecionar uma conexão")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Necessario selecionar uma conexão")
+            return
+        elif descricao_conexao == '':
+            self.criar_popup_mensagem("Necessario inserir uma descrição para a conexão")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Necessario inserir uma descrição para a conexão")
+            return
+        else:
+            self.manipular_conexoes_config(funcao)
+
+    def iniciar_processo_criar_conexoes(self):
+        funcao = 'criar'
+        valores_entries = []
+        for entry_atual in self.entries:
+            valores_entries.append(entry_atual.get())
+        descricao_conexao = valores_entries[0].lower()
+        conexoes = self.infos_config['conexoes'].keys()
+        if descricao_conexao in conexoes:
+            self.criar_popup_mensagem("Já existe uma conexão com essa descrição")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Já existe uma conexão com essa descrição")
+            return
+        elif descricao_conexao == '':
+            self.criar_popup_mensagem("Necessario inserir uma descrição para a conexão")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Necessario inserir uma descrição para a conexão")
+            return
+        else:
+            self.manipular_conexoes_config(funcao)
+
     def iniciar_processo_validar_nif(self, documento_inserido):
         # Criar uma nova thread para executar o processo demorado
         self.thread = threading.Thread(target=self.validador_nif, args=[documento_inserido])
@@ -3035,9 +3508,9 @@ drop table DBCCPAGE
         self.thread = threading.Thread(target=self.validador_cnpj, args=[documento_inserido])
         self.thread.start()
 
-    def iniciar_processo_validar_cpf(self, documento_inserido):
+    def iniciar_processo_validar_cpf(self, documento_inserido, checkbox_estado):
         # Criar uma nova thread para executar o processo demorado
-        self.thread = threading.Thread(target=self.validador_cpf, args=[documento_inserido])
+        self.thread = threading.Thread(target=self.validador_cpf, args=[documento_inserido, checkbox_estado])
         self.thread.start()
 
     def iniciar_processo_validar_cei(self, documento_inserido):
@@ -3062,10 +3535,10 @@ drop table DBCCPAGE
         self.thread = threading.Thread(target=self.gerador_cnpj, args=[linhas, checkbox_mascara, checkbox_arquivo])
         self.thread.start()
 
-    def iniciar_processo_gerar_cpf(self, linhas, checkbox_mascara, checkbox_arquivo):
+    def iniciar_processo_gerar_cpf(self, linhas, checkbox_mascara, checkbox_arquivo, selecao_combobox_estados):
         self.escrever_no_input(f"- Processo iniciado - Gerador de CPF")
         # Criar uma nova thread para executar o processo demorado
-        self.thread = threading.Thread(target=self.gerador_cpf, args=[linhas, checkbox_mascara, checkbox_arquivo])
+        self.thread = threading.Thread(target=self.gerador_cpf, args=[linhas, checkbox_mascara, checkbox_arquivo, selecao_combobox_estados])
         self.thread.start()
 
     def iniciar_processo_gerar_cei(self, linhas, checkbox_mascara, checkbox_arquivo):
@@ -3110,7 +3583,6 @@ drop table DBCCPAGE
         self.thread = threading.Thread(target=self.replicar_version)
         self.thread.start()
 
-
     def iniciar_processo_download(self):
         self.escrever_no_input(f"- Processo iniciado")
         # Criar uma nova thread para executar o processo demorado
@@ -3135,7 +3607,7 @@ drop table DBCCPAGE
         self.app.config(menu=menu_bar)
         file_menu = Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="Configuração", menu=file_menu)
-        file_menu.add_command(label="Trocar Configuração", command=self.trocar_tela_config)
+        file_menu.add_command(label="Editar Configurações", command=self.trocar_tela_configuracoes)
         file_menu.add_command(label="Ferramentas banco update", command=self.trocar_tela_atualizacao_banco_update)
 
         help_menu = Menu(menu_bar, tearoff=0)
@@ -3162,13 +3634,15 @@ drop table DBCCPAGE
         self.remover_conteudo_linha(7, 0)
 
 
-        if self.button_nav_criar != None:
+        if self.button_nav_criar is not None:
             self.button_nav_criar.config(state="disabled")
         # listar os arquivos de dentro da pasta
         try:
             arquivos_diretorio = os.listdir(self.nomes['pasta_config'])
         except Exception as name_error:
             self.criar_popup_mensagem(f"Não foi possivel acessar a pasta config: {name_error}")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                      f"ERRO - Não foi possivel acessar a pasta config: {name_error}")
             return
         else:
             loop = True
@@ -3187,9 +3661,13 @@ drop table DBCCPAGE
                         break
                     else:
                         self.criar_popup_mensagem(f"Não existe arquivos .json na pasta config")
+                        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                                  f"INFO - Não existe arquivos .json na pasta config")
                         return
                 else:
                     self.criar_popup_mensagem(f"Não existe arquivos na pasta config")
+                    self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                              f"INFO - Não existe arquivos .json na pasta config")
                     return
 
         self.infos_config_prog['escolha_manual'] = True
@@ -3222,7 +3700,7 @@ drop table DBCCPAGE
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Criar Arquivo config")
         self.remover_conteudo_linha(6,0)
         self.remover_conteudo_linha(7, 0)
-        if self.button_nav_escolher != None:
+        if self.button_nav_escolher is not None:
             self.button_nav_escolher.config(state="disabled")
 
         self.button_nav_criar = Button(
@@ -3272,10 +3750,32 @@ drop table DBCCPAGE
         self.entry.grid(row=linha_entry, column=coluna, columnspan=2, sticky=posicao_entry, pady=(pady_entry), padx=(padx_entry))
         self.entries.append(self.entry)
 
-    def inserir_input_placeholder(self, linha_label, linha_entry,  coluna, texto, nome_campo, padding_baixo):
+    def inserir_input_placeholder_linear(self, linha_label, linha_entry, coluna, texto, nome_campo, quant_pan, padx_label, padx_entry, pady_label, pady_entry, pos_label, pos_entry):
+        texo_com_espaco = "" + texto
+        self.placeholder_text = texo_com_espaco
+        placeholder_color = "Black"
+        quant_pan = int(quant_pan)
+        self.label = Label(
+            text=nome_campo,
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
+        self.entry = Entry(
+            self.app,
+            fg=placeholder_color
+        )
+        self.entry.insert(0, self.placeholder_text)
+        self.entry.bind("<FocusIn>", self.on_entry_click)
+        self.entry.bind("<FocusOut>", self.on_focusout)
+        self.label.grid(row=linha_label, column=coluna, padx=padx_label, pady=pady_label, sticky=pos_label)
+        self.entry.grid(row=linha_entry, column=coluna, columnspan=quant_pan, padx=padx_entry, pady=pady_entry, sticky=pos_entry)
+        self.entries.append(self.entry)
+
+    def inserir_input_placeholder(self, linha_label, linha_entry,  coluna, texto, nome_campo, padding_baixo, quant_pan):
         texo_com_espaco = "  " + texto
         self.placeholder_text = texo_com_espaco
         placeholder_color = "gray"
+        quant_pan = int(quant_pan)
         self.label = Label(
             text=nome_campo,
             bg=self.infos_config_prog["background_color_fundo"],
@@ -3289,7 +3789,8 @@ drop table DBCCPAGE
         self.entry.bind("<FocusIn>", self.on_entry_click)
         self.entry.bind("<FocusOut>", self.on_focusout)
         self.label.grid(row=linha_label, column=coluna, sticky="W", pady=(10, 0), padx=(15))
-        self.entry.grid(row=linha_entry, column=coluna, columnspan=2, sticky="WEN", padx=(15), pady=(0, padding_baixo))
+        self.entry.grid(row=linha_entry, column=coluna, columnspan=quant_pan, sticky="WEN", padx=(15), pady=(0, padding_baixo))
+        self.entries.append(self.entry)
 
     def inserir_titulos_telas(self, app, nome_tela, linha, coluna, padding_baixo):
         self.label_inserir_titulos = Label(
@@ -3350,6 +3851,127 @@ drop table DBCCPAGE
         self.entries = []
 
 # Realiza as limpezas e contruçoes antes da montagem das telas
+    def trocar_tela_configuracao_conexoes_redis_grupo_excluir(self):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Conexões Redis - Grupos - Exclusão")
+        peso_linha = 0
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
+        self.app.rowconfigure(3, weight=1)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(15, weight=1)
+        self.Inserir_estrutura_padrao_telas()
+        self.tela_configuracao_conexoes_redis_grupo_excluir(self.app, self.version, self.coluna)
+
+    def trocar_tela_configuracao_conexoes_redis_grupo_criar(self):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Conexões Redis - Grupos - Criação")
+        peso_linha = 0
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
+        self.app.rowconfigure(3, weight=1)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(15, weight=1)
+        self.Inserir_estrutura_padrao_telas()
+        self.tela_configuracao_conexoes_redis_grupo_criar(self.app, self.version, self.coluna)
+
+    def trocar_tela_configuracao_conexoes_redis_grupo_alterar(self):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Conexões Redis - Grupos - Alteração")
+        peso_linha = 0
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
+        self.app.rowconfigure(3, weight=1)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(15, weight=1)
+        self.Inserir_estrutura_padrao_telas()
+        self.tela_configuracao_conexoes_redis_grupo_alterar(self.app, self.version, self.coluna)
+
+    def trocar_tela_configuracao_conexoes_redis_menu_grupos(self):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Conexões REDIS - Grupos")
+        peso_linha = 0
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
+        self.app.rowconfigure(3, weight=1)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(15, weight=1)
+        self.Inserir_estrutura_padrao_telas()
+        self.tela_configuracao_conexoes_redis_menu_grupos(self.app, self.version, self.coluna)
+
+    def trocar_tela_configuracao_conexoes_redis_menu(self):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Conexões REDIS")
+        peso_linha = 0
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
+        self.app.rowconfigure(3, weight=1)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(15, weight=1)
+        self.Inserir_estrutura_padrao_telas()
+        self.tela_configuracao_conexoes_redis_menu(self.app, self.version, self.coluna)
+
+    def trocar_tela_configuracao_conexoes_sql_excluir(self):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Conexões SQL - Exclusão")
+        peso_linha = 0
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
+        self.app.rowconfigure(3, weight=1)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(15, weight=1)
+        self.Inserir_estrutura_padrao_telas()
+        self.tela_configuracao_conexoes_sql_excluir(self.app, self.version, self.coluna)
+
+    def trocar_tela_configuracao_conexoes_sql_criar(self):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Conexões SQL - Criação")
+        peso_linha = 0
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
+        self.app.rowconfigure(3, weight=1)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(15, weight=1)
+        self.Inserir_estrutura_padrao_telas()
+        self.tela_configuracao_conexoes_sql_criar(self.app, self.version, self.coluna)
+
+    def trocar_tela_configuracao_conexoes_sql_alterar(self):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Conexões SQL - Alteração")
+        peso_linha = 0
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
+        self.app.rowconfigure(3, weight=1)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(15, weight=1)
+        self.Inserir_estrutura_padrao_telas()
+        self.tela_configuracao_conexoes_sql_alterar(self.app, self.version, self.coluna)
+
+    def trocar_tela_configuracao_conexoes_sql(self):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Conexões SQL")
+        peso_linha = 0
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
+        self.app.rowconfigure(3, weight=1)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(15, weight=1)
+        self.Inserir_estrutura_padrao_telas()
+        self.tela_configuracao_conexoes_sql(self.app, self.version, self.coluna)
+
+    def trocar_tela_configuracoes(self):
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Configurações")
+        peso_linha = 0
+        self.app.rowconfigure(1, weight=self.peso_linha_um)
+        self.app.rowconfigure(2, weight=0)
+        self.app.rowconfigure(3, weight=1)
+        self.app.rowconfigure(4, weight=peso_linha)
+        self.app.rowconfigure(5, weight=peso_linha)
+        self.app.rowconfigure(6, weight=peso_linha)
+        self.app.rowconfigure(15, weight=1)
+        self.Inserir_estrutura_padrao_telas()
+        self.tela_configuracoes(self.app, self.version, self.coluna)
+
     def trocar_tela_menu_geral(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Menu")
         peso_linha = 0
@@ -3472,10 +4094,6 @@ drop table DBCCPAGE
         self.app.rowconfigure(8, weight=peso_linha)
         self.app.rowconfigure(9, weight=peso_linha)
         self.app.rowconfigure(10, weight=peso_linha)
-        self.app.rowconfigure(11, weight=peso_linha)
-        self.app.rowconfigure(12, weight=peso_linha)
-        self.app.rowconfigure(13, weight=peso_linha)
-        self.app.rowconfigure(14, weight=peso_linha)
         self.app.rowconfigure(15, weight=1)
         self.Inserir_estrutura_padrao_telas()
         self.tela_geradores(self.app, self.version, self.coluna)
@@ -3592,7 +4210,7 @@ drop table DBCCPAGE
         self.tela_alterar_aparencia(self.app, self.version, self.coluna)
 
     def trocar_tela_config(self):
-        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Config")
+        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], "INFO - Tela - Configuração")
         peso_linha = 0
         self.app.rowconfigure(1, weight=self.peso_linha_um)
         self.app.rowconfigure(2, weight=0)
@@ -3606,6 +4224,441 @@ drop table DBCCPAGE
         self.tela_config(self.app, self.version, self.coluna)
 
 # monta as telas
+    def tela_configuracao_conexoes_redis_grupo_excluir(self, app, version, coluna):
+        titulo = "EXCLUIR GRUPO CONEXÃO REDIS"
+        app.title("MSS - " + version + " - " + titulo)
+        self.entries = []
+        funcao = "excluir"
+        opcoes_grupo_redis = self.buscar_redis_dict()
+
+        self.label_conexoes_alterar = Label(
+            text="Grupos:",
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
+        self.combobox_redis_grupo = Combobox(
+            app,
+            values=opcoes_grupo_redis,
+        )
+        self.button_conexoes_alterar_salvar = Button(
+            app,
+            text="Excluir",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.iniciar_processo_grupo_redis(funcao)
+        )
+        self.button_configuracoes_voltar = Button(
+            app,
+            text="Voltar",
+            width=15,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_configuracao_conexoes_redis_menu_grupos()
+        )
+        if len(opcoes_grupo_redis) > 0:
+            self.combobox_redis_grupo.set(opcoes_grupo_redis[0])
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.label_conexoes_alterar.grid(row=3, column=coluna, pady=(20, 30), padx=(15, 15), columnspan=1, sticky="WS")
+        self.combobox_redis_grupo.grid(row=3, column=coluna, pady=(20,30), padx=(80,15), columnspan=2, sticky="WES")
+        self.combobox_redis_grupo.bind("<<ComboboxSelected>>", self.atualizar_opcoes_grupo_redis)
+        self.button_conexoes_alterar_salvar.grid(row=14, column=coluna, padx=(15, 15), pady=(20, 0), columnspan=2, sticky="SWE")
+        self.button_configuracoes_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
+        self.atualizar_opcoes_grupo_redis("<<ComboboxSelected>>")
+
+    def tela_configuracao_conexoes_redis_grupo_alterar(self, app, version, coluna):
+        titulo = "ALTERAR GRUPO CONEXÃO REDIS"
+        app.title("MSS - " + version + " - " + titulo)
+        self.entries = []
+        opcoes_redis = []
+        funcao = "alterar"
+        opcoes_grupo_redis = self.buscar_redis_dict()
+
+        self.label_grupo_alterar = Label(
+            text="Grupos:",
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
+        self.combobox_redis_grupo = Combobox(
+            app,
+            values=opcoes_grupo_redis
+        )
+        self.button_conexoes_alterar_salvar = Button(
+            app,
+            text="Salvar",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.iniciar_processo_grupo_redis(funcao)
+        )
+        self.button_configuracoes_voltar = Button(
+            app,
+            text="Voltar",
+            width=15,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_configuracao_conexoes_redis_menu_grupos()
+        )
+        if len(opcoes_grupo_redis) > 0:
+            self.combobox_redis_grupo.set(opcoes_grupo_redis[0])
+        if len(opcoes_redis) > 0:
+            self.combobox_redis_grupo.set(opcoes_redis[0])
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.label_grupo_alterar.grid(row=3, column=coluna, pady=(20, 30), padx=(15, 15), columnspan=1, sticky="WS")
+        self.combobox_redis_grupo.grid(row=3, column=coluna, pady=(20,30), padx=(80,15), columnspan=2, sticky="WES")
+        self.inserir_input_placeholder_linear(6, 6, coluna, "", "Descrição:", 2, (15, 15), (110, 15), (10, 10), (10, 10), "WS", "WES", )
+        self.combobox_redis_grupo.bind("<<ComboboxSelected>>", self.atualizar_opcoes_grupo_redis)
+        self.button_conexoes_alterar_salvar.grid(row=14, column=coluna, padx=(15, 15), pady=(20, 0), columnspan=2, sticky="SWE")
+        self.button_configuracoes_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
+        self.atualizar_opcoes_grupo_redis("<<ComboboxSelected>>")
+
+    def tela_configuracao_conexoes_redis_grupo_criar(self, app, version, coluna):
+        titulo = "CRIAR GRUPO CONEXÃO REDIS"
+        app.title("MSS - " + version + " - " + titulo)
+        self.entries = []
+        funcao = "criar"
+        nome_conexao = ""
+        self.label_nome_conexao_alterar = Label(
+            text=nome_conexao,
+            font=('Arial', 12, 'bold'),
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
+        self.button_conexoes_alterar_salvar = Button(
+            app,
+            text="Criar",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.iniciar_processo_grupo_redis(funcao)
+        )
+        self.button_configuracoes_voltar = Button(
+            app,
+            text="Voltar",
+            width=15,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_configuracao_conexoes_redis_menu_grupos()
+        )
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.label_nome_conexao_alterar.grid(row=3, column=coluna, pady=(0, 0), padx=(0, 0), columnspan=2, sticky="WE")
+        self.inserir_input_placeholder_linear(4, 4, coluna, "", "Descrição:", 2, (15, 15), (110, 15), (10, 10), (10, 10), "WS", "WES", )
+        self.button_configuracoes_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
+        self.button_conexoes_alterar_salvar.grid(row=14, column=coluna, padx=(15, 15), pady=(20, 0), columnspan=2, sticky="SWE")
+
+    def tela_configuracao_conexoes_redis_menu_grupos(self, app, version, coluna):
+        titulo = "GRUPOS CONEXÕES REDIS"
+        app.title("MSS - " + version + " - " + titulo)
+
+        self.button_configuracao_conexoes_grupo_criar = Button(
+            app,
+            text="Criar Grupo",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_configuracao_conexoes_redis_grupo_criar()
+        )
+        self.button_configuracao_conexoes_grupo_alterar = Button(
+            app,
+            text="Alterar Grupo",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_configuracao_conexoes_redis_grupo_alterar()
+        )
+        self.button_configuracao_conexoes_grupo_excluir = Button(
+            app,
+            text="Excluir Grupo",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_configuracao_conexoes_redis_grupo_excluir()
+        )
+        self.button_configuracao_conexoes_voltar = Button(
+            app,
+            text="Voltar",
+            width=15,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_configuracao_conexoes_redis_menu()
+        )
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.button_configuracao_conexoes_grupo_criar.grid(row=4, column=coluna, columnspan=2)
+        self.button_configuracao_conexoes_grupo_alterar.grid(row=5, column=coluna, columnspan=2)
+        self.button_configuracao_conexoes_grupo_excluir.grid(row=6, column=coluna, columnspan=2)
+        self.button_configuracao_conexoes_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
+
+    def tela_configuracao_conexoes_redis_menu(self, app, version, coluna):
+        titulo = "CONEXÕES REDIS"
+        app.title("MSS - " + version + " - " + titulo)
+
+        self.button_configuracao_conexoes_grupo = Button(
+            app,
+            text="Grupos redis",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_configuracao_conexoes_redis_menu_grupos()
+        )
+        self.button_configuracao_conexoes_lista = Button(
+            app,
+            text="Lista Redis",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_configuracao_conexoes_redis_menu_listas()
+        )
+        self.button_configuracao_conexoes_voltar = Button(
+            app,
+            text="Voltar",
+            width=15,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_configuracoes()
+        )
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.button_configuracao_conexoes_grupo.grid(row=4, column=coluna, columnspan=2)
+        self.button_configuracao_conexoes_lista.grid(row=5, column=coluna, columnspan=2)
+        self.button_configuracao_conexoes_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
+
+    def tela_configuracao_conexoes_sql_excluir(self, app, version, coluna):
+        titulo = "EXCLUIR CONEXÃO"
+        app.title("MSS - " + version + " - " + titulo)
+        self.entries = []
+        opcoes_conexoes = list(self.infos_config["conexoes"])
+
+        self.label_conexoes_alterar = Label(
+            text="Conexões:",
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
+        self.combobox_conexoes_alterar = Combobox(
+            app,
+            values=opcoes_conexoes,
+        )
+        self.button_conexoes_alterar_salvar = Button(
+            app,
+            text="Excluir",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.iniciar_processo_excluir_conexoes()
+        )
+        self.button_configuracoes_voltar = Button(
+            app,
+            text="Voltar",
+            width=15,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_configuracao_conexoes_sql()
+        )
+        if len(opcoes_conexoes) > 0:
+            self.combobox_conexoes_alterar.set(opcoes_conexoes[0])
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.label_conexoes_alterar.grid(row=3, column=coluna, pady=(20, 30), padx=(15, 15), columnspan=1, sticky="WS")
+        self.combobox_conexoes_alterar.grid(row=3, column=coluna, pady=(20,30), padx=(80,15), columnspan=2, sticky="WES")
+        self.button_conexoes_alterar_salvar.grid(row=14, column=coluna, padx=(15, 15), pady=(20, 0), columnspan=2, sticky="SWE")
+        self.button_configuracoes_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
+
+    def tela_configuracao_conexoes_sql_criar(self, app, version, coluna):
+        titulo = "CRIAR  CONEXÃO"
+        app.title("MSS - " + version + " - " + titulo)
+        self.entries = []
+        nome_conexao = ""
+        self.label_nome_conexao_alterar = Label(
+            text=nome_conexao,
+            font=('Arial', 12, 'bold'),
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
+        self.button_conexoes_alterar_salvar = Button(
+            app,
+            text="Criar",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.iniciar_processo_criar_conexoes()
+        )
+        self.button_configuracoes_voltar = Button(
+            app,
+            text="Voltar",
+            width=15,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_configuracao_conexoes_sql()
+        )
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.label_nome_conexao_alterar.grid(row=3, column=coluna, pady=(0, 0), padx=(0, 0), columnspan=2, sticky="WE")
+        self.inserir_input_placeholder_linear(4, 4, coluna, "", "Descrição:", 2, (15, 15), (110, 15), (10, 10), (10, 10), "WS", "WES", )
+        self.inserir_input_placeholder_linear(5, 5, coluna, "", "Server:", 2, (15, 15), (110, 15), (10, 10),(10, 10), "WS", "WES", )
+        self.inserir_input_placeholder_linear(6, 6, coluna, "", "username:", 2, (15, 15), (110, 15), (10, 10),(10, 10), "WS", "WES", )
+        self.inserir_input_placeholder_linear(7, 7, coluna, "", "password:", 2, (15, 15), (110, 15), (10, 10),(10, 10), "WS", "WES", )
+        self.button_configuracoes_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
+        self.button_conexoes_alterar_salvar.grid(row=14, column=coluna, padx=(15, 15), pady=(20, 0), columnspan=2, sticky="SWE")
+
+    def tela_configuracao_conexoes_sql_alterar(self, app, version, coluna):
+        titulo = "ALTERAR CONEXÃO"
+        app.title("MSS - " + version + " - " + titulo)
+        self.entries = []
+        opcoes_conexoes = list(self.infos_config["conexoes"])
+        nome_conexao = ""
+        self.label_conexoes_alterar = Label(
+            text="Conexões:",
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
+        self.combobox_conexoes_alterar = Combobox(
+            app,
+            values=opcoes_conexoes,
+        )
+        self.label_nome_conexao_alterar = Label(
+            text=nome_conexao,
+            font=('Arial', 12, 'bold'),
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
+        self.button_conexoes_alterar_salvar = Button(
+            app,
+            text="Salvar",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.iniciar_processo_alterar_conexoes()
+        )
+        self.button_configuracoes_voltar = Button(
+            app,
+            text="Voltar",
+            width=15,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_configuracao_conexoes_sql()
+        )
+        if len(opcoes_conexoes) > 0:
+            self.combobox_conexoes_alterar.set(opcoes_conexoes[0])
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.label_conexoes_alterar.grid(row=3, column=coluna, pady=(20, 30), padx=(15, 15), columnspan=1, sticky="WS")
+        self.combobox_conexoes_alterar.grid(row=3, column=coluna, pady=(20,30), padx=(80,15), columnspan=2, sticky="WES")
+        self.combobox_conexoes_alterar.bind("<<ComboboxSelected>>", self.consultar_preencher_infos_conexoes_sql)
+        self.label_nome_conexao_alterar.grid(row=4, column=coluna, pady=(0, 0), padx=(0, 0), columnspan=2, sticky="WE")
+        self.inserir_input_placeholder_linear(5, 5, coluna, "", "Descrição:", 2, (15, 15), (110, 15), (10, 10), (10, 10), "WS", "WES", )
+        self.inserir_input_placeholder_linear(6, 6, coluna, "", "Server:", 2, (15, 15), (110, 15), (10, 10),(10, 10), "WS", "WES", )
+        self.inserir_input_placeholder_linear(7, 7, coluna, "", "username:", 2, (15, 15), (110, 15), (10, 10),(10, 10), "WS", "WES", )
+        self.inserir_input_placeholder_linear(8, 8, coluna, "", "password:", 2, (15, 15), (110, 15), (10, 10),(10, 10), "WS", "WES", )
+        self.button_conexoes_alterar_salvar.grid(row=14, column=coluna, padx=(15, 15), pady=(20, 0), columnspan=2, sticky="SWE")
+        self.button_configuracoes_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
+        self.consultar_preencher_infos_conexoes_sql("<<ComboboxSelected>>")
+
+    def tela_configuracao_conexoes_sql(self, app, version, coluna):
+        titulo = "CONEXÕES SQL"
+        app.title("MSS - " + version + " - " + titulo)
+
+        self.button_configuracao_conexoes_criar = Button(
+            app,
+            text="Criar conexão",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_configuracao_conexoes_sql_criar()
+        )
+        self.button_configuracao_conexoes_alterar = Button(
+            app,
+            text="Alterar conexão",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_configuracao_conexoes_sql_alterar()
+        )
+        self.button_configuracao_conexoes_apagar = Button(
+            app,
+            text="Excluir conexão",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_configuracao_conexoes_sql_excluir()
+        )
+        self.button_configuracao_conexoes_voltar = Button(
+            app,
+            text="Voltar",
+            width=15,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_configuracoes()
+        )
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.button_configuracao_conexoes_criar.grid(row=4, column=coluna, columnspan=2)
+        self.button_configuracao_conexoes_alterar.grid(row=5, column=coluna, columnspan=2)
+        self.button_configuracao_conexoes_apagar.grid(row=6, column=coluna, columnspan=2)
+        self.button_configuracao_conexoes_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
+
+    def tela_configuracoes(self, app, version, coluna):
+        titulo = "CONFIGURAÇÕES"
+        app.title("MSS - " + version + " - " + titulo)
+
+        self.button_configuracoes_trocar_config = Button(
+            app,
+            text="Trocar/Criar Config",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_config()
+        )
+        self.button_configuracoes_alterar_conexoes_sql = Button(
+            app,
+            text="Alterar Conexões SQL",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_configuracao_conexoes_sql()
+        )
+        self.button_configuracoes_alterar_conexoes_redis = Button(
+            app,
+            text="Alterar Conexões Redis",
+            width=25,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_configuracao_conexoes_redis_menu()
+        )
+        self.button_configuracoes_voltar = Button(
+            app,
+            text="Voltar",
+            width=15,
+            height=2,
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
+            command=lambda: self.trocar_tela_menu_geral()
+        )
+        self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
+        self.button_configuracoes_trocar_config.grid(row=4, column=coluna, columnspan=2)
+        self.button_configuracoes_alterar_conexoes_sql.grid(row=5, column=coluna, columnspan=2)
+        self.button_configuracoes_alterar_conexoes_redis.grid(row=6, column=coluna, columnspan=2)
+        self.button_configuracoes_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
+
     def tela_menu_geral(self, app, version, coluna):
         titulo = "MENU"
         app.title("MSS - " + version + " - " + titulo)
@@ -3948,14 +5001,14 @@ drop table DBCCPAGE
             self.combobox_redis_grupo.set(opcoes_redis[0])
         self.label_grupo_redis.grid(row=3, column=coluna, columnspan=2, pady=(0, 0), padx=(15, 15), sticky="WS")
         self.combobox_redis_grupo.grid(row=4, column=coluna, columnspan=2, pady=(0, 10), padx=(15, 15), sticky="WE")
-        self.combobox_redis_grupo.bind("<<ComboboxSelected>>", self.atualizar_opcoes)
+        self.combobox_redis_grupo.bind("<<ComboboxSelected>>", self.atualizar_opcoes_redis)
         self.label_lista_redis.grid(row=5, column=coluna, columnspan=2, pady=(0, 0), padx=(15, 15), sticky="WS")
         self.combobox_redis.grid(row=6, column=coluna, columnspan=2, pady=(0, 0), padx=(15, 15), sticky="WE")
         self.inserir_caixa_texto(7, 8, coluna, "Saida:", (10,0), (0,0), 12)
         self.button_redis_limpar.grid(row=9, column=coluna, padx=(15), pady=(10, 0), sticky="WE")
         self.button_redis_inicio.grid(row=9, column=1, padx=(15), pady=(10, 0), sticky="WE")
         self.button_redis_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
-        self.atualizar_opcoes("<<ComboboxSelected>>")
+        self.atualizar_opcoes_redis("<<ComboboxSelected>>")
 
     def tela_limpar_redis_todos(self, app, version, coluna):
         titulo = "LIMPAR TODOS OS REDIS"
@@ -4115,7 +5168,7 @@ drop table DBCCPAGE
         self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
         self.label_download_servidor.grid(row=3, column=coluna, sticky="WS", pady=(10, 0), padx=(15))
         self.combobox_servidor_download.grid(row=4, column=coluna, columnspan=2, pady=(0, 10), sticky="WE", padx=(15))
-        self.inserir_input_placeholder(5, 6, coluna, "URL DO BACKUP", "Endereço URL:", 5)
+        self.inserir_input_placeholder(5, 6, coluna, "URL DO BACKUP", "Endereço URL:", 5, 2)
         self.inserir_caixa_texto(7, 8, coluna, "Saida:", (10,0), (0,0), 12)
         self.button_download_limpar.grid(row=9, column=coluna, padx=(15), pady=(10, 0), sticky="WE")
         self.button_download_inicio.grid(row=9, column=1, padx=(15), pady=(10, 0), sticky="WE")
@@ -4166,7 +5219,7 @@ drop table DBCCPAGE
             self.combobox_servidor.set(opcoes_servidor[0])
         self.remover_conteudo_linha(15, 2)
         self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
-        self.inserir_input_placeholder(3, 4, coluna, "Insira o version para downgrade...", "Version:",10)
+        self.inserir_input_placeholder(3, 4, coluna, "Insira o version para downgrade...", "Version:",10, 2)
         self.label_busca_servidor.grid(row=5, column=coluna, sticky="WS", pady=(10, 0), padx=(15))
         self.combobox_servidor.grid(row=6, column=coluna, pady=(0, 10), sticky="WE", columnspan=2, padx=(15))
         self.inserir_caixa_texto(7, 8, coluna, "Saida:", (10,0), (0,0), 12)
@@ -4281,18 +5334,28 @@ drop table DBCCPAGE
     def tela_geradores(self, app, version, coluna):
         titulo = "GERADORES"
         app.title("MSS - " + version + " - " + titulo)
-        opcoes = ["CEI", "CNPJ", "CPF", "NIF", "PIS"]
+        opcoes_operacoes = ["CEI", "CNPJ", "CPF", "NIF", "PIS"]
+        opcoes_estado = ["0 - Rio Grande do Sul", "1 - Distrito Federal/Goiás/Mato Grosso do Sul/Tocantins", "2 - Pará/Amazonas/Acre/Amapá/Rondônia/Roraima", "3 - Ceará/Maranhão/Piauí", "4 - Pernambuco/Rio Grande do Norte/Paraíba/Alagoas", "5 - Bahia/Sergipe", "6 - Minas Gerais", "7 - Rio de Janeiro/Espírito Santo", "8 - São Paulo", "9 - Paraná/Santa Catarina", "10 - Aleatório"]
         self.valor_checkbox_mascara_num = BooleanVar()
         self.valor_checkbox_gerar_arquivo = BooleanVar()
 
-        self.label_gerador = Label(
+        self.label_gerador_operacoes = Label(
             text="Documentos",
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
-        self.combobox = Combobox(
+        self.combobox_operacoes = Combobox(
             app,
-            values=opcoes,
+            values=opcoes_operacoes,
+        )
+        self.label_gerador_estados = Label(
+            text="Digito Estado CPF",
+            bg=self.infos_config_prog["background_color_fundo"],
+            fg=self.infos_config_prog["background_color_fonte"]
+        )
+        self.combobox_estados = Combobox(
+            app,
+            values=opcoes_estado,
         )
         self.checkbox_mascara_num = Checkbutton(
             app,
@@ -4336,25 +5399,38 @@ drop table DBCCPAGE
             command=lambda: self.trocar_tela_menu_ferramentas_documentos()
         )
         self.remover_conteudo_linha(10, 2)
-        self.combobox.set(opcoes[0])
+        self.combobox_operacoes.set(opcoes_operacoes[0])
+        self.combobox_estados.set(opcoes_estado[10])
         self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
-        self.label_gerador.grid(row=3, column=coluna, padx=(15,0), pady=(0,0), sticky="W")
-        self.combobox.grid(row=4, column=coluna, pady=(0, 0), columnspan=2, sticky="WE", padx=(15))
-        self.inserir_input_placeholder(5, 6, coluna, "Clique em Gerar ou insira a quantidade desejada", "Quantidade:", 10)
-        self.checkbox_mascara_num.grid(row=7, column=coluna, pady=(0, 0), padx=(15,0), sticky="W")
-        self.checkbox_gerar_arquivo.grid(row=7, column=1, pady=(0, 0), padx=(0,0), sticky="W")
+        self.label_gerador_operacoes.grid(row=3, column=coluna, padx=(15,0), pady=(0,0), sticky="W")
+        self.combobox_operacoes.grid(row=4, column=coluna, pady=(0, 0), sticky="WE", padx=(15))
+        self.combobox_operacoes.bind("<<ComboboxSelected>>", self.alterar_state_select)
+        self.label_gerador_estados.grid(row=3, column=1, padx=(0,0), pady=(0,0), sticky="W")
+        self.combobox_estados.grid(row=4, column=1, pady=(0, 0), sticky="WE", padx=(0,15))
+        self.inserir_input_placeholder(5, 6, coluna, "Opcional", "Quantidade:", 10, 1)
+        self.checkbox_mascara_num.grid(row=5, column=1, pady=(15, 0), padx=(0,0), sticky="WN")
+        self.checkbox_gerar_arquivo.grid(row=6, column=1, pady=(0, 15), padx=(0,0), sticky="WN")
         self.inserir_caixa_texto(8, 9, coluna, "Saida:", (0,0), (5,0), 12)
         self.button_gerador_limpar.grid(row=10, column=coluna, padx=(15), pady=(10, 0), sticky="WE")
         self.button_gerador_inicio.grid(row=10, column=1, padx=(15), pady=(10, 0), sticky="WE")
         self.button_gerador_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
+        self.alterar_state_select("<<ComboboxSelected>>")
 
     def tela_validadores(self, app, version, coluna):
         titulo = "Validadores"
         app.title("MSS - " + version + " - " + titulo)
         opcoes = ["CEI", "CNPJ", "CPF", "NIF", "PIS"]
-        self.combobox = Combobox(
+        self.valor_checkbox_check_estado = BooleanVar()
+        self.combobox_operacoes = Combobox(
             app,
             values=opcoes,
+        )
+        self.checkbox_check_estado = Checkbutton(
+            app,
+            text='Validar o Estado',
+            onvalue=True,
+            offvalue=False,
+            variable=self.valor_checkbox_check_estado
         )
         self.button_gerador_inicio = Button(
             app,
@@ -4384,17 +5460,19 @@ drop table DBCCPAGE
             command=lambda: self.trocar_tela_menu_ferramentas_documentos()
         )
         self.remover_conteudo_linha(10, 2)
-        self.combobox.set(opcoes[0])
+        self.combobox_operacoes.set(opcoes[0])
         self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
-        self.combobox.grid(row=3, column=coluna, pady=(0, 10), padx=(15), columnspan=2, sticky="WE")
-        self.inserir_input_placeholder(4, 5, coluna, " Insira o documento para ser validado", "Documento:", 10)
-        self.inserir_caixa_texto(6, 7, coluna, "Saida:", (10,0), (0,0), 12)
+        self.combobox_operacoes.grid(row=3, column=coluna, pady=(0, 10), padx=(15), columnspan=2, sticky="WE")
+        self.inserir_input_placeholder(4, 5, coluna, " Insira o documento para ser validado", "Documento:", 10, 2)
+        self.checkbox_check_estado.grid(row=6, column=coluna, padx=(15), pady=(0, 10), sticky="W")
+        self.combobox_operacoes.bind("<<ComboboxSelected>>", self.alterar_state_checkbox)
+        self.inserir_caixa_texto(7, 7, coluna, "Saida:", (10,0), (0,0), 12)
         self.button_gerador_inicio.grid(row=8, column=1, padx=(15), pady=(10, 0), sticky="WE")
         self.button_gerador_limpar.grid(row=8, column=coluna, padx=(15), pady=(10, 0), sticky="WE")
         self.button_gerador_voltar.grid(row=15, column=1, padx=15, pady=15, sticky="ES")
+        self.alterar_state_checkbox("<<ComboboxSelected>>")
 
     def tela_config(self, app, version, coluna):
-        self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Tela - CONFIGURAÇÃO")
         titulo = "CONFIGURAÇÃO"
         app.title("MSS - " + version + " - " + titulo)
         self.button_nav_criar = None
@@ -4566,6 +5644,8 @@ drop table DBCCPAGE
         self.entry_background_fonte.insert(0, valores_input[4])
 
     def tela(self):
+        self.app.maxsize(450, 550)
+        self.app.minsize(300, 200)
         self.app.geometry(f"{self.largura}x{self.altura}+{self.metade_wid}+{self.metade_hei}")
         self.status_thread = False
         menu = Menu(self.app)
@@ -4585,19 +5665,28 @@ drop table DBCCPAGE
     def main(self):
         self.app = Tk()
         self.largura = 450
-        self.altura = 535
+        self.altura = 550
         pos_wid = self.app.winfo_screenwidth()
         pos_hei = self.app.winfo_screenheight()
         self.metade_wid = int((pos_wid / 2) - (self.largura / 2))
         self.metade_hei = int((pos_hei / 2) - (self.altura / 2))
-        validar_diretorio(self.nomes, self.criar_popup_mensagem)
+
+        self.tela()  # Apenas configura a interface, sem sobrescrever self.app
+        self.app.protocol("WM_DELETE_WINDOW", self.finalizar)
+
+        # Agendar carregamento de configurações para depois da UI estar pronta
+        self.app.after(500, self.processar_configuracoes)
+
+        self.app.mainloop()
+
+    def processar_configuracoes(self):
+        validar_diretorio(self.nomes, self.criar_popup_mensagem, self.escrever_arquivo_log)
 
         # Data/hora inicio do programa
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Programa iniciado")
         # Versão atual do programa
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Versão:  {self.version}")
-        self.app = self.tela()
-        self.app.protocol("WM_DELETE_WINDOW", self.finalizar)
+
         self.validar_data_atualizacao_config()
         self.atualizador()
 
@@ -4609,7 +5698,6 @@ drop table DBCCPAGE
                     self.escolher_config_existente()
                 else:
                     self.trocar_tela_config()
-
             else:
                 self.criar_arquivo_config_prog()
                 self.ler_arquivo_config()
@@ -4617,9 +5705,10 @@ drop table DBCCPAGE
 
         except Exception as error:
             self.criar_popup_mensagem(f"Erro ao acessar arquivo de configuração default {error}")
+            self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
+                                      f"ERRO - Erro ao acessar arquivo de configuração default {error}")
             self.trocar_tela_config()
 
-        self.app.mainloop()
 
-
-prog = Aplicativo()
+if __name__ == "__main__":
+    prog = Aplicativo()
