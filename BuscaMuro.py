@@ -1488,15 +1488,15 @@ drop table DBCCPAGE
                     self.escrever_no_input(f"- Quantidade de bancos encontrados na instância: {len(lista_string_instancia)}")
                     self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Quantidade de bancos encontrados: {len(lista_string_instancia)} ")
                     status_consulta = True
-
                 if status_consulta:
                     # Iniciando processo banco muro.
-                    for num in range(len(self.infos_config['bases_muro'])):
-                        base_muro = self.infos_config['bases_muro'][num]
+                    num = 1
+                    tam_list_muros = len(self.infos_config.get('bases_muro'))
+                    for base_muro in self.infos_config.get('bases_muro'):
                         self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Iniciando o processo no banco: {base_muro} ")
                         self.escrever_no_input(f"\n- Iniciando o processo no banco: {base_muro}")
                         self.buscar_connections_strings(servidor_selecionado, lista_string_instancia, base_muro)
-                        database_update = self.valida_banco_update(num)
+                        database_update = self.valida_banco_update(base_muro)
                         if len(self.catalog['CONNECTION_STRING']) > 0:
                             # Limpeza base muro UPDATE
                             self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'],
@@ -1540,9 +1540,10 @@ drop table DBCCPAGE
                         else:
                             self.escrever_no_input("- Não a registros para serem inseridos no banco: " + database_update)
                             self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Não a registros para serem inseridos no banco: {database_update} ")
-                        if num < 4:
-                            num += 1
-                        self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Concluído a parte {num}, de um total de {len(self.infos_config['bases_muro'])}. ")
+
+
+                        self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Concluído a parte {num}, de um total de {tam_list_muros}. ")
+                        num += 1
                         continue
                     cursor1.close()
                 else:
@@ -1682,98 +1683,20 @@ drop table DBCCPAGE
             self.combobox_servidor_replicar.config(state='normal')
             self.button_menu_sair.config(state='normal')
 
-    def valida_banco_update(self, num):
+    def valida_banco_update(self, base_muro):
         database_update = ''
-        muro = self.infos_config['bases_muro'][num]
-        while True:
-            match muro:
-                case 'qcmaint_kairos_base_muro':
-                    if self.infos_config['database_update_br'] != '':
-                        database_update = self.infos_config['database_update_br']
-                        return database_update
-                    else:
-                        self.escrever_no_input(
-                            "- Não foi inserido no arquivo de config o apontamento para o banco Muro update BR")
-                case 'qcdev_kairos_base_muro':
-                    if self.infos_config['database_update_br'] != '':
-                        database_update = self.infos_config['database_update_br']
-                        return database_update
-                    else:
-                        self.escrever_no_input(
-                            "- Não foi inserido no arquivo de config o apontamento para o banco Muro update BR")
-                case 'qcdev2_kairos_base_muro':
-                    if self.infos_config['database_update_br'] != '':
-                        database_update = self.infos_config['database_update_br']
-                        return database_update
-                    else:
-                        self.escrever_no_input(
-                            "- Não foi inserido no arquivo de config o apontamento para o banco Muro update BR")
-                case "qcmaint_kairos_base_muro_mx":
-                    if self.infos_config['database_update_mx'] != '':
-                        database_update = self.infos_config['database_update_mx']
-                        return database_update
-                    else:
-                        self.escrever_no_input(
-                            "-  Não foi inserido no arquivo de config o apontamento para o banco Muro update MX")
-                case "qcdev_kairos_base_muro_mx":
-                    if self.infos_config['database_update_mx'] != '':
-                        database_update = self.infos_config['database_update_mx']
-                        return database_update
-                    else:
-                        self.escrever_no_input(
-                            "-  Não foi inserido no arquivo de config o apontamento para o banco Muro update MX")
-                case "qcdev2_kairos_base_muro_mx":
-                    if self.infos_config['database_update_mx'] != '':
-                        database_update = self.infos_config['database_update_mx']
-                        return database_update
-                    else:
-                        self.escrever_no_input(
-                            "-  Não foi inserido no arquivo de config o apontamento para o banco Muro update MX")
-                case "qcmaint_kairos_base_muro_pt":
-                    if self.infos_config['database_update_pt'] != '':
-                        database_update = self.infos_config['database_update_pt']
-                        return database_update
-                    else:
-                        self.escrever_no_input(
-                            "- Não foi inserido no arquivo de config o apontamento para o banco Muro update PT")
-                case "qcdev_kairos_base_muro_pt":
-                    if self.infos_config['database_update_pt'] != '':
-                        database_update = self.infos_config['database_update_pt']
-                        return database_update
-                    else:
-                        self.escrever_no_input(
-                            "- Não foi inserido no arquivo de config o apontamento para o banco Muro update PT")
-                case "qcdev2_kairos_base_muro_pt":
-                    if self.infos_config['database_update_pt'] != '':
-                        database_update = self.infos_config['database_update_pt']
-                        return database_update
-                    else:
-                        self.escrever_no_input(
-                            "- Não foi inserido no arquivo de config o apontamento para o banco Muro update PT")
-                case "qcmaint_mdcomune_base_muro":
-                    if self.infos_config['database_update_md'] != '':
-                        database_update = self.infos_config['database_update_md']
-                        return database_update
-                    else:
-                        self.escrever_no_input(
-                            "- Não foi inserido no arquivo de config o apontamento para o banco Muro update MD")
-                case "qcdev_mdcomune_base_muro":
-                    if self.infos_config['database_update_md'] != '':
-                        database_update = self.infos_config['database_update_md']
-                        return database_update
-                    else:
-                        self.escrever_no_input(
-                            "- Não foi inserido no arquivo de config o apontamento para o banco Muro update MD")
-                case "qcdev2_mdcomune_base_muro":
-                    if self.infos_config['database_update_md'] != '':
-                        database_update = self.infos_config['database_update_md']
-                        return database_update
-                    else:
-                        self.escrever_no_input(
-                            "- Não foi inserido no arquivo de config o apontamento para o banco Muro update MD")
-                case _:
-                    self.escrever_no_input("- Não foi possível achar uma opção compativel com o banco de muro")
-            return database_update
+        if "mdcomune" in base_muro.lower():
+            database_update = self.infos_config['database_update_md']
+        elif "pt" in base_muro.lower():
+            database_update = self.infos_config['database_update_pt']
+        elif "mx" in base_muro.lower():
+            database_update = self.infos_config['database_update_mx']
+        elif "kairos_base_muro" in base_muro.lower():
+            database_update = self.infos_config['database_update_br']
+        else:
+            self.escrever_no_input(
+                "- Não foi inserido no arquivo de config o apontamento para o banco Muro update")
+        return database_update
 
     def restaurar_banco(self):
         try:
