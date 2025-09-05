@@ -149,7 +149,7 @@ def validar_diretorio(nomes, criar_popup_mensagem):
             f"\n{data_hora_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_txt']}: {error} ")
 
 class Aplicativo:
-    version = "4.1.0"
+    version = "4.1.1"
     version_json = '2.1'
     mensagem_json = "Refatorado json para melhorar a estrutura do redis_qa"
     coluna = 0
