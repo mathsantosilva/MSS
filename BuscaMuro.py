@@ -1154,8 +1154,10 @@ class Aplicativo:
                 self.button_menu_sair.config(state='normal')
                 return
             servidor_selecionado = self.infos_config["conexoes"][server]
-            for num in range(tam_base_muro):
-                database_update = self.valida_banco_update(num)
+            num = 1
+            tam_list_muros = len(self.infos_config.get('bases_muro'))
+            for base_muro in self.infos_config.get('bases_muro'):
+                database_update = self.valida_banco_update(base_muro)
 
                 try:
                     cnxnrp = pyodbc.connect(
@@ -1180,8 +1182,7 @@ class Aplicativo:
                         self.escrever_arquivo_log(
                             self.nomes['arquivo_validar'], f"INFO - Não foram retornados registros no banco:")
 
-                if num < 4:
-                    num += 1
+                num += 1
                 continue
 
             self.escrever_no_input(f"- Fim da operação de consulta")
@@ -1588,16 +1589,18 @@ drop table DBCCPAGE
                 self.button_menu_sair.config(state='normal')
                 return
             servidor_selecionado = self.infos_config["conexoes"][server]
-            for num in range(len(self.infos_config['bases_muro'])):
+            num = 1
+            tam_list_muros = len(self.infos_config.get('bases_muro'))
+            for base_muro in self.infos_config.get('bases_muro'):
                 lista_registros_db = []
                 lista_ids = []
                 lista_versions = []
                 lista_connection_string = []
 
-                self.escrever_no_input(f"\n- replicando para: {self.infos_config['bases_muro'][num]}")
-                self.escrever_arquivo_log(self.nomes['arquivo_replicar_version'], f"INFO - Replicando para: {self.infos_config['bases_muro'][num]}")
+                self.escrever_no_input(f"\n- replicando para: {base_muro}")
+                self.escrever_arquivo_log(self.nomes['arquivo_replicar_version'], f"INFO - Replicando para: {base_muro}")
 
-                database_update = self.valida_banco_update(num)
+                database_update = self.valida_banco_update(base_muro)
 
                 try:
                     cnxnrp1 = pyodbc.connect(
@@ -1628,7 +1631,7 @@ drop table DBCCPAGE
 
                     try:
                         cnxnrp2 = pyodbc.connect(
-                            f"DRIVER=SQL Server;SERVER={servidor_selecionado['server']};DATABASE={self.infos_config['bases_muro'][num]};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
+                            f"DRIVER=SQL Server;SERVER={servidor_selecionado['server']};DATABASE={base_muro};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
                         cursorrp2 = cnxnrp2.cursor()
                         for teste2 in range(tam_busca_realizada):
                             montar_comando = f"update [dbo].[KAIROS_DATABASES] set [DATABASE_VERSION] = {lista_versions[teste2]} where [DATABASE_ID] = {lista_ids[teste2]} and [CONNECTION_STRING] = '{lista_connection_string[teste2]}' "
@@ -1647,7 +1650,7 @@ drop table DBCCPAGE
 
                         # Logando as connection string
                         self.escrever_arquivo_log(self.nomes['arquivo_connection_strings'], f"INFO - Replicar Version - Listando as connection strings utilizadas ")
-                        self.escrever_arquivo_log(self.nomes['arquivo_connection_strings'], f"INFO - Replicar Version - Ambiente: {self.infos_config['bases_muro'][num]} ")
+                        self.escrever_arquivo_log(self.nomes['arquivo_connection_strings'], f"INFO - Replicar Version - Ambiente: {base_muro} ")
                         quant = 1
                         for log in range(tam_busca_realizada):
                             log_versions = (f"INFO - {quant} - ID: {lista_ids[log]} - Version: {lista_versions[log]} ")
@@ -1660,11 +1663,8 @@ drop table DBCCPAGE
                 else:
                     self.escrever_no_input("- Não existem registros para alterar o version")
                     self.escrever_arquivo_log(self.nomes['arquivo_replicar_version'], f"INFO - Não existem registros para alterar o version")
-
-                if num < 4:
-                    num += 1
-
                 self.escrever_arquivo_log(self.nomes['arquivo_replicar_version'], f"INFO - Concluído a parte {num}, de um total de {tam_base_muro}.")
+                num += 1
                 continue
 
             self.escrever_no_input(f"\n- Fim da operação replicar version")
