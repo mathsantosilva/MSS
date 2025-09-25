@@ -4,6 +4,7 @@ import json
 import os
 import re
 import sys
+from line_profiler import profile
 from tkinter import colorchooser
 from tkinter.ttk import *
 from tkinter import *
@@ -18,7 +19,6 @@ import configparser
 import random
 import math
 import time
-
 
 # processos de atualização prog
 def comparar_tags(tag1, tag2):
@@ -187,6 +187,8 @@ class Aplicativo:
         self.arquivo_config = None
         self.placeholder_text = None
         self.label_config_selecionado = None
+        self.arquivo_txt = None
+        self.catalog = dict()
         self.label = None
         self.entry = None
         self.label_restaurar_backup = None
@@ -338,14 +340,10 @@ class Aplicativo:
             redis_formatados = dict()
             conexoes_formatados = dict()
             format_bases_utilizadas = ''
-            nome_redis = []
-            nome_redis_atual = ''
             count = 0
-            redis_atual_form = []
             bases_utilizadas = self.infos_config['bases_muro']
             tam_bases_utilizadas = len(bases_utilizadas)
             redis_qa = self.infos_config['redis_qa']
-            server_principal = ''
             count_redis_qa = len(redis_qa)
             count_redis_final = 1
             if versao_config != "antiga":
@@ -378,7 +376,7 @@ class Aplicativo:
                                     pre_formato_redis = f"""
         "{nome_redis_atual}": [  """
                                     tam_pre_formato_redis = len(pre_formato_redis)
-                                    pre_formato_redis = pre_formato_redis[0:(tam_pre_formato_redis)]
+                                    pre_formato_redis = pre_formato_redis[0:tam_pre_formato_redis]
                                     formatar_redis = formatar_redis + pre_formato_redis
                                 count_redis += 1
                             count_redis_final += 1
@@ -428,7 +426,7 @@ class Aplicativo:
                             pre_formato_redis = f"""
             "{nome_redis_atual}": [  """
                             tam_pre_formato_redis = len(pre_formato_redis)
-                            pre_formato_redis = pre_formato_redis[0:(tam_pre_formato_redis)]
+                            pre_formato_redis = pre_formato_redis[0:tam_pre_formato_redis]
                             formatar_redis = formatar_redis + pre_formato_redis
                         pre_formato_redis = f"""
                 {{
@@ -547,7 +545,6 @@ class Aplicativo:
             conexoes_formatados["conexoes"] = formatar_conexoes_antiga
             if self.infos_config['conexoes'] != '':
                 count_conexoes = 1
-                count_conexoes_final = 1
                 tam_lista_conexoes = len(self.infos_config['conexoes'])
                 for con_atual in self.infos_config['conexoes']:
                     if count_conexoes >= tam_lista_conexoes:
@@ -601,6 +598,7 @@ class Aplicativo:
 
     def ler_parametros_arquivo_json(self, params_dict, versao_config):
         self.infos_config['status'] = False
+        validacao_conexoes = False
         try:
             match versao_config:
                 case "atual":
@@ -694,9 +692,9 @@ class Aplicativo:
                             self.trocar_tela_config()
                     except Exception as name_error:
                         self.criar_popup_mensagem(
-                            "Ocorreu um erro ao tentar validar as tags de conexão, verifique o config e tente novamente")
+                            f"Ocorreu um erro ao tentar validar as tags de conexão, verifique o config e tente novamente {name_error}")
                         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                                  f"INFO - Ocorreu um erro ao tentar validar as tags de conexão, verifique o config e tente novamente")
+                                                  f"INFO - Ocorreu um erro ao tentar validar as tags de conexão, verifique o config e tente novamente {name_error}")
                         self.trocar_tela_config()
                     # Carregar json
                     self.infos_config['server'] = params_dict["conexao"]["server"]
@@ -709,15 +707,15 @@ class Aplicativo:
                     self.infos_config['bases_muro'] = params_dict["bases_muro"]
                     self.infos_config['conexoes'] = ''
                     try:
-                        if (params_dict)["configs_restaurar_download"]["server_principal"] != '':
-                            self.infos_config['server_principal'] = (params_dict)["configs_restaurar_download"]["server_principal"]
-                            self.infos_config['username_principal'] = (params_dict)["configs_restaurar_download"]["username_principal"]
-                            self.infos_config['password_principal'] = (params_dict)["configs_restaurar_download"]["password_principal"]
+                        if params_dict["configs_restaurar_download"]["server_principal"] != '':
+                            self.infos_config['server_principal'] = params_dict["configs_restaurar_download"]["server_principal"]
+                            self.infos_config['username_principal'] = params_dict["configs_restaurar_download"]["username_principal"]
+                            self.infos_config['password_principal'] = params_dict["configs_restaurar_download"]["password_principal"]
                     except Exception as name_error:
                         self.criar_popup_mensagem(
-                            "Ocorreu um erro ao tentar validar as tags do server_principal, foram preenchidas vazias")
+                            f"Ocorreu um erro ao tentar validar as tags do server_principal, foram preenchidas vazias {name_error}")
                         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                                  f"INFO - Ocorreu um erro ao tentar validar as tags de conexão, foram preenchidas vazias")
+                                                  f"INFO - Ocorreu um erro ao tentar validar as tags de conexão, foram preenchidas vazias {name_error}")
                         self.infos_config['server_principal'] = ""
                         self.infos_config['username_principal'] = ""
                         self.infos_config['password_principal'] = ""
@@ -725,9 +723,9 @@ class Aplicativo:
                         if params_dict["redis_qa"] != '':
                             self.infos_config['redis_qa'] = params_dict["redis_qa"]
                     except Exception as name_error:
-                        self.criar_popup_mensagem("Ocorreu um erro ao tentar validar as tags do redis_qa, foram preenchidas vazias")
+                        self.criar_popup_mensagem(f"Ocorreu um erro ao tentar validar as tags do redis_qa, foram preenchidas vazias {name_error}")
                         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'],
-                                                  f"INFO - Ocorreu um erro ao tentar validar as tags de conexão, foram preenchidas vazias")
+                                                  f"INFO - Ocorreu um erro ao tentar validar as tags de conexão, foram preenchidas vazias {name_error}")
                         self.infos_config['redis_qa'] = ""
                     self.atualizar_arquivo_json(self.config_selecionado, versao_config)
                     return
@@ -748,10 +746,7 @@ class Aplicativo:
         self.arquivo_config.close()
 
     def escolher_config_existente(self):
-        params_dict = ''
-        versao = 0
         self.infos_config['status'] = False
-
         # Validando se o metodo esta escolhendo o config de forma manual ou automatica
         if self.infos_config_prog['escolha_manual']:
             self.config_selecionado = self.combobox.get()
@@ -782,7 +777,7 @@ class Aplicativo:
                     versao_config = "atual"
                 else:
                     versao_config = "desatualizada"
-            except Exception as error:
+            except Exception:
                 versao_config = "antiga"
 
             self.ler_parametros_arquivo_json(params_dict, versao_config)
@@ -923,15 +918,13 @@ class Aplicativo:
         return opcoes_grupo_redis
 
     def atualizar_opcoes(self, event):
-        redis_total = dict()
-        red_grupo_atual = ''
         nome_redis = []
         grupo_redis_selecionado = self.combobox_redis_grupo.get()
 
         for red_grupo_atual in self.infos_config['redis_qa'][grupo_redis_selecionado]:
             try:
                 nome_redis.append(red_grupo_atual["nome_redis"])
-            except Exception as error:
+            except Exception:
                 continue
 
         if len(nome_redis) <= 0 or nome_redis == '':
@@ -1132,15 +1125,9 @@ class Aplicativo:
     def atualizar_bancos_update(self):
         print("Não implementado")
 
-    def consultar_versions(self):
+    def consultar_versions(self, server):
         try:
-            self.button_consultar_inicio.config(state='disabled')
-            self.button_consultar_limpar.config(state='disabled')
-            self.button_consultar_voltar.config(state='disabled')
-            self.combobox_servidor_consulta_version.config(state='disabled')
-            self.button_menu_sair.config(state='disabled')
-            server = self.combobox_servidor_consulta_version.get()
-            tam_base_muro = len(self.infos_config['bases_muro'])
+            self.desativar_campos_consultar_versions(True)
             self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Validar atualização")
 
             self.escrever_arquivo_log(self.nomes['arquivo_validar'], f"INFO - Inicio da validação do banco update ")
@@ -1155,7 +1142,6 @@ class Aplicativo:
                 return
             servidor_selecionado = self.infos_config["conexoes"][server]
             num = 1
-            tam_list_muros = len(self.infos_config.get('bases_muro'))
             for base_muro in self.infos_config.get('bases_muro'):
                 database_update = self.valida_banco_update(base_muro)
 
@@ -1187,174 +1173,176 @@ class Aplicativo:
 
             self.escrever_no_input(f"- Fim da operação de consulta")
             self.escrever_arquivo_log(self.nomes['arquivo_validar'], f"INFO - Fim da operação Validar atualização")
-            self.button_consultar_inicio.config(state='normal')
-            self.button_consultar_limpar.config(state='normal')
-            self.button_consultar_voltar.config(state='normal')
-            self.combobox_servidor_consulta_version.config(state='normal')
-            self.button_menu_sair.config(state='normal')
+            self.desativar_campos_consultar_versions(False)
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.button_consultar_inicio.config(state='normal')
-            self.button_consultar_limpar.config(state='normal')
-            self.button_consultar_voltar.config(state='normal')
-            self.combobox_servidor_consulta_version.config(state='normal')
-            self.button_menu_sair.config(state='normal')
+            self.desativar_campos_consultar_versions(False)
 
+    def tempo_execucao(self):
+        def wrapper(*args, **kwargs):
+            inicio = time.perf_counter()
+            resultado = self(*args, **kwargs)
+            fim = time.perf_counter()
+            print(f"⏱ Função '{self.__name__}' executou em {fim - inicio:.4f} segundos")
+            return resultado
+
+        return wrapper
+
+    @tempo_execucao
     def buscar_empresas(self):
         try:
-            self.button_busca_empresa_atualizacao_inicio.config(state='disabled')
-            self.button_busca_empresa_atualizacao_limpar.config(state='disabled')
-            self.button_busca_empresa_atualizacao_voltar.config(state='disabled')
-            self.combobox_busca_empresa_servidor_version.config(state='disabled')
-            self.combobox_busca_empresa_banco_muro.config(state='disabled')
-            self.button_menu_sair.config(state='disabled')
+            self.desativar_campos_buscar_empresas(True)
             server = self.combobox_busca_empresa_servidor_version.get()
             base_muro = self.combobox_busca_empresa_banco_muro.get()
-
             self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'], f"INFO - Inicio da busca das empresas ")
             self.escrever_no_input(f"- Inicio da busca das empresas")
-
             lista_sort_infos_emp = []
             lista_infos_emp = dict()
-            data_criacao_db = ''
-            lista_razao_social = []
-            lista_cnpj_cpf = []
-            lista_usuarios = []
             servidor_selecionado = self.infos_config["conexoes"][server]
-            lista_limpa_razao_social = []
-            lista_limpa_usuarios = []
-            lista_limpa_data_criacao_db = []
-            lista_limpa_cnpj_cpf = []
 
             try:
-                cnx = pyodbc.connect(f"DRIVER=SQL Server;SERVER={servidor_selecionado['server']};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}", autocommit=True)
-                cursor = cnx.cursor()
-                cursor.execute(f"""SELECT name FROM sys.databases;""")
-                lista_empresas_instancia = cursor.fetchall()
+                lista_bancos_instancia = self.buscar_bancos_instancia(servidor_selecionado)
             except (Exception or pyodbc.DatabaseError) as error:
-                self.button_busca_empresa_atualizacao_inicio.config(state='normal')
-                self.button_busca_empresa_atualizacao_limpar.config(state='normal')
-                self.button_busca_empresa_atualizacao_voltar.config(state='normal')
-                self.combobox_busca_empresa_servidor_version.config(state='normal')
-                self.combobox_busca_empresa_banco_muro.config(state='normal')
-                self.button_menu_sair.config(state='normal')
-                self.escrever_no_input(f"- Falha ao tentar consultar banco de update: {error}")
+                self.desativar_campos_buscar_empresas(False)
+                self.escrever_no_input(f"- Falha ao tentar buscar bancos da instancia: {error}")
                 self.escrever_arquivo_log(self.nomes['arquivo_validar'],
-                                          f"ERRO - Falha ao tentar consultar banco de muro update: {error}")
+                                          f"ERRO - Falha ao tentar buscar bancos da instancia: {error}")
+                return
             else:
-                self.escrever_no_input(f"- Sucesso na busca dos bancos da instancia")
-                self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'],
-                                          f"INFO - Sucesso na busca dos bancos da instancia")
-                self.escrever_no_input(f"\n- Iniciando o processo no banco: {base_muro}")
-                self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'],
-                                          f"INFO - Iniciando o processo no banco: {base_muro}")
-                self.buscar_connections_strings(servidor_selecionado, lista_empresas_instancia, base_muro)
-
-                tam_lista_empresas_localizadas = len(self.catalog['DATABASE_NAME'])
-                for emp in range(tam_lista_empresas_localizadas):
+                if not lista_bancos_instancia:
+                    self.desativar_campos_buscar_empresas(False)
+                    self.escrever_no_input(f"- Rotina finalizada")
+                    self.escrever_arquivo_log(self.nomes['arquivo_validar'],
+                                              f"ERRO - Rotina finalizada")
+                    return
+                else:
                     try:
-                        cnx = pyodbc.connect(f"DRIVER=SQL Server;SERVER={servidor_selecionado['server']};DATABASE={self.catalog['DATABASE_NAME'][emp]};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}",
-                            autocommit=True)
-                        cursor = cnx.cursor()
-                        cursor.execute(f"""
-use [{self.catalog['DATABASE_NAME'][emp]}]
-IF OBJECT_ID('DBCCPAGE') IS NOT NULL DROP TABLE DBCCPAGE;
-CREATE TABLE DBCCPAGE (
+                        self.buscar_connections_strings(servidor_selecionado, lista_bancos_instancia, base_muro)
+                    except (Exception or pyodbc.DatabaseError) as error:
+                        self.desativar_campos_buscar_empresas(False)
+                        self.escrever_no_input(f"- Falha ao tentar buscar bancos da instancia: {error}")
+                        self.escrever_arquivo_log(self.nomes['arquivo_validar'],
+                                                  f"ERRO - Falha ao tentar buscar bancos da instancia: {error}")
+                        return
+                try:
+                    cnx = pyodbc.connect(
+                        f"DRIVER=SQL Server;SERVER={servidor_selecionado['server']};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}",
+                        autocommit=True)
+                    cursor = cnx.cursor()
+                except (Exception or pyodbc.DatabaseError) as error:
+                    self.escrever_no_input(
+                        f"- Erro ao abrir conexão - {error}")
+                    self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'],
+                                              f"ERRO - Erro ao abrir conexão {error}")
+                    self.desativar_campos_buscar_empresas(False)
+                    return
+
+                count = 0
+                tam_lista_empresas_localizadas = len(self.catalog['INFOS_BANCOS'])
+                for emp in self.catalog['INFOS_BANCOS']:
+                    banco_atual = emp.get('DATABASE_NAME')
+                    try:
+                        cursor.execute(f"""use [{banco_atual}]
+IF OBJECT_ID('tempdb..#DBCCPAGE') IS NOT NULL
+BEGIN
+    DROP TABLE #DBCCPAGE;
+END
+CREATE TABLE #DBCCPAGE (
 ParentObject VARCHAR(255),
 [OBJECT] VARCHAR(255),
 Field VARCHAR(255),
 [VALUE] VARCHAR(255));
-INSERT INTO DBCCPAGE
-EXECUTE ('DBCC PAGE (''{self.catalog['DATABASE_NAME'][emp]}'', 1, 9, 3) WITH TABLERESULTS;');
-""")
-                        cursor = cnx.cursor()
-                        cursor.execute(f"""
-SELECT VALUE FROM DBCCPAGE
-WHERE [Field] = 'dbi_modDate';
-""")
+INSERT INTO #DBCCPAGE
+EXECUTE ('DBCC PAGE (''{banco_atual}'', 1, 9, 3) WITH TABLERESULTS;');""")
+                        cursor.execute(f"""SELECT VALUE FROM #DBCCPAGE
+WHERE [Field] = 'dbi_modDate';""")
                         data_criacao_db = (cursor.fetchall())
                         data_criacao_db = data_criacao_db[0].VALUE
+                        data_criacao_db = data_criacao_db + str(count)
                         lista_infos_emp[f'{data_criacao_db}'] = []
-                        lista_infos_emp[f'{data_criacao_db}'].append(f"{self.catalog['DATABASE_NAME'][emp]}")
-                        cursor = cnx.cursor()
-                        cursor.execute(f"""
-use [{self.catalog['DATABASE_NAME'][emp]}]
-drop table DBCCPAGE
-                        """)
-                        cursor = cnx.cursor()
-                        cursor.execute(f"""SELECT TOP 1 TX_RAZ_SOC FROM [userNewPoint].[EMPRESA_MATRIZ];""")
-                        lista_infos_emp[f'{data_criacao_db}'].append(cursor.fetchone())
-                        cursor = cnx.cursor()
-                        cursor.execute(f"""SELECT TOP 1 NU_CNPJ_CPF FROM [userNewPoint].[empresa];""")
-                        lista_infos_emp[f'{data_criacao_db}'].append(cursor.fetchone())
-                        cursor = cnx.cursor()
-                        cursor.execute(f"""SELECT TOP 1 TX_LOGN FROM [userNewPoint].[USUARIO_CONTROLE_ACESSO] where [TX_LOGN] != 'dmpmaster';""")
-                        lista_infos_emp[f'{data_criacao_db}'].append(cursor.fetchone())
-                        cursor = cnx.cursor()
-                        cursor.execute(f"""select COUNT(id_pess) as QUANT from [userNewPoint].[PESSOA];""")
-                        lista_infos_emp[f'{data_criacao_db}'].append(cursor.fetchone())
-                        cursor = cnx.cursor()
-                        cursor.execute(f"""select COUNT(ID_EMPR) as QUANT from [userNewPoint].[EMPRESA];""")
-                        lista_infos_emp[f'{data_criacao_db}'].append(cursor.fetchone())
+                        cursor.execute(f"""SET NOCOUNT ON;
+SELECT
+    DB_NAME()                                   AS DatabaseName,
+    (SELECT TOP (1) TX_RAZ_SOC  FROM userNewPoint.EMPRESA_MATRIZ)                                        AS RazaoSocial,
+    (SELECT TOP (1) NU_CNPJ_CPF FROM userNewPoint.EMPRESA)                                               AS CNPJ_CPF,
+    (SELECT TOP (1) TX_LOGN     FROM userNewPoint.USUARIO_CONTROLE_ACESSO WHERE TX_LOGN <> 'dmpmaster')  AS Usuario,
+    (SELECT COUNT(*) FROM userNewPoint.PESSOA)    AS QtdeFuncionarios,
+    (SELECT COUNT(*) FROM userNewPoint.EMPRESA)   AS QtdeEmpresas;""")
+                        teste = cursor.fetchone()
+                        lista_infos_emp[f'{data_criacao_db}'].append(teste)
+                        print(f"{data_criacao_db} - {teste}")
+
                     except (Exception or pyodbc.DatabaseError) as error:
-                        self.escrever_no_input(f"- Erro ao consultar empresa {self.catalog['DATABASE_NAME'][emp]} - {error}")
+                        self.escrever_no_input(
+                            f"- Erro ao consultar empresa {banco_atual} - {error}")
                         self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'],
-                                                  f"ERRO - Erro ao consultar empresa {self.catalog['DATABASE_NAME']}")
+                                                  f"ERRO - Erro ao consultar empresa {banco_atual}")
                     else:
-                        calculo = ((emp + 1) / tam_lista_empresas_localizadas) * 100
+                        calculo = ((count + 1) / tam_lista_empresas_localizadas) * 100
                         porcentagem = '{:02.0f}'.format(calculo)
                         self.escrever_no_input(f"- Buscando Dados nas empresas: {porcentagem}%")
+                        count += 1
                         continue
                 for key_info in lista_infos_emp:
                     lista_sort_infos_emp.append(key_info)
                 lista_sort_infos_emp.sort()
-                for emp in (lista_sort_infos_emp):
-                    texto_em_tela = (f"""- Data Criação: {emp}
-- Database: {lista_infos_emp[emp][0]}
-- Razão Social: {lista_infos_emp[emp][1][0]}
-- CNPJ/CPF: {lista_infos_emp[emp][2][0]}
-- Usuario: {lista_infos_emp[emp][3][0]}
-- Quantidade Funcionarios: {lista_infos_emp[emp][4][0]}
-- Quantidade Empresas: {lista_infos_emp[emp][5][0]}
-----------------------------------------------------""")
+                for data in lista_sort_infos_emp:
+                    texto_em_tela = (f"""----------------------------------------------------
+- Data Criação: {data}
+- Database: {lista_infos_emp[data][0].DatabaseName}
+- Razão Social: {lista_infos_emp[data][0].RazaoSocial}
+- CNPJ/CPF: {lista_infos_emp[data][0].CNPJ_CPF}
+- Usuario: {lista_infos_emp[data][0].Usuario}
+- Quantidade Funcionarios: {lista_infos_emp[data][0].QtdeFuncionarios}
+- Quantidade Empresas: {lista_infos_emp[data][0].QtdeEmpresas}""")
                     self.escrever_no_input(texto_em_tela)
-                    self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'],f"INFO - Data Criação: {emp} - Database: {lista_infos_emp[emp][0]} - Razão Social: {lista_infos_emp[emp][1][0]} - CNPJ/CPF: {lista_infos_emp[emp][2][0]} - Usuario: {lista_infos_emp[emp][3][0]}- Quantidade Funcionarios: {lista_infos_emp[emp][4][0]} - Quantidade Empresas: {lista_infos_emp[emp][5][0]}")
 
         except (Exception or pyodbc.DatabaseError) as error:
             self.escrever_no_input(f"- Falha ao tentar consultar banco: {error}")
             self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'],
                                       f"ERRO - Falha ao tentar consultar banco: {error}")
-            self.button_busca_empresa_atualizacao_inicio.config(state='normal')
-            self.button_busca_empresa_atualizacao_limpar.config(state='normal')
-            self.button_busca_empresa_atualizacao_voltar.config(state='normal')
-            self.combobox_busca_empresa_servidor_version.config(state='normal')
-            self.combobox_busca_empresa_banco_muro.config(state='normal')
-            self.button_menu_sair.config(state='normal')
+            self.desativar_campos_buscar_empresas(False)
         else:
-            self.button_busca_empresa_atualizacao_inicio.config(state='normal')
-            self.button_busca_empresa_atualizacao_limpar.config(state='normal')
-            self.button_busca_empresa_atualizacao_voltar.config(state='normal')
-            self.combobox_busca_empresa_servidor_version.config(state='normal')
-            self.combobox_busca_empresa_banco_muro.config(state='normal')
-            self.button_menu_sair.config(state='normal')
+            self.desativar_campos_buscar_empresas(False)
 
+    @profile
+    def buscar_bancos_instancia(self, servidor_selecionado):
+        lista_bancos_instancia = []
+        consulta_bancos_instancia = []
+
+        # Pega a lista de bancos da instancia
+        try:
+            cnx = pyodbc.connect(
+                f"DRIVER=SQL Server;SERVER={servidor_selecionado['server']};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}",
+                autocommit=True)
+            cursor = cnx.cursor()
+            cursor.execute(f"""SELECT name FROM sys.databases;""")
+            consulta_bancos_instancia = cursor.fetchall()
+        except (Exception or pyodbc.DatabaseError) as error:
+            self.escrever_no_input(f"- Falha ao tentar consultar bancos da instancia: {error}")
+            self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'],
+                                      f"ERRO - Falha ao tentar consultar bancos da instancia {error} ")
+        else:
+            cursor.commit()
+            self.escrever_no_input(f"- Sucesso na busca dos bancos da instancia")
+            self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'],
+                                      f"INFO - Sucesso na busca dos bancos da instancia")
+        if not consulta_bancos_instancia:
+            self.escrever_no_input(f"- Não foram retornados registros na consulta")
+            self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'],
+                                      f"INFO - Não foram retornados registros na consulta")
+        else:
+            for i in consulta_bancos_instancia:
+                lista_bancos_instancia.append(i.name)
+        return lista_bancos_instancia
+
+    @profile
     def buscar_connections_strings(self, servidor_selecionado, lista_string_instancia, base_muro):
         # Iniciando processo banco muro.
         # Configurando as Variáveis
-        self.catalog = dict()
-        self.catalog['CONNECTION_STRING'] = []
-        self.catalog['DATABASE_NAME'] = []
-        self.catalog['DATABASE_ID'] = []
         lista_connection_string = []
-        index_banco = []
-        string_limpa = []
-        connection_string = []
-        database_id = []
-        atual_connection_string = []
-        atual_database_name = []
-        atual_database_id = []
-        lista_limpa_nomes_instancia = []
-        database_name = []
+        lista_infos_bancos = []
+        lista_bancos_match = []
 
         # Pega a lista de connections strings
         try:
@@ -1376,93 +1364,47 @@ drop table DBCCPAGE
             self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'],
                                       f"INFO - Quantidade de registros encontrados: {len(lista_connection_string)} ")
 
-        for i in range(len(lista_connection_string)):
-            atual_connection_string.append(lista_connection_string[i].CONNECTION_STRING)
-            atual_database_name.append(lista_connection_string[i].CONNECTION_STRING.split(';')[1].split('=')[1])
-            atual_database_id.append(lista_connection_string[i].DATABASE_ID)
+        for i in lista_connection_string:
+            lista_infos_bancos.append({"CONNECTION_STRING": i.CONNECTION_STRING, "DATABASE_NAME": i.CONNECTION_STRING.split(';')[1].split('=')[1], "DATABASE_ID": i.DATABASE_ID})
             continue
-
-        for e in range(len(lista_string_instancia)):
-            lista_limpa_nomes_instancia.append(lista_string_instancia[e].name)
-
-        self.catalog['CONNECTION_STRING'] = atual_connection_string
-        self.catalog['DATABASE_NAME'] = atual_database_name
-        self.catalog['DATABASE_ID'] = atual_database_id
 
         # Comparar bancos "strings"
         self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Iniciando a comparação dos bancos ")
-        for comparar in range(len(lista_string_instancia)):
-            if lista_limpa_nomes_instancia[comparar] in self.catalog['DATABASE_NAME']:
-                database_name.append(lista_limpa_nomes_instancia[comparar])
-                index_banco.append(self.catalog['DATABASE_NAME'].index(lista_limpa_nomes_instancia[comparar]))
-                index_banco.sort()
+        for banco_comp in lista_infos_bancos:
+            banco_atual = banco_comp.get('DATABASE_NAME')
+            if banco_atual in lista_string_instancia:
+                lista_bancos_match.append(banco_comp)
             continue
 
-        for nums in range(len(index_banco)):
-            connection_string.append(self.catalog['CONNECTION_STRING'][index_banco[nums]])
-            database_id.append(self.catalog['DATABASE_ID'][index_banco[nums]])
-
-        self.catalog['DATABASE_ID'] = database_id
-        self.catalog['CONNECTION_STRING'] = connection_string
-        self.catalog['DATABASE_NAME'] = database_name
-
-        if len(connection_string) > 0:
-            self.escrever_no_input("- Quantidade de bancos que deram Match: " + str(len(connection_string)))
+        if len(lista_bancos_match) > 0:
+            self.escrever_no_input("- Quantidade de bancos que deram Match: " + str(len(lista_bancos_match)))
             self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'],
-                                      f"INFO - Quantidade de bancos que deram Match: {len(connection_string)} ")
+                                      f"INFO - Quantidade de bancos que deram Match: {len(lista_bancos_match)} ")
         else:
             self.escrever_no_input("- Não foram encontrados Match na comparação de bancos")
             self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'],
                                       f"INFO - Não foram encontrados Match na comparação de bancos ")
 
-        for lim in range(len(connection_string)):
-            string_limpa.append(connection_string[lim])
-            continue
-
-        # Logando as connection string
-        quant = 1
-        self.escrever_arquivo_log(self.nomes['arquivo_connection_strings'], f"INFO - Buscar Bancos - Listando as connection strings utilizadas ")
-        self.escrever_arquivo_log(self.nomes['arquivo_connection_strings'], f"INFO - Buscar Bancos - Ambiente: {base_muro} ")
-        for log in range(len(connection_string)):
-            self.escrever_arquivo_log(self.nomes['arquivo_connection_strings'], f"INFO - {quant} - {connection_string[log]}")
-            quant += 1
-            continue
-        self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Listado as Connection Strings no arquivo: {self.nomes['arquivo_connection_strings']} ")
+        self.catalog['INFOS_BANCOS'] = lista_bancos_match
 
     def manipular_banco_update(self):
         try:
-            self.entry.config(state='disabled')
-            self.combobox_servidor.config(state='disabled')
-            self.button_busca_inicio.config(state='disabled')
-            self.button_busca_limpar.config(state='disabled')
-            self.button_busca_voltar.config(state='disabled')
-            self.button_menu_sair.config(state='disabled')
+            self.desativar_campos_manipula_banco(True)
             self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Buscar Bancos")
             lista_string_instancia = ''
-            cursor1 = ''
+            cursor = ''
             status_consulta = False
-
             self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], "INFO - Inicio da operação Busca muro ")
 
             versao_databases = self.entry.get()
             server = self.combobox_servidor.get()
             if versao_databases == '' or versao_databases == self.placeholder_text:
                 self.escrever_no_input(f"- O campo Version não pode estar em branco")
-                self.button_busca_inicio.config(state='normal')
-                self.button_busca_limpar.config(state='normal')
-                self.button_busca_voltar.config(state='normal')
-                self.combobox_servidor.config(state='normal')
-                self.entry.config(state='normal')
-                self.button_menu_sair.config(state='normal')
+                self.desativar_campos_manipula_banco(False)
                 return
             elif server == "":
                 self.escrever_no_input(f"- Deverá ser selecionado o servidor, antes de prosseguir")
-                self.button_busca_inicio.config(state='normal')
-                self.button_busca_limpar.config(state='normal')
-                self.button_busca_voltar.config(state='normal')
-                self.combobox_servidor.config(state='normal')
-                self.entry.config(state='normal')
-                self.button_menu_sair.config(state='normal')
+                self.desativar_campos_manipula_banco(False)
                 return
             else:
                 servidor_selecionado = self.infos_config["conexoes"][server]
@@ -1475,17 +1417,11 @@ drop table DBCCPAGE
                     self.nomes['arquivo_busca_bancos'], f"INFO - Iniciando a busca dos bancos na instância: {servidor_selecionado["server"]} ")
 
                 try:
-                    cnxn1 = pyodbc.connect(
-                        f"DRIVER=SQL Server;SERVER={servidor_selecionado["server"]};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
-                    cursor1 = cnxn1.cursor()
-                    cursor1.execute("SELECT name FROM sys.databases;")
-                    lista_string_instancia = cursor1.fetchall()
+                    lista_string_instancia = self.buscar_bancos_instancia(servidor_selecionado)
                 except (Exception or pyodbc.DatabaseError) as err:
                     self.escrever_no_input(f"- Falha ao tentar buscar os bancos da instancia {err}")
                     self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"ERRO - Falha ao tentar buscar os bancos da instancia {err} ")
                 else:
-                    cursor1.commit()
-
                     self.escrever_no_input(f"- Quantidade de bancos encontrados na instância: {len(lista_string_instancia)}")
                     self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Quantidade de bancos encontrados: {len(lista_string_instancia)} ")
                     status_consulta = True
@@ -1498,18 +1434,22 @@ drop table DBCCPAGE
                         self.escrever_no_input(f"\n- Iniciando o processo no banco: {base_muro}")
                         self.buscar_connections_strings(servidor_selecionado, lista_string_instancia, base_muro)
                         database_update = self.valida_banco_update(base_muro)
-                        if len(self.catalog['CONNECTION_STRING']) > 0:
+                        if len(self.catalog['INFOS_BANCOS']) > 0:
                             # Limpeza base muro UPDATE
                             self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'],
                                                       f"INFO - limpando o banco: {database_update} ")
                             try:
-                                cursor1.execute(f'DELETE FROM {database_update}.[dbo].[KAIROS_DATABASES]')
-
+                                cnxn1 = pyodbc.connect(
+                                    f"DRIVER=SQL Server;SERVER={servidor_selecionado["server"]};DATABASE={database_update};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
+                                cursor = cnxn1.cursor()
+                                query = f'DELETE FROM {database_update}.[dbo].[KAIROS_DATABASES]'
+                                cursor.execute(query)
                             except (Exception or pyodbc.DatabaseError) as err:
                                 self.escrever_no_input(f"- Falha ao tentar zerar o banco update {err}")
                                 self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"ERRO - Falha ao tentar zerar o banco de muro update {err} ")
+                                return
                             else:
-                                cursor1.commit()
+                                cursor.commit()
                                 self.escrever_no_input(f"- banco update zerado com sucesso")
                                 self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Banco update zerado com sucesso ")
                         else:
@@ -1518,24 +1458,20 @@ drop table DBCCPAGE
 
                         # Inserindo as connections strings no banco muro update
                         self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Iniciando o processo de inserção:  {database_update} ")
-                        if len(self.catalog['CONNECTION_STRING']) > 0:
+                        if len(self.catalog['INFOS_BANCOS']) > 0:
                             try:
-                                cnxn1 = pyodbc.connect(
-                                    f"DRIVER=SQL Server;SERVER={servidor_selecionado["server"]};DATABASE={database_update};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
-                                cursor1 = cnxn1.cursor()
-
-                                cursor1.execute("set identity_insert [dbo].[KAIROS_DATABASES]  on")
-                                for incs in range(len(self.catalog['CONNECTION_STRING'])):
-                                    montar_comando = f"INSERT INTO [{database_update}].[dbo].[KAIROS_DATABASES] ([DATABASE_ID],[CONNECTION_STRING] ,[DATABASE_VERSION] ,[FL_MAQUINA_CALCULO] ,[FL_ATIVO]) VALUES({self.catalog['DATABASE_ID'][incs]},'{self.catalog['CONNECTION_STRING'][incs]}',{versao_databases},0, 1)"
-                                    cursor1.execute(montar_comando)
+                                cursor.execute("set identity_insert [dbo].[KAIROS_DATABASES]  on")
+                                for banco in self.catalog['INFOS_BANCOS']:
+                                    montar_comando = f"INSERT INTO [{database_update}].[dbo].[KAIROS_DATABASES] ([DATABASE_ID],[CONNECTION_STRING] ,[DATABASE_VERSION] ,[FL_MAQUINA_CALCULO] ,[FL_ATIVO]) VALUES({banco.get('DATABASE_ID')},'{banco.get('CONNECTION_STRING')}',{versao_databases},0, 1)"
+                                    cursor.execute(montar_comando)
                                     continue
-                                cursor1.execute("set identity_insert [dbo].[KAIROS_DATABASES]  off")
+                                cursor.execute("set identity_insert [dbo].[KAIROS_DATABASES]  off")
 
                             except (Exception or pyodbc.DatabaseError) as err:
                                 self.escrever_no_input(f"- Falha ao tentar inserir registros no banco update {err}")
                                 self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"ERRO - Falha ao tentar inserir registros no banco update {err} ")
                             else:
-                                cursor1.commit()
+                                cursor.commit()
                                 self.escrever_no_input("- Sucesso ao inserir registros no Banco")
                                 self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Sucesso ao inserir connection Strings no Banco de muro Update ")
                         else:
@@ -1546,51 +1482,31 @@ drop table DBCCPAGE
                         self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Concluído a parte {num}, de um total de {tam_list_muros}. ")
                         num += 1
                         continue
-                    cursor1.close()
+                    cursor.close()
                 else:
                     self.escrever_no_input(f"- Erro na primeira etapa das buscas, o processo foi interrompido.")
                     self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Erro na primeira etapa das buscas, o processo foi interrompido. ")
 
                 self.escrever_no_input(f"\n- Fim da operação Busca muro")
                 self.escrever_arquivo_log(self.nomes['arquivo_busca_bancos'], f"INFO - Fim da operação Busca muro")
-                self.entry.config(state='normal')
-                self.button_busca_inicio.config(state='normal')
-                self.button_busca_limpar.config(state='normal')
-                self.button_busca_voltar.config(state='normal')
-                self.combobox_servidor.config(state='normal')
-                self.button_menu_sair.config(state='normal')
+                self.desativar_campos_manipula_banco(False)
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.entry.config(state='normal')
-            self.button_busca_inicio.config(state='normal')
-            self.button_busca_limpar.config(state='normal')
-            self.button_busca_voltar.config(state='normal')
-            self.combobox_servidor.config(state='normal')
-            self.button_menu_sair.config(state='normal')
+            self.desativar_campos_manipula_banco(False)
 
-    def replicar_version(self):
+    def replicar_versions(self, server):
         try:
-            self.button_replicar_inicio.config(state='disabled')
-            self.button_replicar_limpar.config(state='disabled')
-            self.button_replicar_voltar.config(state='disabled')
-            self.combobox_servidor_replicar.config(state='disabled')
-            self.button_menu_sair.config(state='disabled')
-            server = self.combobox_servidor_replicar.get()
+            self.desativar_campos_replicar_versions(True)
             tam_base_muro = len(self.infos_config['bases_muro'])
             self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Replicar version ")
 
             self.escrever_arquivo_log(self.nomes['arquivo_replicar_version'], f"INFO - Inicio da operação replicar version")
             if server == "":
                 self.escrever_no_input(f"- Deverá ser selecionado o servidor, antes de prosseguir")
-                self.button_atualizacao_inicio.config(state='normal')
-                self.button_replicar_limpar.config(state='normal')
-                self.button_atualizacao_voltar.config(state='normal')
-                self.combobox_servidor_replicar.config(state='normal')
-                self.button_menu_sair.config(state='normal')
+                self.desativar_campos_replicar_versions(False)
                 return
             servidor_selecionado = self.infos_config["conexoes"][server]
             num = 1
-            tam_list_muros = len(self.infos_config.get('bases_muro'))
             for base_muro in self.infos_config.get('bases_muro'):
                 lista_registros_db = []
                 lista_ids = []
@@ -1653,7 +1569,7 @@ drop table DBCCPAGE
                         self.escrever_arquivo_log(self.nomes['arquivo_connection_strings'], f"INFO - Replicar Version - Ambiente: {base_muro} ")
                         quant = 1
                         for log in range(tam_busca_realizada):
-                            log_versions = (f"INFO - {quant} - ID: {lista_ids[log]} - Version: {lista_versions[log]} ")
+                            log_versions = f"INFO - {quant} - ID: {lista_ids[log]} - Version: {lista_versions[log]} "
                             self.escrever_arquivo_log(self.nomes['arquivo_connection_strings'], log_versions)
                             quant += 1
                             continue
@@ -1669,19 +1585,10 @@ drop table DBCCPAGE
 
             self.escrever_no_input(f"\n- Fim da operação replicar version")
             self.escrever_arquivo_log(self.nomes['arquivo_replicar_version'], f"INFO - Fim da operação replicar version")
-            self.button_replicar_inicio.config(state='normal')
-            self.button_replicar_limpar.config(state='normal')
-            self.button_replicar_voltar.config(state='normal')
-            self.combobox_servidor_replicar.config(state='normal')
-            self.button_menu_sair.config(state='normal')
-
+            self.desativar_campos_replicar_versions(False)
         except Exception as error:
             self.escrever_no_input(f"Exceção não tratada: {error}")
-            self.button_replicar_inicio.config(state='normal')
-            self.button_replicar_limpar.config(state='normal')
-            self.button_replicar_voltar.config(state='normal')
-            self.combobox_servidor_replicar.config(state='normal')
-            self.button_menu_sair.config(state='normal')
+            self.desativar_campos_replicar_versions(False)
 
     def valida_banco_update(self, base_muro):
         database_update = ''
@@ -2043,7 +1950,6 @@ drop table DBCCPAGE
                 self.button_menu_sair.config(state='normal')
                 return
             else:
-                tam_redis = len(self.infos_config['redis_qa'])
                 for red_grupo_atual in self.infos_config['redis_qa']:
                     if red_grupo_atual == grupo_redis:
                         grupo_atual = self.infos_config['redis_qa'][red_grupo_atual]
@@ -2061,8 +1967,8 @@ drop table DBCCPAGE
                         try:
                             self.escrever_no_input(f"- Iniciado processo no Redis {redis_atual['nome_redis']}")
                             self.escrever_arquivo_log(self.nomes['arquivo_redis'],f"INFO - Iniciado processo no Redis {redis_atual['nome_redis']} ")
-                            redis_host = redis_atual['ip']  # ou o endereço do seu servidor Redis
-                            redis_port = redis_atual['port']  # ou a porta que o seu servidor Redis está ouvindo
+                            redis_host = redis_atual.get('ip')  # ou o endereço do seu servidor Redis
+                            redis_port = redis_atual.get('port')  # ou a porta que o seu servidor Redis está ouvindo
 
                             # Criando uma instância do cliente Redis
                             redis_client = redis.StrictRedis(host=redis_host, port=redis_port, decode_responses=True)
@@ -2101,6 +2007,8 @@ drop table DBCCPAGE
 
     def limpar_redis_especifico(self):
         try:
+            redis_host = dict()
+            redis_port = dict()
             self.combobox_redis.config(state='disabled')
             self.combobox_redis_grupo.config(state='disabled')
             self.button_redis_inicio.config(state='disabled')
@@ -2198,7 +2106,6 @@ drop table DBCCPAGE
                     algarismonif = [9, 8, 7, 6, 5, 4, 3, 2]
                     tam_alga1 = len(algarismonif)
                     fase2 = []
-                    fase4 = []
 
                     for num_alg in str(sem_digitos_validadores):
                         basenif.append(num_alg)
@@ -2342,7 +2249,6 @@ drop table DBCCPAGE
                     tam_documento = len(doc)
                     sem_digitos_validadores = doc[0:tam_documento - 2]
                     digitos_validadores = doc[tam_documento - 2:tam_documento]
-                    divisor = 11
 
                     basecpf = []
                     pos_alga = 0
@@ -3052,15 +2958,16 @@ drop table DBCCPAGE
     def iniciar_processo_consulta(self):
         self.escrever_no_input(f"- Processo iniciado")
         # Criar uma nova thread para executar o processo demorado
-        self.thread = threading.Thread(target=self.consultar_versions)
+        server = self.combobox_servidor_consulta_version.get()
+        self.thread = threading.Thread(target=self.consultar_versions, args=[server])
         self.thread.start()
 
     def iniciar_processo_replicar(self):
         self.escrever_no_input(f"- Processo iniciado")
+        server = self.combobox_servidor_replicar.get()
         # Criar uma nova thread para executar o processo demorado
-        self.thread = threading.Thread(target=self.replicar_version)
+        self.thread = threading.Thread(target=self.replicar_versions, args = [server])
         self.thread.start()
-
 
     def iniciar_processo_download(self):
         self.escrever_no_input(f"- Processo iniciado")
@@ -3080,6 +2987,66 @@ drop table DBCCPAGE
         self.thread = threading.Thread(target=self.manipular_banco_update)
         self.thread.start()
 
+# Finalizadores de processos
+    def desativar_campos_manipula_banco(self, status: False):
+        if status:
+            self.entry.config(state='disabled')
+            self.combobox_servidor.config(state='disabled')
+            self.button_busca_inicio.config(state='disabled')
+            self.button_busca_limpar.config(state='disabled')
+            self.button_busca_voltar.config(state='disabled')
+            self.button_menu_sair.config(state='disabled')
+        else:
+            self.button_busca_inicio.config(state='normal')
+            self.button_busca_limpar.config(state='normal')
+            self.button_busca_voltar.config(state='normal')
+            self.combobox_servidor.config(state='normal')
+            self.entry.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+
+    def desativar_campos_consultar_versions(self, status: False):
+        if status:
+            self.button_consultar_inicio.config(state='disabled')
+            self.button_consultar_limpar.config(state='disabled')
+            self.button_consultar_voltar.config(state='disabled')
+            self.combobox_servidor_consulta_version.config(state='disabled')
+            self.button_menu_sair.config(state='disabled')
+        else:
+            self.button_consultar_inicio.config(state='normal')
+            self.button_consultar_limpar.config(state='normal')
+            self.button_consultar_voltar.config(state='normal')
+            self.combobox_servidor_consulta_version.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+
+    def desativar_campos_replicar_versions(self, status: False):
+        if status:
+            self.button_replicar_inicio.config(state='disabled')
+            self.button_replicar_limpar.config(state='disabled')
+            self.button_replicar_voltar.config(state='disabled')
+            self.combobox_servidor_replicar.config(state='disabled')
+            self.button_menu_sair.config(state='disabled')
+        else:
+            self.button_replicar_inicio.config(state='normal')
+            self.button_replicar_limpar.config(state='normal')
+            self.button_replicar_voltar.config(state='normal')
+            self.combobox_servidor_replicar.config(state='normal')
+            self.button_menu_sair.config(state='normal')
+
+    def desativar_campos_buscar_empresas(self, status: False):
+        if status:
+            self.button_busca_empresa_atualizacao_inicio.config(state='disabled')
+            self.button_busca_empresa_atualizacao_limpar.config(state='disabled')
+            self.button_busca_empresa_atualizacao_voltar.config(state='disabled')
+            self.combobox_busca_empresa_servidor_version.config(state='disabled')
+            self.combobox_busca_empresa_banco_muro.config(state='disabled')
+            self.button_menu_sair.config(state='disabled')
+        else:
+            self.button_busca_empresa_atualizacao_inicio.config(state='normal')
+            self.button_busca_empresa_atualizacao_limpar.config(state='normal')
+            self.button_busca_empresa_atualizacao_voltar.config(state='normal')
+            self.combobox_busca_empresa_servidor_version.config(state='normal')
+            self.combobox_busca_empresa_banco_muro.config(state='normal')
+            self.button_menu_sair.config(state='normal')
 # Modificadores de telas
     def inserir_menu_cascata(self):
         menu_bar = Menu(self.app)
@@ -3113,7 +3080,7 @@ drop table DBCCPAGE
         self.remover_conteudo_linha(7, 0)
 
 
-        if self.button_nav_criar != None:
+        if self.button_nav_criar:
             self.button_nav_criar.config(state="disabled")
         # listar os arquivos de dentro da pasta
         try:
@@ -3173,7 +3140,7 @@ drop table DBCCPAGE
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Rotina - Criar Arquivo config")
         self.remover_conteudo_linha(6,0)
         self.remover_conteudo_linha(7, 0)
-        if self.button_nav_escolher != None:
+        if self.button_nav_escolher:
             self.button_nav_escolher.config(state="disabled")
 
         self.button_nav_criar = Button(
@@ -3219,8 +3186,8 @@ drop table DBCCPAGE
         self.entry.insert(0, self.placeholder_text)
         self.entry.bind("<FocusIn>", self.on_entry_click)
         self.entry.bind("<FocusOut>", self.on_focusout)
-        self.label.grid(row=linha_label, column=coluna, sticky=posicao_label, pady=(pady_label), padx=(padx_label))
-        self.entry.grid(row=linha_entry, column=coluna, columnspan=2, sticky=posicao_entry, pady=(pady_entry), padx=(padx_entry))
+        self.label.grid(row=linha_label, column=coluna, sticky=posicao_label, pady=pady_label, padx=padx_label)
+        self.entry.grid(row=linha_entry, column=coluna, columnspan=2, sticky=posicao_entry, pady=pady_entry, padx=padx_entry)
         self.entries.append(self.entry)
 
     def inserir_input_placeholder(self, linha_label, linha_entry,  coluna, texto, nome_campo, padding_baixo):
@@ -3239,8 +3206,8 @@ drop table DBCCPAGE
         self.entry.insert(0, self.placeholder_text)
         self.entry.bind("<FocusIn>", self.on_entry_click)
         self.entry.bind("<FocusOut>", self.on_focusout)
-        self.label.grid(row=linha_label, column=coluna, sticky="W", pady=(10, 0), padx=(15))
-        self.entry.grid(row=linha_entry, column=coluna, columnspan=2, sticky="WEN", padx=(15), pady=(0, padding_baixo))
+        self.label.grid(row=linha_label, column=coluna, sticky="W", pady=(10, 0), padx=15)
+        self.entry.grid(row=linha_entry, column=coluna, columnspan=2, sticky="WEN", padx=15, pady=(0, padding_baixo))
 
     def inserir_titulos_telas(self, app, nome_tela, linha, coluna, padding_baixo):
         self.label_inserir_titulos = Label(
@@ -3268,8 +3235,8 @@ drop table DBCCPAGE
             height=tamanho,
             wrap="word"
         )
-        self.nome_campo_caixa.grid(row=linha_label, column=coluna, sticky="WE", columnspan=2, pady=(pady_label), padx=(padx_label))
-        self.widtexto.grid(row=linha_texto, column=coluna, sticky="WE", columnspan=2, padx=(15))
+        self.nome_campo_caixa.grid(row=linha_label, column=coluna, sticky="WE", columnspan=2, pady=pady_label, padx=padx_label)
+        self.widtexto.grid(row=linha_texto, column=coluna, sticky="WE", columnspan=2, padx=15)
         self.widtexto.config(width=50)
         self.widtexto.config(state="disabled")
 
@@ -3290,7 +3257,7 @@ drop table DBCCPAGE
         )
         self.label_config_selecionado.grid(row=0, column=0, columnspan=3, sticky="NW", pady=(0,10))
 
-    def Inserir_estrutura_padrao_telas(self):
+    def inserir_estrutura_padrao_telas(self):
         self.app.configure(bg=self.infos_config_prog["background_color_fundo"])
         self.app.rowconfigure(0, weight=0)
         self.app.rowconfigure(15, weight=0)
@@ -3312,7 +3279,7 @@ drop table DBCCPAGE
         self.app.rowconfigure(6, weight=peso_linha)
         self.app.rowconfigure(7, weight=peso_linha)
         self.app.rowconfigure(14, weight=1)
-        self.Inserir_estrutura_padrao_telas()
+        self.inserir_estrutura_padrao_telas()
         self.tela_menu_geral(self.app, self.version, self.coluna)
 
     def trocar_tela_menu_ferramentas_bancos(self):
@@ -3326,7 +3293,7 @@ drop table DBCCPAGE
         self.app.rowconfigure(6, weight=peso_linha)
         self.app.rowconfigure(7, weight=peso_linha)
         self.app.rowconfigure(14, weight=1)
-        self.Inserir_estrutura_padrao_telas()
+        self.inserir_estrutura_padrao_telas()
         self.tela_menu_ferramentas_bancos(self.app, self.version, self.coluna)
 
     def trocar_tela_menu_ferramentas_backup(self):
@@ -3338,7 +3305,7 @@ drop table DBCCPAGE
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(5, weight=peso_linha)
         self.app.rowconfigure(14, weight=1)
-        self.Inserir_estrutura_padrao_telas()
+        self.inserir_estrutura_padrao_telas()
         self.tela_menu_ferramentas_backup(self.app, self.version, self.coluna)
 
     def trocar_tela_menu_ferramentas_redis(self):
@@ -3350,7 +3317,7 @@ drop table DBCCPAGE
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(5, weight=peso_linha)
         self.app.rowconfigure(14, weight=1)
-        self.Inserir_estrutura_padrao_telas()
+        self.inserir_estrutura_padrao_telas()
         self.tela_menu_ferramentas_redis(self.app, self.version, self.coluna)
 
     def trocar_tela_menu_ferramentas_documentos(self):
@@ -3362,7 +3329,7 @@ drop table DBCCPAGE
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(5, weight=peso_linha)
         self.app.rowconfigure(14, weight=1)
-        self.Inserir_estrutura_padrao_telas()
+        self.inserir_estrutura_padrao_telas()
         self.tela_menu_ferramentas_documentos(self.app, self.version, self.coluna)
 
     def trocar_tela_listar_empresas(self):
@@ -3378,7 +3345,7 @@ drop table DBCCPAGE
         self.app.rowconfigure(8, weight=peso_linha)
         self.app.rowconfigure(9, weight=peso_linha)
         self.app.rowconfigure(15, weight=1)
-        self.Inserir_estrutura_padrao_telas()
+        self.inserir_estrutura_padrao_telas()
         self.tela_listar_empresas(self.app, self.version, self.coluna)
 
     def trocar_tela_atualizacao_banco_update(self):
@@ -3391,7 +3358,7 @@ drop table DBCCPAGE
         self.app.rowconfigure(5, weight=peso_linha)
         self.app.rowconfigure(6, weight=peso_linha)
         self.app.rowconfigure(10, weight=1)
-        self.Inserir_estrutura_padrao_telas()
+        self.inserir_estrutura_padrao_telas()
         self.trocar_tela_menu_geral()
         self.criar_popup_mensagem("Tela Não implementada")
 
@@ -3407,7 +3374,7 @@ drop table DBCCPAGE
         self.app.rowconfigure(7, weight=peso_linha)
         self.app.rowconfigure(8, weight=peso_linha)
         self.app.rowconfigure(10, weight=1)
-        self.Inserir_estrutura_padrao_telas()
+        self.inserir_estrutura_padrao_telas()
         self.tela_validadores(self.app, self.version, self.coluna)
 
     def trocar_tela_geradores(self):
@@ -3428,7 +3395,7 @@ drop table DBCCPAGE
         self.app.rowconfigure(13, weight=peso_linha)
         self.app.rowconfigure(14, weight=peso_linha)
         self.app.rowconfigure(15, weight=1)
-        self.Inserir_estrutura_padrao_telas()
+        self.inserir_estrutura_padrao_telas()
         self.tela_geradores(self.app, self.version, self.coluna)
 
     def trocar_tela_redis_especifico(self):
@@ -3439,7 +3406,7 @@ drop table DBCCPAGE
         self.app.rowconfigure(3, weight=peso_linha)
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(9, weight=1)
-        self.Inserir_estrutura_padrao_telas()
+        self.inserir_estrutura_padrao_telas()
         self.tela_limpar_redis_especifico(self.app, self.version, self.coluna)
 
     def trocar_tela_redis_todos(self):
@@ -3452,7 +3419,7 @@ drop table DBCCPAGE
         self.app.rowconfigure(5, weight=peso_linha)
         self.app.rowconfigure(6, weight=peso_linha)
         self.app.rowconfigure(9, weight=1)
-        self.Inserir_estrutura_padrao_telas()
+        self.inserir_estrutura_padrao_telas()
         self.tela_limpar_redis_todos(self.app, self.version, self.coluna)
 
     def trocar_tela_manipular_banco_update(self):
@@ -3468,7 +3435,7 @@ drop table DBCCPAGE
         self.app.rowconfigure(8, weight=peso_linha)
         self.app.rowconfigure(9, weight=peso_linha)
         self.app.rowconfigure(15, weight=1)
-        self.Inserir_estrutura_padrao_telas()
+        self.inserir_estrutura_padrao_telas()
         self.tela_manipular_banco_update(self.app, self.version, self.coluna)
 
     def trocar_tela_download_backup(self):
@@ -3483,7 +3450,7 @@ drop table DBCCPAGE
         self.app.rowconfigure(7, weight=peso_linha)
         self.app.rowconfigure(8, weight=peso_linha)
         self.app.rowconfigure(9, weight=1)
-        self.Inserir_estrutura_padrao_telas()
+        self.inserir_estrutura_padrao_telas()
         self.tela_download_backup(self.app, self.version, self.coluna)
 
     def trocar_tela_restaurar_backup(self):
@@ -3499,7 +3466,7 @@ drop table DBCCPAGE
         self.app.rowconfigure(8, weight=peso_linha)
         self.app.rowconfigure(9, weight=peso_linha)
         self.app.rowconfigure(10, weight=2)
-        self.Inserir_estrutura_padrao_telas()
+        self.inserir_estrutura_padrao_telas()
         self.tela_restaurar_backup(self.app, self.version, self.coluna)
 
     def trocar_tela_consultar_versions(self):
@@ -3510,7 +3477,7 @@ drop table DBCCPAGE
         self.app.rowconfigure(3, weight=peso_linha)
         self.app.rowconfigure(4, weight=peso_linha)
         self.app.rowconfigure(15, weight=1)
-        self.Inserir_estrutura_padrao_telas()
+        self.inserir_estrutura_padrao_telas()
         self.tela_consultar_versions(self.app, self.version, self.coluna)
 
     def trocar_tela_replicar_version(self):
@@ -3524,7 +3491,7 @@ drop table DBCCPAGE
         self.app.rowconfigure(6, weight=peso_linha)
         self.app.rowconfigure(7, weight=peso_linha)
         self.app.rowconfigure(15, weight=1)
-        self.Inserir_estrutura_padrao_telas()
+        self.inserir_estrutura_padrao_telas()
         self.tela_replicar_version(self.app, self.version, self.coluna)
 
     def trocar_tela_alterar_aparencia(self):
@@ -3539,7 +3506,7 @@ drop table DBCCPAGE
         self.app.rowconfigure(7, weight=peso_linha)
         self.app.rowconfigure(8, weight=peso_linha)
         self.app.rowconfigure(14, weight=1)
-        self.Inserir_estrutura_padrao_telas()
+        self.inserir_estrutura_padrao_telas()
         self.tela_alterar_aparencia(self.app, self.version, self.coluna)
 
     def trocar_tela_config(self):
@@ -3553,7 +3520,7 @@ drop table DBCCPAGE
         self.app.rowconfigure(6, weight=peso_linha)
         self.app.rowconfigure(7, weight=peso_linha)
         self.app.rowconfigure(14, weight=1)
-        self.Inserir_estrutura_padrao_telas()
+        self.inserir_estrutura_padrao_telas()
         self.tela_config(self.app, self.version, self.coluna)
 
 # monta as telas
@@ -3829,13 +3796,13 @@ drop table DBCCPAGE
             self.combobox_busca_empresa_banco_muro.set(opcoes_basemuro[0])
         self.remover_conteudo_linha(15, 2)
         self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
-        self.label_busca_empresa_version_servidor.grid(row=3, column=coluna, sticky="WS", pady=(10, 0), padx=(15))
-        self.combobox_busca_empresa_servidor_version.grid(row=4, column=coluna, columnspan=2, pady=(0, 10), sticky="WE", padx=(15))
-        self.label_busca_empresa_banco_muro.grid(row=5, column=coluna, sticky="WS", pady=(10, 0), padx=(15))
-        self.combobox_busca_empresa_banco_muro.grid(row=6, column=coluna, columnspan=2, pady=(0, 10), sticky="WE", padx=(15))
+        self.label_busca_empresa_version_servidor.grid(row=3, column=coluna, sticky="WS", pady=(10, 0), padx=15)
+        self.combobox_busca_empresa_servidor_version.grid(row=4, column=coluna, columnspan=2, pady=(0, 10), sticky="WE", padx=15)
+        self.label_busca_empresa_banco_muro.grid(row=5, column=coluna, sticky="WS", pady=(10, 0), padx=15)
+        self.combobox_busca_empresa_banco_muro.grid(row=6, column=coluna, columnspan=2, pady=(0, 10), sticky="WE", padx=15)
         self.inserir_caixa_texto(7, 8, coluna, "Saida:", (10,0), (0,0), 12)
-        self.button_busca_empresa_atualizacao_limpar.grid(row=9, column=coluna, padx=(15), pady=(10, 0), sticky="WE")
-        self.button_busca_empresa_atualizacao_inicio.grid(row=9, column=1, padx=(15), pady=(10, 0), sticky="WE")
+        self.button_busca_empresa_atualizacao_limpar.grid(row=9, column=coluna, padx=15, pady=(10, 0), sticky="WE")
+        self.button_busca_empresa_atualizacao_inicio.grid(row=9, column=1, padx=15, pady=(10, 0), sticky="WE")
         self.button_busca_empresa_atualizacao_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def tela_limpar_redis_especifico(self, app, version, coluna):
@@ -3903,8 +3870,8 @@ drop table DBCCPAGE
         self.label_lista_redis.grid(row=5, column=coluna, columnspan=2, pady=(0, 0), padx=(15, 15), sticky="WS")
         self.combobox_redis.grid(row=6, column=coluna, columnspan=2, pady=(0, 0), padx=(15, 15), sticky="WE")
         self.inserir_caixa_texto(7, 8, coluna, "Saida:", (10,0), (0,0), 12)
-        self.button_redis_limpar.grid(row=9, column=coluna, padx=(15), pady=(10, 0), sticky="WE")
-        self.button_redis_inicio.grid(row=9, column=1, padx=(15), pady=(10, 0), sticky="WE")
+        self.button_redis_limpar.grid(row=9, column=coluna, padx=15, pady=(10, 0), sticky="WE")
+        self.button_redis_inicio.grid(row=9, column=1, padx=15, pady=(10, 0), sticky="WE")
         self.button_redis_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
         self.atualizar_opcoes("<<ComboboxSelected>>")
 
@@ -3958,14 +3925,13 @@ drop table DBCCPAGE
         self.label_redis_grupo.grid(row=3, column=coluna, columnspan=2, pady=(0, 0), padx=(15, 15), sticky="WS")
         self.combobox_redis_grupo.grid(row=4, column=coluna, columnspan=2, pady=(0, 0), padx=(15, 15), sticky="WE")
         self.inserir_caixa_texto(5, 6, coluna, "Saida:", (10,0), (0,0), 15)
-        self.button_atualizacao_limpar.grid(row=9, column=coluna, padx=(15), pady=(10, 0), sticky="WE")
-        self.button_atualizacao_inicio.grid(row=9, column=1, padx=(15), pady=(10, 0), sticky="WE")
+        self.button_atualizacao_limpar.grid(row=9, column=coluna, padx=15, pady=(10, 0), sticky="WE")
+        self.button_atualizacao_inicio.grid(row=9, column=1, padx=15, pady=(10, 0), sticky="WE")
         self.button_atualizacao_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def tela_restaurar_backup(self, app, version, coluna):
         titulo = "Restaurar Backup"
         app.title("MSS - " + version + " - " + titulo)
-        placeholder_color = "gray"
         opcoes_servidor = list(self.infos_config["conexoes"])
 
         self.label_restaurar_servidor = Label(
@@ -4015,8 +3981,8 @@ drop table DBCCPAGE
         self.inserir_input_placeholder_modular('black', 5, 6, coluna, "","Nome arquivo .bak:", "WS", "WN", 33, (10,0), (10,0), (0,0), (10,0) )
         self.inserir_input_placeholder_modular('black', 5, 6, 1, "","Nome do banco:", "WS", "WN", 33, (10,0), (10,0), (0,0), (10,0))
         self.inserir_caixa_texto(7, 8, coluna, "Saida:", (10,0), (0,0), 12)
-        self.button_restaurar_limpar.grid(row=9, column=coluna, padx=(15), pady=(10, 0),  sticky="WE")
-        self.button_restaurar_inicio.grid(row=9, column=1, padx=(15), pady=(10, 0),  sticky="WE")
+        self.button_restaurar_limpar.grid(row=9, column=coluna, padx=15, pady=(10, 0),  sticky="WE")
+        self.button_restaurar_inicio.grid(row=9, column=1, padx=15, pady=(10, 0),  sticky="WE")
         self.button_restaurar_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def tela_download_backup(self, app, version, coluna):
@@ -4064,12 +4030,12 @@ drop table DBCCPAGE
             self.combobox_servidor_download.set(opcoes_servidor[0])
         self.remover_conteudo_linha(10, 2)
         self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
-        self.label_download_servidor.grid(row=3, column=coluna, sticky="WS", pady=(10, 0), padx=(15))
-        self.combobox_servidor_download.grid(row=4, column=coluna, columnspan=2, pady=(0, 10), sticky="WE", padx=(15))
+        self.label_download_servidor.grid(row=3, column=coluna, sticky="WS", pady=(10, 0), padx=15)
+        self.combobox_servidor_download.grid(row=4, column=coluna, columnspan=2, pady=(0, 10), sticky="WE", padx=15)
         self.inserir_input_placeholder(5, 6, coluna, "URL DO BACKUP", "Endereço URL:", 5)
         self.inserir_caixa_texto(7, 8, coluna, "Saida:", (10,0), (0,0), 12)
-        self.button_download_limpar.grid(row=9, column=coluna, padx=(15), pady=(10, 0), sticky="WE")
-        self.button_download_inicio.grid(row=9, column=1, padx=(15), pady=(10, 0), sticky="WE")
+        self.button_download_limpar.grid(row=9, column=coluna, padx=15, pady=(10, 0), sticky="WE")
+        self.button_download_inicio.grid(row=9, column=1, padx=15, pady=(10, 0), sticky="WE")
         self.button_download_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def tela_manipular_banco_update(self, app, version, coluna):
@@ -4118,11 +4084,11 @@ drop table DBCCPAGE
         self.remover_conteudo_linha(15, 2)
         self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
         self.inserir_input_placeholder(3, 4, coluna, "Insira o version para downgrade...", "Version:",10)
-        self.label_busca_servidor.grid(row=5, column=coluna, sticky="WS", pady=(10, 0), padx=(15))
-        self.combobox_servidor.grid(row=6, column=coluna, pady=(0, 10), sticky="WE", columnspan=2, padx=(15))
+        self.label_busca_servidor.grid(row=5, column=coluna, sticky="WS", pady=(10, 0), padx=15)
+        self.combobox_servidor.grid(row=6, column=coluna, pady=(0, 10), sticky="WE", columnspan=2, padx=15)
         self.inserir_caixa_texto(7, 8, coluna, "Saida:", (10,0), (0,0), 12)
-        self.button_busca_limpar.grid(row=9, column=coluna, padx=(15), pady=(10, 0), sticky="WE")
-        self.button_busca_inicio.grid(row=9, column=1, padx=(15), pady=(10, 0), sticky="WE")
+        self.button_busca_limpar.grid(row=9, column=coluna, padx=15, pady=(10, 0), sticky="WE")
+        self.button_busca_inicio.grid(row=9, column=1, padx=15, pady=(10, 0), sticky="WE")
         self.button_busca_voltar.grid(row=15, column=1, padx=15, pady=15, sticky="ES")
 
     def tela_consultar_versions(self, app, version, coluna):
@@ -4170,11 +4136,11 @@ drop table DBCCPAGE
             self.combobox_servidor_consulta_version.set(opcoes_servidor[0])
         self.remover_conteudo_linha(15, 2)
         self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
-        self.label_consulta_servidor.grid(row=3, column=coluna, sticky="WS", pady=(10, 0), padx=(15))
-        self.combobox_servidor_consulta_version.grid(row=4, column=coluna, columnspan=2, pady=(0, 10), sticky="WE", padx=(15))
+        self.label_consulta_servidor.grid(row=3, column=coluna, sticky="WS", pady=(10, 0), padx=15)
+        self.combobox_servidor_consulta_version.grid(row=4, column=coluna, columnspan=2, pady=(0, 10), sticky="WE", padx=15)
         self.inserir_caixa_texto(5, 6, coluna, "Saida:", (10,0), (0,0), 12)
-        self.button_consultar_limpar.grid(row=9, column=coluna, padx=(15), pady=(10, 0), sticky="WE")
-        self.button_consultar_inicio.grid(row=9, column=1, padx=(15), pady=(10, 0), sticky="WE")
+        self.button_consultar_limpar.grid(row=9, column=coluna, padx=15, pady=(10, 0), sticky="WE")
+        self.button_consultar_inicio.grid(row=9, column=1, padx=15, pady=(10, 0), sticky="WE")
         self.button_consultar_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def tela_replicar_version(self, app, version, coluna):
@@ -4222,11 +4188,11 @@ drop table DBCCPAGE
             self.combobox_servidor_replicar.set(opcoes_servidor[0])
         self.remover_conteudo_linha(15, 2)
         self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
-        self.label_replicar_servidor.grid(row=3, column=coluna, sticky="W", pady=(10, 0), padx=(15))
-        self.combobox_servidor_replicar.grid(row=4, column=coluna, columnspan=2, pady=(0, 10), sticky="WE", padx=(15))
+        self.label_replicar_servidor.grid(row=3, column=coluna, sticky="W", pady=(10, 0), padx=15)
+        self.combobox_servidor_replicar.grid(row=4, column=coluna, columnspan=2, pady=(0, 10), sticky="WE", padx=15)
         self.inserir_caixa_texto(5, 6, coluna, "Saida:", (10,0), (0,0), 12)
-        self.button_replicar_limpar.grid(row=9, column=coluna, padx=(15), pady=(10, 0), sticky="WE")
-        self.button_replicar_inicio.grid(row=9, column=1, padx=(15), pady=(10, 0), sticky="WE")
+        self.button_replicar_limpar.grid(row=9, column=coluna, padx=15, pady=(10, 0), sticky="WE")
+        self.button_replicar_inicio.grid(row=9, column=1, padx=15, pady=(10, 0), sticky="WE")
         self.button_replicar_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def tela_geradores(self, app, version, coluna):
@@ -4290,13 +4256,13 @@ drop table DBCCPAGE
         self.combobox.set(opcoes[0])
         self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
         self.label_gerador.grid(row=3, column=coluna, padx=(15,0), pady=(0,0), sticky="W")
-        self.combobox.grid(row=4, column=coluna, pady=(0, 0), columnspan=2, sticky="WE", padx=(15))
+        self.combobox.grid(row=4, column=coluna, pady=(0, 0), columnspan=2, sticky="WE", padx=15)
         self.inserir_input_placeholder(5, 6, coluna, "Clique em Gerar ou insira a quantidade desejada", "Quantidade:", 10)
         self.checkbox_mascara_num.grid(row=7, column=coluna, pady=(0, 0), padx=(15,0), sticky="W")
         self.checkbox_gerar_arquivo.grid(row=7, column=1, pady=(0, 0), padx=(0,0), sticky="W")
         self.inserir_caixa_texto(8, 9, coluna, "Saida:", (0,0), (5,0), 12)
-        self.button_gerador_limpar.grid(row=10, column=coluna, padx=(15), pady=(10, 0), sticky="WE")
-        self.button_gerador_inicio.grid(row=10, column=1, padx=(15), pady=(10, 0), sticky="WE")
+        self.button_gerador_limpar.grid(row=10, column=coluna, padx=15, pady=(10, 0), sticky="WE")
+        self.button_gerador_inicio.grid(row=10, column=1, padx=15, pady=(10, 0), sticky="WE")
         self.button_gerador_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def tela_validadores(self, app, version, coluna):
@@ -4337,11 +4303,11 @@ drop table DBCCPAGE
         self.remover_conteudo_linha(10, 2)
         self.combobox.set(opcoes[0])
         self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
-        self.combobox.grid(row=3, column=coluna, pady=(0, 10), padx=(15), columnspan=2, sticky="WE")
+        self.combobox.grid(row=3, column=coluna, pady=(0, 10), padx=15, columnspan=2, sticky="WE")
         self.inserir_input_placeholder(4, 5, coluna, " Insira o documento para ser validado", "Documento:", 10)
         self.inserir_caixa_texto(6, 7, coluna, "Saida:", (10,0), (0,0), 12)
-        self.button_gerador_inicio.grid(row=8, column=1, padx=(15), pady=(10, 0), sticky="WE")
-        self.button_gerador_limpar.grid(row=8, column=coluna, padx=(15), pady=(10, 0), sticky="WE")
+        self.button_gerador_inicio.grid(row=8, column=1, padx=15, pady=(10, 0), sticky="WE")
+        self.button_gerador_limpar.grid(row=8, column=coluna, padx=15, pady=(10, 0), sticky="WE")
         self.button_gerador_voltar.grid(row=15, column=1, padx=15, pady=15, sticky="ES")
 
     def tela_config(self, app, version, coluna):
@@ -4560,7 +4526,6 @@ drop table DBCCPAGE
                     self.escolher_config_existente()
                 else:
                     self.trocar_tela_config()
-
             else:
                 self.criar_arquivo_config_prog()
                 self.ler_arquivo_config()
@@ -4569,7 +4534,6 @@ drop table DBCCPAGE
         except Exception as error:
             self.criar_popup_mensagem(f"Erro ao acessar arquivo de configuração default {error}")
             self.trocar_tela_config()
-
         self.app.mainloop()
 
 
