@@ -364,7 +364,7 @@ class Aplicativo:
                                 if len(item_red) > 1:
                                     pre_formato_redis = f"""
             {{
-                "nome_redis": "{item_red["nome_redis"]}",
+                "nome_redis": "{item_red['nome_redis']}",
                 "ip": "{item_red['ip']}",
                 "port": "{item_red['port']}"
             }}"""
@@ -430,7 +430,7 @@ class Aplicativo:
                             formatar_redis = formatar_redis + pre_formato_redis
                         pre_formato_redis = f"""
                 {{
-                    "nome_redis": "{red["nome_redis"]}",
+                    "nome_redis": "{red['nome_redis']}",
                     "ip": "{red['ip']}",
                     "port": "{red['port']}"
                 }}"""
@@ -1347,7 +1347,7 @@ SELECT
         # Pega a lista de connections strings
         try:
             cnxn1 = pyodbc.connect(
-                f"DRIVER=SQL Server;SERVER={servidor_selecionado["server"]};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
+                f"DRIVER=SQL Server;SERVER={servidor_selecionado['server']};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
             cursor1 = cnxn1.cursor()
             cursor1.execute(
                 f"SELECT [DATABASE_ID],[CONNECTION_STRING] FROM {base_muro}.[dbo].[KAIROS_DATABASES]")
@@ -1414,7 +1414,7 @@ SELECT
 
                 # Pegar a lista de bancos da instancia
                 self.escrever_arquivo_log(
-                    self.nomes['arquivo_busca_bancos'], f"INFO - Iniciando a busca dos bancos na instância: {servidor_selecionado["server"]} ")
+                    self.nomes['arquivo_busca_bancos'], f"INFO - Iniciando a busca dos bancos na instância: {servidor_selecionado['server']} ")
 
                 try:
                     lista_string_instancia = self.buscar_bancos_instancia(servidor_selecionado)
@@ -1440,7 +1440,7 @@ SELECT
                                                       f"INFO - limpando o banco: {database_update} ")
                             try:
                                 cnxn1 = pyodbc.connect(
-                                    f"DRIVER=SQL Server;SERVER={servidor_selecionado["server"]};DATABASE={database_update};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
+                                    f"DRIVER=SQL Server;SERVER={servidor_selecionado['server']};DATABASE={database_update};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
                                 cursor = cnxn1.cursor()
                                 query = f'DELETE FROM {database_update}.[dbo].[KAIROS_DATABASES]'
                                 cursor.execute(query)
@@ -1880,7 +1880,7 @@ SELECT
 
                 try:
                     cnxnrp1 = pyodbc.connect(
-                        f"DRIVER=SQL Server;SERVER={servidor_selecionado["server"]};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
+                        f"DRIVER=SQL Server;SERVER={servidor_selecionado['server']};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}")
                     cursorrp1 = cnxnrp1.cursor()
                     cursorrp1.execute(comando)
                     result = cursorrp1.fetchall()
