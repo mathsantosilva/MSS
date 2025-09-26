@@ -7,7 +7,6 @@ import sys
 from tkinter import colorchooser
 from tkinter.ttk import *
 from tkinter import *
-import tkinter.font as tkfont
 import pyodbc
 from github import Github
 import requests
@@ -252,198 +251,12 @@ class Aplicativo:
         self.app = None
         self.status_thread = None
         self.app = None
-        self.style = None
-        self.fontes_modernas = dict()
-        self._estilizacao_moderno_agendada = False
         self.main()
 
 # Processo inicial/final
     def finalizar(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Programa finalizado")
         sys.exit(200)
-
-    def configurar_tema_moderno(self):
-        fonte_base = ("Segoe UI", 10)
-        fonte_negrito = ("Segoe UI", 10, "bold")
-        fonte_titulo = ("Segoe UI", 12, "bold")
-        self.fontes_modernas = {
-            "base": fonte_base,
-            "negrito": fonte_negrito,
-            "titulo": fonte_titulo
-        }
-        for nome_fonte in ("TkDefaultFont", "TkHeadingFont", "TkMenuFont", "TkTextFont", "TkFixedFont"):
-            try:
-                tkfont.nametofont(nome_fonte).configure(family="Segoe UI", size=10)
-            except tkfont.TclError:
-                continue
-        self.app.option_add("*Font", fonte_base)
-        self.app.option_add("*Button.Cursor", "hand2")
-        self.app.option_add("*Entry.Font", fonte_base)
-        self.app.option_add("*Label.Font", fonte_base)
-        self.app.option_add("*TCombobox*Listbox.Font", fonte_base)
-        self.style = Style(self.app)
-        if "clam" in self.style.theme_names():
-            self.style.theme_use("clam")
-        self.atualizar_estilos_modernos()
-
-    def atualizar_estilos_modernos(self):
-        if self.style is None:
-            self.style = Style(self.app)
-        cor_botoes = self.infos_config_prog.get("background_color_botoes", self.color_default)
-        cor_navs = self.infos_config_prog.get("background_color_botoes_navs", self.color_default_navs)
-        cor_fundo = self.infos_config_prog.get("background_color_fundo", self.color_default)
-        cor_fonte = self.infos_config_prog.get("background_color_fonte", self.color_default_fonte)
-        cor_hover = self._ajustar_cor(cor_botoes, 0.1)
-        cor_press = self._ajustar_cor(cor_botoes, -0.1)
-        cor_nav_hover = self._ajustar_cor(cor_navs, 0.08)
-        self.style.configure(
-            "Modern.TButton",
-            font=self.fontes_modernas.get("negrito", ("Segoe UI", 10, "bold")),
-            padding=(14, 8),
-            borderwidth=0,
-            foreground=cor_fonte,
-            background=cor_botoes,
-            focusthickness=2,
-            focuscolor=self._ajustar_cor(cor_botoes, -0.2)
-        )
-        self.style.map(
-            "Modern.TButton",
-            background=[("pressed", cor_press), ("active", cor_hover), ("disabled", "#d4d4d4")],
-            foreground=[("disabled", "#7f7f7f")]
-        )
-        self.style.configure(
-            "ModernNav.TButton",
-            font=self.fontes_modernas.get("negrito", ("Segoe UI", 10, "bold")),
-            padding=(12, 7),
-            borderwidth=0,
-            foreground=cor_fonte,
-            background=cor_navs
-        )
-        self.style.map(
-            "ModernNav.TButton",
-            background=[("pressed", self._ajustar_cor(cor_navs, -0.1)), ("active", cor_nav_hover), ("disabled", "#d4d4d4")],
-            foreground=[("disabled", "#7f7f7f")]
-        )
-        self.style.configure(
-            "Modern.TCombobox",
-            fieldbackground=cor_fundo,
-            background=cor_navs,
-            foreground=cor_fonte,
-            arrowcolor=cor_fonte,
-            borderwidth=0,
-            padding=(6, 4)
-        )
-        self.style.map(
-            "Modern.TCombobox",
-            fieldbackground=[("readonly", cor_fundo), ("disabled", "#e2e2e2")],
-            background=[("active", cor_nav_hover)]
-        )
-
-    def agendar_estilizacao_moderno(self):
-        if self.app is None:
-            return
-        if self._estilizacao_moderno_agendada:
-            return
-        self._estilizacao_moderno_agendada = True
-        self.app.after_idle(self._executar_estilizacao_moderno)
-
-    def _executar_estilizacao_moderno(self):
-        self._estilizacao_moderno_agendada = False
-        if self.app is None:
-            return
-        self.aplicar_estilo_moderno(self.app)
-
-    def aplicar_estilo_moderno(self, widget):
-        if widget is None:
-            return
-        self._estilizar_widget_moderno(widget)
-        for child in widget.winfo_children():
-            self.aplicar_estilo_moderno(child)
-
-    def _estilizar_widget_moderno(self, widget):
-        cor_fundo = self.infos_config_prog.get("background_color_fundo", self.color_default)
-        cor_fonte = self.infos_config_prog.get("background_color_fonte", self.color_default_fonte)
-        cor_botoes = self.infos_config_prog.get("background_color_botoes", self.color_default)
-        cor_navs = self.infos_config_prog.get("background_color_botoes_navs", self.color_default_navs)
-        if isinstance(widget, Button):
-            cor_atual = widget.cget("bg")
-            cor_botao = cor_botoes if cor_atual in ("SystemButtonFace", cor_botoes) else cor_atual
-            if cor_atual == cor_navs:
-                cor_botao = cor_navs
-            widget.configure(
-                bg=cor_botao,
-                fg=cor_fonte,
-                activebackground=self._ajustar_cor(cor_botao, 0.12),
-                activeforeground=cor_fonte,
-                relief="flat",
-                bd=0,
-                padx=14,
-                pady=8,
-                highlightthickness=0,
-                cursor="hand2",
-                font=self.fontes_modernas.get("negrito", ("Segoe UI", 10, "bold"))
-            )
-        elif isinstance(widget, Label):
-            fonte_atual = str(widget.cget("font")).lower()
-            fonte = self.fontes_modernas.get("base", ("Segoe UI", 10))
-            if "bold" in fonte_atual or "12" in fonte_atual:
-                fonte = self.fontes_modernas.get("titulo", ("Segoe UI", 12, "bold"))
-            widget.configure(
-                bg=widget.cget("bg") if widget.cget("bg") != "SystemButtonFace" else cor_fundo,
-                fg=cor_fonte,
-                font=fonte
-            )
-        elif isinstance(widget, Entry):
-            widget.configure(
-                font=self.fontes_modernas.get("base", ("Segoe UI", 10)),
-                relief="flat",
-                bd=1,
-                highlightthickness=1,
-                highlightbackground=self._ajustar_cor(cor_navs, -0.2),
-                highlightcolor=self._ajustar_cor(cor_navs, 0.2),
-                insertbackground=cor_fonte,
-                bg=cor_fundo,
-                fg=cor_fonte
-            )
-        elif isinstance(widget, Text):
-            widget.configure(
-                font=self.fontes_modernas.get("base", ("Segoe UI", 10)),
-                relief="flat",
-                bd=1,
-                highlightthickness=1,
-                highlightbackground=self._ajustar_cor(cor_navs, -0.2),
-                highlightcolor=self._ajustar_cor(cor_navs, 0.2),
-                insertbackground=cor_fonte,
-                bg=cor_fundo,
-                fg=cor_fonte
-            )
-        elif isinstance(widget, Combobox):
-            widget.configure(font=self.fontes_modernas.get("base", ("Segoe UI", 10)), style="Modern.TCombobox")
-        elif isinstance(widget, Frame):
-            widget.configure(bg=cor_fundo)
-        elif isinstance(widget, Toplevel) or isinstance(widget, Tk):
-            widget.configure(bg=cor_fundo)
-
-    def _ajustar_cor(self, cor_hex, fator):
-        try:
-            cor = cor_hex.lstrip('#')
-            if len(cor) != 6:
-                return cor_hex
-            r = int(cor[0:2], 16)
-            g = int(cor[2:4], 16)
-            b = int(cor[4:6], 16)
-            if fator >= 0:
-                r = min(255, int(r + (255 - r) * fator))
-                g = min(255, int(g + (255 - g) * fator))
-                b = min(255, int(b + (255 - b) * fator))
-            else:
-                fator = abs(fator)
-                r = max(0, int(r * (1 - fator)))
-                g = max(0, int(g * (1 - fator)))
-                b = max(0, int(b * (1 - fator)))
-            return f"#{r:02x}{g:02x}{b:02x}"
-        except ValueError:
-            return cor_hex
 
     def atualizador(self):
         if self.infos_config_prog['atualizar']:
@@ -1068,7 +881,6 @@ class Aplicativo:
                 self.infos_config_prog["background_color_botoes_navs"] = background_color_botoes_navs
             if background_color_fonte != self.color_default_fonte:
                 self.infos_config_prog["background_color_fonte"] = background_color_fonte
-            self.atualizar_estilos_modernos()
             return background_color_fundo, background_color_titulos, background_color_botoes, background_color_botoes_navs, background_color_fonte
         except Exception as error:
             self.criar_popup_mensagem(f"Erro ao acessar arquivo de configuração default {error}")
@@ -1212,43 +1024,34 @@ class Aplicativo:
         self.widtexto.config(state="disabled")
 
     def criar_popup_mensagem(self, mensagem):
-        msg = Toplevel(self.app)
-        msg.transient(self.app)
-        msg.grab_set()
-        msg.resizable(False, False)
-        msg.title("MSS - " + self.version + " - ALERTA")
-        largura_popup = 420
-        altura_popup = 200
-        msg.geometry(f"{largura_popup}x{altura_popup}+{self.metade_wid}+{self.metade_hei}")
-        msg.configure(bg=self.infos_config_prog["background_color_fundo"], padx=16, pady=16)
+        msg = Tk()
+        msg.geometry(f"{self.largura}x200+{self.metade_wid}+{self.metade_hei}")
+        msg.configure(bg=self.infos_config_prog["background_color_fundo"])
         msg.grid_rowconfigure(0, weight=1)
         msg.grid_columnconfigure(0, weight=1)
-        frame_conteudo = Frame(msg, bg=self.infos_config_prog["background_color_fundo"])
-        frame_conteudo.grid(sticky="NSEW")
-        frame_conteudo.grid_rowconfigure(0, weight=1)
-        frame_conteudo.grid_columnconfigure(0, weight=1)
+        msg.config(padx=10, pady=10)
+        msg.title("MSS - " + self.version + " - ALERTA")
         label_mensagem = Label(
-            frame_conteudo,
+            msg,
             text=f"{mensagem}",
-            anchor="w",
-            justify="left",
-            wraplength=largura_popup - 48,
-            padx=8,
-            pady=8,
-            bg=self.infos_config_prog["background_color_titulos"],
-            fg=self.infos_config_prog["background_color_fonte"]
+            padx=20,
+            pady=20,
+            bg=self.infos_config_prog["background_color_titulos"]
+
         )
         button_sair_mensagem = Button(
-            frame_conteudo,
+            msg,
             text="Fechar",
-            width=12,
+            width=10,
+            height=2,
+            background="grey",
+            bg=self.infos_config_prog["background_color_botoes_navs"],
+            fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: fechar_janela(msg)
+
         )
-        label_mensagem.grid(row=0, column=0, sticky="NSEW")
-        button_sair_mensagem.grid(row=1, column=0, pady=(12, 0), sticky="E")
-        self.aplicar_estilo_moderno(msg)
-        msg.bind("<Escape>", lambda event: fechar_janela(msg))
-        msg.wait_window()
+        label_mensagem.grid(row=0, sticky="WE")
+        button_sair_mensagem.grid(row=1, pady=(10, 10))
 
     def remover_widget(self, app, name, ent):
         lista_entry = self.percorrer_widgets(app)
@@ -1304,7 +1107,6 @@ class Aplicativo:
             self.infos_config_prog["background_color_botoes"] = backg_botoes
             self.infos_config_prog["background_color_botoes_navs"] = backg_botoes_navs
             self.infos_config_prog["background_color_fonte"] = backg_fontes
-            self.atualizar_estilos_modernos()
             self.trocar_tela_menu_geral()
         except Exception as error:
             self.criar_popup_mensagem(f"Erro ao Alterar o background: {error}")
@@ -1331,7 +1133,6 @@ class Aplicativo:
             self.infos_config_prog["background_color_botoes"] = backg_botoes
             self.infos_config_prog["background_color_botoes_navs"] = backg_botoes_navs
             self.infos_config_prog["background_color_fonte"] = backg_fontes
-            self.atualizar_estilos_modernos()
             self.trocar_tela_menu_geral()
         except Exception as error:
             self.criar_popup_mensagem(f"Erro ao Alterar o background: {error}")
@@ -3497,7 +3298,6 @@ SELECT
         self.texto_config_selecionado(self.app)
         self.inserir_botoes_navs(self.app)
         self.entries = []
-        self.agendar_estilizacao_moderno()
 
 # Realiza as limpezas e contruçoes antes da montagem das telas
     def trocar_tela_menu_geral(self):
@@ -4740,7 +4540,6 @@ SELECT
         self.metade_wid = int((pos_wid / 2) - (self.largura / 2))
         self.metade_hei = int((pos_hei / 2) - (self.altura / 2))
         validar_diretorio(self.nomes, self.criar_popup_mensagem)
-        self.configurar_tema_moderno()
 
         # Data/hora inicio do programa
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Programa iniciado")
