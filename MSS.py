@@ -4,7 +4,6 @@ import json
 import os
 import re
 import sys
-from line_profiler import profile
 from tkinter import colorchooser
 from tkinter.ttk import *
 from tkinter import *
@@ -44,10 +43,12 @@ def pesquisar_maior_tag(username, repository, tag_atual, criar_popup_mensagem):
     github = Github()
     tags = []
     try:
-        repo = github.get_repo(f"{username}/{repository}")
-        tags_on = repo.get_tags()
-        for tag_in in tags_on:
-            tags.append(tag_in.name)
+        limit = github.get_rate_limit()
+        if not limit.core.remaining > 0:
+            repo = github.get_repo(f"{username}/{repository}")
+            tags_on = repo.get_tags()
+            for tag_in in tags_on:
+                tags.append(tag_in.name)
     except Exception as error:
         criar_popup_mensagem(f"Erro ao consultar tags para atualização: {error} ")
     else:
@@ -63,37 +64,58 @@ def pesquisar_maior_tag(username, repository, tag_atual, criar_popup_mensagem):
 
         return maior_tag
 
-def realizar_download(maior_tag, criar_popup_mensagem):
+def realizar_download(maior_tag):
+    status = {'status': False, 'nome_prog': ''}
     try:
-        caminho = f"https://github.com/mathsantosilva/MSS/releases/download/{maior_tag}/BuscaMuro.exe"
-        response = requests.get(caminho)
+        caminho_buscamuro = f"https://github.com/mathsantosilva/MSS/releases/download/{maior_tag}/MSS.exe"
+        response = requests.get(caminho_buscamuro)
+        if response.status_code == 200:
+            status["nome_prog"] = "MSS.exe"
+            status["status"] = True
+        else:
+            try:
+                caminho_mss = f"https://github.com/mathsantosilva/MSS/releases/download/{maior_tag}/BuscaMuro.exe"
+                response = requests.get(caminho_mss)
+                if response.status_code == 200:
+                    status["nome_prog"] = "BuscaMuro.exe"
+                    status["status"] = True
+            except Exception as error:
+                raise Exception(f"Erro ao realizar download da atualização: {error}")
     except Exception as error:
-        criar_popup_mensagem(f"Erro ao consultar tags para atualização: {error} ")
-    else:
+        raise Exception(f"Erro ao realizar download da atualização: {error}")
+    if status["status"]:
         try:
-            if os.path.exists("C:/MSS_temp"):
-                return
-            else:
+            if not os.path.exists("C:/MSS_temp"):
                 os.makedirs("C:/MSS_temp")
         except Exception as error:
-            criar_popup_mensagem(f"Erro ao criar/validar a pasta C:/MSS_temp: {error} ")
-        with open("C:/MSS_temp/BuscaMuro.exe", "wb") as arquivo:
+            raise Exception(f"Erro ao criar/validar a pasta C:/MSS_temp: {error} ")
+        with open(f"C:/MSS_temp/{status["nome_prog"]}", "wb") as arquivo:
             arquivo.write(response.content)
             arquivo.close()
+            return status
+    else:
+        try:
+            shutil.rmtree("C:/MSS_temp")
+            return status
+        except:
+            return status
 
-def executar_comando_batch(dir_atual):
+def executar_comando_batch(dir_atual, nome_prog, nome_prog_atual):
     comando = f"""@echo off
 chcp 65001
 cls
-echo Aguarde enquanto a atualização esta em andamento
-xcopy "C:\\MSS_temp\\BuscaMuro.exe" "{dir_atual}\\BuscaMuro.exe" /w/E/Y/H
+timeout /t 5 /nobreak
+echo Aguarde enquanto a atualização do MSS esta em andamento...
+xcopy "C:\\MSS_temp\\{nome_prog}" "{dir_atual}\\{nome_prog_atual}" /w/E/Y/H
 echo.
 echo Atualização realizada com sucesso 
 echo.
+:: Abre o programa atualizado
+start "" "{dir_atual}\\{nome_prog_atual}"
 pause
 exit
 """
-    arquivo = open("C:/MSS_temp/script_temp.bat", "a", encoding="UTF-8")
+    arquivo = open(f"C:/MSS_temp/script_temp.bat", "w", encoding="UTF-8")
     arquivo.write(comando)
     arquivo.close()
     subprocess.Popen(['start', 'cmd', '/k', 'C:/MSS_temp/script_temp.bat'], shell=True, text=True)
@@ -150,7 +172,7 @@ def validar_diretorio(nomes, criar_popup_mensagem):
             f"\n{data_hora_atual()} - INFO - Erro ao criar/validar a pasta {nomes['diretorio_txt']}: {error} ")
 
 class Aplicativo:
-    version = "4.1.1"
+    version = "4.0.0"
     version_json = '2.1'
     mensagem_json = "Refatorado json para melhorar a estrutura do redis_qa"
     coluna = 0
@@ -159,6 +181,7 @@ class Aplicativo:
     entries = []
     nomes['pasta_config'] = 'Config/'
     nomes['diretorio_log'] = 'Log'
+    nomes['diretorio_atualizacao'] = 'C:/MSS_temp'
     nomes['diretorio_txt'] = 'Arquivos'
     nomes['diretorio_config'] = 'Config'
     nomes['arquivo_base_muro'] = 'base_muro'
@@ -424,28 +447,39 @@ class Aplicativo:
 
     def atualizador(self):
         if self.infos_config_prog['atualizar']:
+            status = {}
             username = "mathsantosilva"
             repository = "MSS"
+            dir_atual = os.getcwd()
+            lista_arquivos = os.listdir(dir_atual)
+            if "MSS.exe" in lista_arquivos:
+                nome_prog_atual = "MSS.exe"
+            else:
+                nome_prog_atual = "BuscaMuro.exe"
             tag_atual = self.version
             maior_tag = pesquisar_maior_tag(username, repository, tag_atual, self.criar_popup_mensagem)
 
-            if maior_tag is not None:
-                realizar_download(maior_tag, self.criar_popup_mensagem)
-                if os.path.exists("C:/MSS_temp"):
-                    dir_atual = os.getcwd()
-                    executar_comando_batch(dir_atual)
-                    self.alterar_data_atualizacao_config()
-                    self.finalizar()
-                else:
-                    return
+            if maior_tag:
+                try:
+                    status = realizar_download(maior_tag)
+                except Exception as error:
+                    self.criar_popup_mensagem(
+                        f"Erro Atualização: {error} ")
+                finally:
+                    if status["status"]:
+                        executar_comando_batch(dir_atual, status["nome_prog"], nome_prog_atual)
+                        self.alterar_data_atualizacao_config()
+                        self.finalizar()
+                    else:
+                        return
             else:
                 try:
-                    if os.path.exists("C:/MSS_temp"):
-                        shutil.rmtree("C:/MSS_temp")
+                    if os.path.exists(self.nomes['diretorio_atualizacao']):
+                        shutil.rmtree(self.nomes['diretorio_atualizacao'])
                     else:
                         return
                 except Exception as error:
-                    self.criar_popup_mensagem(f"Erro ao criar/validar a pasta {self.nomes['diretorio_log']}: {error} ")
+                    self.criar_popup_mensagem(f"Erro ao criar/validar a pasta {self.nomes['diretorio_atualizacao']}: {error} ")
         else:
             return
 
@@ -1504,7 +1538,6 @@ SELECT
         else:
             self.desativar_campos_buscar_empresas(False)
 
-    @profile
     def buscar_bancos_instancia(self, servidor_selecionado):
         lista_bancos_instancia = []
         consulta_bancos_instancia = []
@@ -1535,7 +1568,6 @@ SELECT
                 lista_bancos_instancia.append(i.name)
         return lista_bancos_instancia
 
-    @profile
     def buscar_connections_strings(self, servidor_selecionado, lista_string_instancia, base_muro):
         # Iniciando processo banco muro.
         # Configurando as Variáveis
