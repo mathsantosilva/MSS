@@ -1,13 +1,6 @@
-*.json
-/Log/Log-basemuro.txt
-/Log/Log-manipularbancomuro.txt
-/Log/log-replicarversion.txt
-/Log/Log-Downloadbackup.txt
-/Log/
-/Config/
-/build/
-BuscaMuro.spec
-dist/BuscaMuro.exe
-dist/Log/base_muro.txt
-/dist/Config/prog.conf
-.idea
+# Ignore build artifacts and distributable archives
+/dist/
+*.zip
+
+# Ignore Python cache directories
+__pycache__/
