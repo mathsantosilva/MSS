@@ -18,7 +18,6 @@ import configparser
 import random
 import math
 import time
-import customtkinter as ctk
 
 
 # processos de atualização prog
@@ -4554,7 +4553,7 @@ SELECT
     def tela(self):
         self.app = Tk()
         self.largura = 450
-        self.altura = 535
+        self.altura = 675
         pos_wid = self.app.winfo_screenwidth()
         pos_hei = self.app.winfo_screenheight()
         self.metade_wid = int((pos_wid / 2) - (self.largura / 2))
