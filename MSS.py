@@ -4,6 +4,7 @@ import json
 import os
 import re
 import sys
+import tkinter as tk
 from tkinter import colorchooser
 from tkinter.ttk import *
 from tkinter import *
@@ -20,6 +21,244 @@ import math
 import time
 import customtkinter as ctk
 
+
+
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
+
+END = tk.END
+BooleanVar = tk.BooleanVar
+
+
+GLOBAL_FONTS = {
+    "base": ctk.CTkFont(family="Segoe UI", size=12),
+    "bold": ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+    "title": ctk.CTkFont(family="Segoe UI", size=14, weight="bold")
+}
+
+
+def adjust_color(color_hex, factor):
+    try:
+        color = color_hex.lstrip('#')
+        if len(color) != 6:
+            return color_hex
+        r = int(color[0:2], 16)
+        g = int(color[2:4], 16)
+        b = int(color[4:6], 16)
+        if factor >= 0:
+            r = min(255, int(r + (255 - r) * factor))
+            g = min(255, int(g + (255 - g) * factor))
+            b = min(255, int(b + (255 - b) * factor))
+        else:
+            factor = abs(factor)
+            r = max(0, int(r * (1 - factor)))
+            g = max(0, int(g * (1 - factor)))
+            b = max(0, int(b * (1 - factor)))
+        return f"#{r:02x}{g:02x}{b:02x}"
+    except Exception:
+        return color_hex
+
+
+def create_ctk_font(font):
+    if isinstance(font, (ctk.CTkFont, tkfont.Font)):
+        return font
+    if isinstance(font, tuple):
+        family = font[0] if len(font) > 0 else "Segoe UI"
+        size = font[1] if len(font) > 1 else 12
+        weight = font[2] if len(font) > 2 else "normal"
+        slant = font[3] if len(font) > 3 else "roman"
+        underline = font[4] if len(font) > 4 else False
+        overstrike = font[5] if len(font) > 5 else False
+        return ctk.CTkFont(
+            family=family,
+            size=size,
+            weight=weight,
+            slant=slant,
+            underline=underline,
+            overstrike=overstrike
+        )
+    return GLOBAL_FONTS["base"]
+
+
+def convert_dimension(value, multiplier):
+    if value is None:
+        return None
+    try:
+        return max(int(value * multiplier), 12)
+    except Exception:
+        return value
+
+
+def normalize_background(color):
+    if not color or str(color).lower() == "systembuttonface":
+        return "transparent"
+    return color
+
+
+def extract_color(value):
+    if isinstance(value, (tuple, list)) and value:
+        return value[-1]
+    return value
+
+
+class ModernLabel(ctk.CTkLabel):
+    def __init__(self, master=None, **kwargs):
+        bg = normalize_background(kwargs.pop("bg", None))
+        fg = kwargs.pop("fg", None)
+        font = kwargs.pop("font", None)
+        width = kwargs.pop("width", None)
+        height = kwargs.pop("height", None)
+        kwargs.setdefault("fg_color", bg)
+        if fg:
+            kwargs["text_color"] = fg
+        if font:
+            kwargs["font"] = create_ctk_font(font)
+        else:
+            kwargs["font"] = GLOBAL_FONTS["base"]
+        super().__init__(master=master, **kwargs)
+        if width is not None:
+            self.configure(width=convert_dimension(width, 10))
+        if height is not None:
+            self.configure(height=convert_dimension(height, 18))
+
+
+class ModernButton(ctk.CTkButton):
+    def __init__(self, master=None, **kwargs):
+        role = kwargs.pop("modern_role", "primary")
+        bg = normalize_background(kwargs.pop("bg", None))
+        fg = kwargs.pop("fg", None)
+        width = kwargs.pop("width", None)
+        height = kwargs.pop("height", None)
+        font = kwargs.pop("font", None)
+        hover = kwargs.pop("activebackground", None)
+        for attr in ("relief", "bd", "borderwidth", "highlightthickness", "highlightbackground", "highlightcolor", "cursor"):
+            kwargs.pop(attr, None)
+        kwargs.setdefault("corner_radius", 10)
+        if bg != "transparent":
+            kwargs["fg_color"] = bg
+            kwargs.setdefault("hover_color", hover or adjust_color(bg, 0.12))
+            kwargs.setdefault("border_color", adjust_color(bg, -0.12))
+        if fg:
+            kwargs["text_color"] = fg
+        if font:
+            kwargs["font"] = create_ctk_font(font)
+        else:
+            kwargs["font"] = GLOBAL_FONTS["bold"]
+        super().__init__(master=master, **kwargs)
+        self.modern_role = role
+        self._initial_fg_color = bg
+        if width is not None:
+            self.configure(width=convert_dimension(width, 12))
+        if height is not None:
+            self.configure(height=convert_dimension(height, 18))
+
+
+class ModernEntry(ctk.CTkEntry):
+    def __init__(self, master=None, **kwargs):
+        bg = normalize_background(kwargs.pop("bg", None))
+        fg = kwargs.pop("fg", None)
+        width = kwargs.pop("width", None)
+        font = kwargs.pop("font", None)
+        for attr in ("relief", "bd", "borderwidth", "highlightthickness", "highlightbackground", "insertbackground"):
+            kwargs.pop(attr, None)
+        if bg != "transparent":
+            kwargs.setdefault("fg_color", bg)
+        if fg:
+            kwargs["text_color"] = fg
+        if font:
+            kwargs["font"] = create_ctk_font(font)
+        else:
+            kwargs["font"] = GLOBAL_FONTS["base"]
+        super().__init__(master=master, **kwargs)
+        if width is not None:
+            self.configure(width=convert_dimension(width, 12))
+
+
+class ModernTextbox(ctk.CTkTextbox):
+    def __init__(self, master=None, **kwargs):
+        bg = normalize_background(kwargs.pop("bg", None))
+        fg = kwargs.pop("fg", None)
+        width = kwargs.pop("width", None)
+        height = kwargs.pop("height", None)
+        font = kwargs.pop("font", None)
+        if bg != "transparent":
+            kwargs.setdefault("fg_color", bg)
+        if fg:
+            kwargs["text_color"] = fg
+        if font:
+            kwargs["font"] = create_ctk_font(font)
+        else:
+            kwargs["font"] = GLOBAL_FONTS["base"]
+        super().__init__(master=master, **kwargs)
+        if width is not None:
+            self.configure(width=convert_dimension(width, 10))
+        if height is not None:
+            self.configure(height=convert_dimension(height, 18))
+
+
+class ModernFrame(ctk.CTkFrame):
+    def __init__(self, master=None, **kwargs):
+        bg = normalize_background(kwargs.pop("bg", None))
+        if bg != "transparent":
+            kwargs.setdefault("fg_color", bg)
+        super().__init__(master=master, **kwargs)
+
+
+class ModernCombobox(ctk.CTkComboBox):
+    def __init__(self, master=None, **kwargs):
+        bg = normalize_background(kwargs.pop("bg", None))
+        fg = kwargs.pop("fg", None)
+        width = kwargs.pop("width", None)
+        font = kwargs.pop("font", None)
+        if bg != "transparent":
+            kwargs.setdefault("fg_color", bg)
+        if fg:
+            kwargs["text_color"] = fg
+        if font:
+            kwargs["font"] = create_ctk_font(font)
+        else:
+            kwargs["font"] = GLOBAL_FONTS["base"]
+        super().__init__(master=master, **kwargs)
+        if width is not None:
+            self.configure(width=convert_dimension(width, 12))
+
+    def __setitem__(self, key, value):
+        if key == "values":
+            self.configure(values=value)
+        else:
+            super().__setitem__(key, value)
+
+
+class ModernCheckbutton(ctk.CTkCheckBox):
+    def __init__(self, master=None, **kwargs):
+        bg = normalize_background(kwargs.pop("bg", None))
+        fg = kwargs.pop("fg", None)
+        font = kwargs.pop("font", None)
+        if bg != "transparent":
+            kwargs.setdefault("fg_color", bg)
+        if fg:
+            kwargs["text_color"] = fg
+        if font:
+            kwargs["font"] = create_ctk_font(font)
+        else:
+            kwargs["font"] = GLOBAL_FONTS["base"]
+        super().__init__(master=master, **kwargs)
+
+
+class ModernToplevel(ctk.CTkToplevel):
+    def __init__(self, master=None, **kwargs):
+        super().__init__(master=master, **kwargs)
+
+
+Label = ModernLabel
+Button = ModernButton
+Entry = ModernEntry
+Text = ModernTextbox
+Frame = ModernFrame
+Combobox = ModernCombobox
+Checkbutton = ModernCheckbutton
+Toplevel = ModernToplevel
+Tk = ctk.CTk
 
 # processos de atualização prog
 def comparar_tags(tag1, tag2):
@@ -251,15 +490,128 @@ class Aplicativo:
         self.button_config_existente = None
         self.button_config_novo = None
         self.button_config_sair = None
+        self.topbar = None
+        self.menu_config_option = None
+        self.menu_aparencia_option = None
         self.app = None
         self.status_thread = None
         self.app = None
+        self.style = None
+        self.fontes_modernas = dict()
+        self._estilizacao_moderno_agendada = False
         self.main()
 
 # Processo inicial/final
     def finalizar(self):
         self.escrever_arquivo_log(self.nomes['arquivo_base_muro'], f"INFO - Programa finalizado")
         sys.exit(200)
+
+    def configurar_tema_moderno(self):
+        global GLOBAL_FONTS
+        fonte_base = ctk.CTkFont(family="Segoe UI", size=12)
+        fonte_negrito = ctk.CTkFont(family="Segoe UI", size=12, weight="bold")
+        fonte_titulo = ctk.CTkFont(family="Segoe UI", size=14, weight="bold")
+        GLOBAL_FONTS = {
+            "base": fonte_base,
+            "bold": fonte_negrito,
+            "title": fonte_titulo
+        }
+        self.fontes_modernas = {
+            "base": fonte_base,
+            "negrito": fonte_negrito,
+            "titulo": fonte_titulo
+        }
+        self.atualizar_estilos_modernos()
+
+    def atualizar_estilos_modernos(self):
+        if self.app is None:
+            return
+        cor_botoes = self.infos_config_prog.get("background_color_botoes", self.color_default)
+        cor_navs = self.infos_config_prog.get("background_color_botoes_navs", self.color_default_navs)
+        cor_fundo = self.infos_config_prog.get("background_color_fundo", self.color_default)
+        cor_fonte = self.infos_config_prog.get("background_color_fonte", self.color_default_fonte)
+        self.app.configure(fg_color=cor_fundo)
+        self._aplicar_paleta(self.app, cor_fundo, cor_botoes, cor_navs, cor_fonte)
+
+    def agendar_estilizacao_moderno(self):
+        if self.app is None:
+            return
+        if self._estilizacao_moderno_agendada:
+            return
+        self._estilizacao_moderno_agendada = True
+        self.app.after_idle(self._executar_estilizacao_moderno)
+
+    def _executar_estilizacao_moderno(self):
+        self._estilizacao_moderno_agendada = False
+        if self.app is None:
+            return
+        self.atualizar_estilos_modernos()
+
+    def aplicar_estilo_moderno(self, widget):
+        if widget is None:
+            return
+        cor_botoes = self.infos_config_prog.get("background_color_botoes", self.color_default)
+        cor_navs = self.infos_config_prog.get("background_color_botoes_navs", self.color_default_navs)
+        cor_fundo = self.infos_config_prog.get("background_color_fundo", self.color_default)
+        cor_fonte = self.infos_config_prog.get("background_color_fonte", self.color_default_fonte)
+        self._aplicar_paleta(widget, cor_fundo, cor_botoes, cor_navs, cor_fonte)
+
+    def _aplicar_paleta(self, widget, cor_fundo, cor_botoes, cor_navs, cor_fonte):
+        if widget is None:
+            return
+        self._estilizar_widget_moderno(widget, cor_fundo, cor_botoes, cor_navs, cor_fonte)
+        for child in widget.winfo_children():
+            self._aplicar_paleta(child, cor_fundo, cor_botoes, cor_navs, cor_fonte)
+
+    def _estilizar_widget_moderno(self, widget, cor_fundo, cor_botoes, cor_navs, cor_fonte):
+        if isinstance(widget, ModernButton):
+            papel = getattr(widget, "modern_role", "primary")
+            cor_principal = cor_navs if papel == "nav" else cor_botoes
+            widget.configure(
+                fg_color=cor_principal,
+                hover_color=adjust_color(cor_principal, 0.12),
+                border_color=adjust_color(cor_principal, -0.12),
+                text_color=cor_fonte
+            )
+        elif isinstance(widget, ModernLabel):
+            cor_atual = normalize_background(extract_color(widget.cget("fg_color")))
+            widget.configure(
+                fg_color=cor_atual if cor_atual != "transparent" else "transparent",
+                text_color=cor_fonte
+            )
+        elif isinstance(widget, ModernEntry):
+            widget.configure(
+                fg_color=cor_fundo,
+                text_color=cor_fonte,
+                border_color=adjust_color(cor_navs, -0.2)
+            )
+        elif isinstance(widget, ModernTextbox):
+            widget.configure(
+                fg_color=cor_fundo,
+                text_color=cor_fonte,
+                border_color=adjust_color(cor_navs, -0.2)
+            )
+        elif isinstance(widget, ModernCombobox):
+            widget.configure(
+                fg_color=cor_fundo,
+                text_color=cor_fonte,
+                button_color=cor_navs,
+                button_hover_color=adjust_color(cor_navs, 0.12)
+            )
+        elif isinstance(widget, ModernCheckbutton):
+            widget.configure(
+                fg_color=cor_fundo,
+                text_color=cor_fonte,
+                hover_color=adjust_color(cor_navs, 0.12),
+                border_color=adjust_color(cor_navs, -0.2)
+            )
+        elif isinstance(widget, ModernFrame):
+            widget.configure(fg_color=cor_fundo)
+        elif isinstance(widget, ModernToplevel) or isinstance(widget, ctk.CTk):
+            widget.configure(fg_color=cor_fundo)
+
+    def _ajustar_cor(self, cor_hex, fator):
+        return adjust_color(cor_hex, fator)
 
     def atualizador(self):
         if self.infos_config_prog['atualizar']:
@@ -884,6 +1236,7 @@ class Aplicativo:
                 self.infos_config_prog["background_color_botoes_navs"] = background_color_botoes_navs
             if background_color_fonte != self.color_default_fonte:
                 self.infos_config_prog["background_color_fonte"] = background_color_fonte
+            self.atualizar_estilos_modernos()
             return background_color_fundo, background_color_titulos, background_color_botoes, background_color_botoes_navs, background_color_fonte
         except Exception as error:
             self.criar_popup_mensagem(f"Erro ao acessar arquivo de configuração default {error}")
@@ -1026,28 +1379,44 @@ class Aplicativo:
         self.widtexto.see(END)
         self.widtexto.config(state="disabled")
 
-    def criar_popup_mensagem(self, mensagem: str):
-        # use Toplevel em vez de um novo Tk()
-        popup = Toplevel(self.app)  # pressupondo que sua janela principal é self.root (um Tk)
-        popup.title(f"MSS - {self.version} - ALERTA")
-        popup.configure(bg=self.infos_config_prog["background_color_fundo"])
-        popup.resizable(False, False)
-
-        # conteúdo
-        popup.grid_rowconfigure(0, weight=1)
-        popup.grid_columnconfigure(0, weight=1)
-
+    def criar_popup_mensagem(self, mensagem):
+        msg = Toplevel(self.app)
+        msg.transient(self.app)
+        msg.grab_set()
+        msg.resizable(False, False)
+        msg.title("MSS - " + self.version + " - ALERTA")
+        largura_popup = 420
+        altura_popup = 200
+        msg.geometry(f"{largura_popup}x{altura_popup}+{self.metade_wid}+{self.metade_hei}")
+        msg.configure(fg_color=self.infos_config_prog["background_color_fundo"], padx=16, pady=16)
+        msg.grid_rowconfigure(0, weight=1)
+        msg.grid_columnconfigure(0, weight=1)
+        frame_conteudo = Frame(msg, bg=self.infos_config_prog["background_color_fundo"])
+        frame_conteudo.grid(sticky="NSEW")
+        frame_conteudo.grid_rowconfigure(0, weight=1)
+        frame_conteudo.grid_columnconfigure(0, weight=1)
         label_mensagem = Label(
-            popup,
-            text=mensagem,
-            padx=20,
-            pady=20,
+            frame_conteudo,
+            text=f"{mensagem}",
+            anchor="w",
+            justify="left",
+            wraplength=largura_popup - 48,
+            padx=8,
+            pady=8,
             bg=self.infos_config_prog["background_color_titulos"],
-            fg=self.infos_config_prog.get("background_color_fonte", "white"),
-            wraplength=600,  # quebra de linha para mensagens grandes
-            justify="left"
+            fg=self.infos_config_prog["background_color_fonte"]
         )
-        label_mensagem.grid(row=0, column=0, sticky="nsew")
+        button_sair_mensagem = Button(
+            frame_conteudo,
+            text="Fechar",
+            width=12,
+            command=lambda: fechar_janela(msg)
+        )
+        label_mensagem.grid(row=0, column=0, sticky="NSEW")
+        button_sair_mensagem.grid(row=1, column=0, pady=(12, 0), sticky="E")
+        self.aplicar_estilo_moderno(msg)
+        msg.bind("<Escape>", lambda event: fechar_janela(msg))
+        msg.wait_window()
 
     def remover_widget(self, app, name, ent):
         lista_entry = self.percorrer_widgets(app)
@@ -1103,6 +1472,7 @@ class Aplicativo:
             self.infos_config_prog["background_color_botoes"] = backg_botoes
             self.infos_config_prog["background_color_botoes_navs"] = backg_botoes_navs
             self.infos_config_prog["background_color_fonte"] = backg_fontes
+            self.atualizar_estilos_modernos()
             self.trocar_tela_menu_geral()
         except Exception as error:
             self.criar_popup_mensagem(f"Erro ao Alterar o background: {error}")
@@ -1129,6 +1499,7 @@ class Aplicativo:
             self.infos_config_prog["background_color_botoes"] = backg_botoes
             self.infos_config_prog["background_color_botoes_navs"] = backg_botoes_navs
             self.infos_config_prog["background_color_fonte"] = backg_fontes
+            self.atualizar_estilos_modernos()
             self.trocar_tela_menu_geral()
         except Exception as error:
             self.criar_popup_mensagem(f"Erro ao Alterar o background: {error}")
@@ -3315,24 +3686,43 @@ SELECT
             campo.delete(0, END)
             campo.insert(0, color_code[1])
 
-    def texto_config_selecionado(self, app):
+    def texto_config_selecionado(self, app=None):
         tela = f"Ultimo Config: {self.infos_config_prog['config_default']}"
+        if self.label_config_selecionado and self.label_config_selecionado.winfo_exists():
+            self.label_config_selecionado.configure(text=tela)
+            return
+
+        destino = None
+        if self.topbar and self.topbar.winfo_exists():
+            destino = self.topbar
+        elif app is not None:
+            destino = app
+        elif self.app is not None:
+            destino = self.app
+
+        if destino is None:
+            return
+
+        cor_fundo = self.infos_config_prog["background_color_titulos"] if destino is self.topbar else self.infos_config_prog["background_color_fundo"]
+
         self.label_config_selecionado = Label(
-            app,
+            destino,
             text=tela,
-            font=('Arial', 12),
-            bg=self.infos_config_prog["background_color_fundo"],
+            font=GLOBAL_FONTS["bold"],
+            bg=cor_fundo,
             fg=self.infos_config_prog["background_color_fonte"]
         )
-        self.label_config_selecionado.grid(row=0, column=0, columnspan=3, sticky="NW", pady=(0,10))
+        if destino is self.topbar:
+            self.label_config_selecionado.grid(row=0, column=0, sticky="W", padx=(20, 10), pady=12)
+        else:
+            self.label_config_selecionado.grid(row=0, column=0, columnspan=3, sticky="NW", pady=(0, 10))
 
     def inserir_estrutura_padrao_telas(self):
-        self.app.configure(bg=self.infos_config_prog["background_color_fundo"])
+        self.app.configure(fg_color=self.infos_config_prog["background_color_fundo"])
         self.app.rowconfigure(0, weight=0)
         self.app.rowconfigure(15, weight=0)
         self.remover_widget(self.app, '*', '*')
         self.inserir_menu_cascata()
-        self.texto_config_selecionado(self.app)
         self.inserir_botoes_navs(self.app)
         self.entries = []
 
@@ -3687,6 +4077,7 @@ SELECT
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
+            modern_role="nav",
             command=lambda: self.trocar_tela_menu_geral()
         )
         self.remover_conteudo_linha(10, 2)
@@ -3726,6 +4117,7 @@ SELECT
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
+            modern_role="nav",
             command=lambda: self.trocar_tela_menu_geral()
         )
         self.remover_conteudo_linha(10, 2)
@@ -3763,6 +4155,7 @@ SELECT
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
+            modern_role="nav",
             command=lambda: self.trocar_tela_menu_geral()
         )
         self.remover_conteudo_linha(10, 2)
@@ -3800,6 +4193,7 @@ SELECT
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
+            modern_role="nav",
             command=lambda: self.trocar_tela_menu_geral()
         )
         self.remover_conteudo_linha(10, 2)
@@ -3857,6 +4251,7 @@ SELECT
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
+            modern_role="nav",
             command=lambda: self.trocar_tela_menu_ferramentas_bancos()
         )
         if len(opcoes_servidor) > 0:
@@ -3924,6 +4319,7 @@ SELECT
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
+            modern_role="nav",
             command=lambda: self.trocar_tela_menu_ferramentas_redis()
         )
 
@@ -3984,6 +4380,7 @@ SELECT
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
+            modern_role="nav",
             command=lambda: self.trocar_tela_menu_ferramentas_redis()
         )
 
@@ -4038,6 +4435,7 @@ SELECT
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
+            modern_role="nav",
             command=lambda: self.trocar_tela_menu_ferramentas_backup()
         )
         if len(opcoes_servidor) > 0:
@@ -4093,6 +4491,7 @@ SELECT
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
+            modern_role="nav",
             command=lambda: self.trocar_tela_menu_ferramentas_backup()
         )
         if len(opcoes_servidor) > 0:
@@ -4146,6 +4545,7 @@ SELECT
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
+            modern_role="nav",
             command=lambda: self.trocar_tela_menu_ferramentas_bancos()
         )
         if len(opcoes_servidor) > 0:
@@ -4199,6 +4599,7 @@ SELECT
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
+            modern_role="nav",
             command=lambda: self.trocar_tela_menu_ferramentas_bancos()
         )
         if len(opcoes_servidor) > 0:
@@ -4251,6 +4652,7 @@ SELECT
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
+            modern_role="nav",
             command=lambda: self.trocar_tela_menu_ferramentas_bancos()
         )
         if len(opcoes_servidor) > 0:
@@ -4319,6 +4721,7 @@ SELECT
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
+            modern_role="nav",
             command=lambda: self.trocar_tela_menu_ferramentas_documentos()
         )
         self.remover_conteudo_linha(10, 2)
@@ -4367,6 +4770,7 @@ SELECT
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
+            modern_role="nav",
             command=lambda: self.trocar_tela_menu_ferramentas_documentos()
         )
         self.remover_conteudo_linha(10, 2)
@@ -4524,6 +4928,7 @@ SELECT
             height=2,
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
+            modern_role="nav",
             command=lambda: self.alterar_background()
         )
 
