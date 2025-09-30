@@ -1151,83 +1151,6 @@ class Aplicativo:
             self.entry.config(foreground='gray')
 
 # Processos principais
-    def buscar_infos_bancos(self, servidor_selecionado, banco_atual):
-        tam_lista_empresas_localizadas = len(self.catalog['INFOS_BANCOS'])
-        infos_bancos = dict()
-        try:
-            try:
-                cnx = pyodbc.connect(
-                    f"DRIVER=SQL Server;SERVER={servidor_selecionado['server']};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}",
-                    autocommit=True)
-                cursor = cnx.cursor()
-            except (Exception or pyodbc.DatabaseError) as error:
-                self.escrever_no_input(
-                    f"- Erro ao abrir conexão - {error}")
-                self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'],
-                                          f"ERRO - Erro ao abrir conexão {error}")
-                self.desativar_campos_buscar_empresas(False)
-                return
-            try:
-                cursor.execute(f"""use [{banco_atual}]
-IF OBJECT_ID('tempdb..#DBCCPAGE') IS NOT NULL
-BEGIN
-    DROP TABLE #DBCCPAGE;
-END
-CREATE TABLE #DBCCPAGE (
-ParentObject VARCHAR(255),
-[OBJECT] VARCHAR(255),
-Field VARCHAR(255),
-[VALUE] VARCHAR(255));
-INSERT INTO #DBCCPAGE
-EXECUTE ('DBCC PAGE (''{banco_atual}'', 1, 9, 3) WITH TABLERESULTS;');""")
-                cursor.execute(f"""SELECT VALUE FROM #DBCCPAGE
-WHERE [Field] = 'dbi_modDate';""")
-                data_criacao_db = (cursor.fetchall())
-                data_criacao_db = data_criacao_db[0].VALUE
-                data_criacao_db = data_criacao_db + str(self.count)
-                cursor.execute(f"""SET NOCOUNT ON;
-SELECT
-    DB_NAME()                                   AS DatabaseName,
-    (SELECT TOP (1) TX_RAZ_SOC  FROM userNewPoint.EMPRESA_MATRIZ)                                        AS RazaoSocial,
-    (SELECT TOP (1) NU_CNPJ_CPF FROM userNewPoint.EMPRESA)                                               AS CNPJ_CPF,
-    (SELECT TOP (1) TX_LOGN     FROM userNewPoint.USUARIO_CONTROLE_ACESSO WHERE TX_LOGN <> 'dmpmaster')  AS Usuario,
-    (SELECT COUNT(*) FROM userNewPoint.PESSOA)    AS QtdeFuncionarios,
-    (SELECT COUNT(*) FROM userNewPoint.EMPRESA)   AS QtdeEmpresas,
-    (select TOP (1) DT_INI from userNewPoint.PERIODO)   AS DtIni,
-    (SELECT COUNT(*) FROM userNewPoint.TEMPLATE_RELOGIO_PESSOA)   AS QtTemplatepessoa,
-    (SELECT COUNT(*) FROM userNewPoint.TEMPLATE_FACE_RELOGIO_PESSOA)   AS QtTemplateface,
-    (SELECT COUNT(*) FROM userNewPoint.ESTRUTURA_organizacional)   AS QtEstrutura,
-    (SELECT COUNT(*) FROM userNewPoint.USUARIO_CONTROLE_ACESSO)   AS QtUsuarios,
-    (select count([classif_ponto]) from [userNewPoint].[APONTAMENTO] where [CLASSIF_PONTO] = 'A')    AS QtMarksRemovida,
-    (select count([classif_ponto]) from [userNewPoint].[APONTAMENTO] where [CLASSIF_PONTO] = 'D')    AS QtMarksMobileOffline,
-    (select count([classif_ponto]) from [userNewPoint].[APONTAMENTO] where [CLASSIF_PONTO] = 'E')    AS QtMarksIndevida,
-    (select count([classif_ponto]) from [userNewPoint].[APONTAMENTO] where [CLASSIF_PONTO] = 'F')    AS QtMarksForadoRaio,
-    (select count([classif_ponto]) from [userNewPoint].[APONTAMENTO] where [CLASSIF_PONTO] = 'M')    AS QtMarksDuplicada,
-    (select count([classif_ponto]) from [userNewPoint].[APONTAMENTO] where [CLASSIF_PONTO] = 'O')    AS QtMarksEditada,
-    (select count([classif_ponto]) from [userNewPoint].[APONTAMENTO] where [CLASSIF_PONTO] = 'R')    AS QtMarksMobile,
-    (select count([classif_ponto]) from [userNewPoint].[APONTAMENTO] where [CLASSIF_PONTO] = 'W')    AS QtMarksAutomtica,
-    (select count([classif_ponto]) from [userNewPoint].[APONTAMENTO] where [CLASSIF_PONTO] = 'X')    AS QtMarksObra,
-    (select count([classif_ponto]) from [userNewPoint].[APONTAMENTO] where [CLASSIF_PONTO] = 'Z')    AS QtMarksAcesso;""")
-                consulta1 = cursor.fetchone()
-                self.lista_infos_emp[f'{data_criacao_db}'] = consulta1
-
-            except (Exception or pyodbc.DatabaseError) as error:
-                self.escrever_no_input(
-                    f"- Erro ao consultar empresa {banco_atual} - {error}")
-                self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'],
-                                          f"ERRO - Erro ao consultar empresa {banco_atual}")
-            else:
-                calculo = ((self.count + 1) / tam_lista_empresas_localizadas) * 100
-                porcentagem = '{:02.0f}'.format(calculo)
-                self.escrever_no_input(f"- Buscando Dados nas empresas: {porcentagem}%")
-                self.count += 1
-        except Exception as error:
-            self.escrever_no_input(
-                f"- Erro ao consultar empresa {banco_atual} - {error}")
-            self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'],
-                                      f"ERRO - Erro ao consultar empresa {banco_atual}")
-        return self.lista_infos_emp
-
     def atualizar_bancos_update(self):
         print("Não implementado")
 
@@ -1297,15 +1220,13 @@ SELECT
     @tempo_execucao
     def buscar_empresas(self):
         try:
-            lista_infos_emp = []
-            threads = []
-            self.lista_infos_emp = dict()
             self.desativar_campos_buscar_empresas(True)
             server = self.combobox_busca_empresa_servidor_version.get()
             base_muro = self.combobox_busca_empresa_banco_muro.get()
             self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'], f"INFO - Inicio da busca das empresas ")
             self.escrever_no_input(f"- Inicio da busca das empresas")
             lista_sort_infos_emp = []
+            lista_infos_emp = dict()
             servidor_selecionado = self.infos_config["conexoes"][server]
 
             try:
@@ -1332,43 +1253,81 @@ SELECT
                         self.escrever_arquivo_log(self.nomes['arquivo_validar'],
                                                   f"ERRO - Falha ao tentar buscar bancos da instancia: {error}")
                         return
-                self.count = 0
-                for bancos in  self.catalog['INFOS_BANCOS']:
-                    banco_atual = bancos.get('DATABASE_NAME')
-                    t = threading.Thread(target=self.buscar_infos_bancos, args=[servidor_selecionado, banco_atual])
-                    t.start()
-                    threads.append(t)
-                for t in threads:
-                    t.join()
-                for key_info in self.lista_infos_emp:
+                try:
+                    cnx = pyodbc.connect(
+                        f"DRIVER=SQL Server;SERVER={servidor_selecionado['server']};ENCRYPT=not;UID={servidor_selecionado['username']};PWD={servidor_selecionado['password']}",
+                        autocommit=True)
+                    cursor = cnx.cursor()
+                except (Exception or pyodbc.DatabaseError) as error:
+                    self.escrever_no_input(
+                        f"- Erro ao abrir conexão - {error}")
+                    self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'],
+                                              f"ERRO - Erro ao abrir conexão {error}")
+                    self.desativar_campos_buscar_empresas(False)
+                    return
+
+                count = 0
+                tam_lista_empresas_localizadas = len(self.catalog['INFOS_BANCOS'])
+                for emp in self.catalog['INFOS_BANCOS']:
+                    banco_atual = emp.get('DATABASE_NAME')
+                    try:
+                        cursor.execute(f"""use [{banco_atual}]
+IF OBJECT_ID('tempdb..#DBCCPAGE') IS NOT NULL
+BEGIN
+    DROP TABLE #DBCCPAGE;
+END
+CREATE TABLE #DBCCPAGE (
+ParentObject VARCHAR(255),
+[OBJECT] VARCHAR(255),
+Field VARCHAR(255),
+[VALUE] VARCHAR(255));
+INSERT INTO #DBCCPAGE
+EXECUTE ('DBCC PAGE (''{banco_atual}'', 1, 9, 3) WITH TABLERESULTS;');""")
+                        cursor.execute(f"""SELECT VALUE FROM #DBCCPAGE
+WHERE [Field] = 'dbi_modDate';""")
+                        data_criacao_db = (cursor.fetchall())
+                        data_criacao_db = data_criacao_db[0].VALUE
+                        data_criacao_db = data_criacao_db + str(count)
+                        lista_infos_emp[f'{data_criacao_db}'] = []
+                        cursor.execute(f"""SET NOCOUNT ON;
+SELECT
+    DB_NAME()                                   AS DatabaseName,
+    (SELECT TOP (1) TX_RAZ_SOC  FROM userNewPoint.EMPRESA_MATRIZ)                                        AS RazaoSocial,
+    (SELECT TOP (1) NU_CNPJ_CPF FROM userNewPoint.EMPRESA)                                               AS CNPJ_CPF,
+    (SELECT TOP (1) TX_LOGN     FROM userNewPoint.USUARIO_CONTROLE_ACESSO WHERE TX_LOGN <> 'dmpmaster')  AS Usuario,
+    (SELECT COUNT(*) FROM userNewPoint.PESSOA)    AS QtdeFuncionarios,
+    (SELECT COUNT(*) FROM userNewPoint.EMPRESA)   AS QtdeEmpresas;""")
+                        teste = cursor.fetchone()
+                        lista_infos_emp[f'{data_criacao_db}'].append(teste)
+                        print(f"{data_criacao_db} - {teste}")
+
+                    except (Exception or pyodbc.DatabaseError) as error:
+                        self.escrever_no_input(
+                            f"- Erro ao consultar empresa {banco_atual} - {error}")
+                        self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'],
+                                                  f"ERRO - Erro ao consultar empresa {banco_atual}")
+                    else:
+                        calculo = ((count + 1) / tam_lista_empresas_localizadas) * 100
+                        porcentagem = '{:02.0f}'.format(calculo)
+                        self.escrever_no_input(f"- Buscando Dados nas empresas: {porcentagem}%")
+                        count += 1
+                        continue
+                for key_info in lista_infos_emp:
                     lista_sort_infos_emp.append(key_info)
                 lista_sort_infos_emp.sort()
                 for data in lista_sort_infos_emp:
                     texto_em_tela = (f"""----------------------------------------------------
 - Data Criação: {data}
-- Database: {self.lista_infos_emp[data].DatabaseName}
-- Razão Social: {self.lista_infos_emp[data].RazaoSocial}
-- CNPJ/CPF: {self.lista_infos_emp[data].CNPJ_CPF}
-- Usuario: {self.lista_infos_emp[data].Usuario}
-- Quantidade Funcionarios: {self.lista_infos_emp[data].QtdeFuncionarios}
-- Periodo Inicial: {self.lista_infos_emp[data].DtIni}
-- Template Digital: {self.lista_infos_emp[data].QtTemplatepessoa} - Template Facial: {self.lista_infos_emp[data].QtTemplateface}
-- Quantidade Estruturas: {self.lista_infos_emp[data].QtEstrutura}
-- Quantidade Usuarios: {self.lista_infos_emp[data].QtUsuarios}
-- Marcaçãoes Removidas: {self.lista_infos_emp[data].QtMarksRemovida}
-- Marcaçãoes Mobile Offline: {self.lista_infos_emp[data].QtMarksMobileOffline}
-- Marcaçãoes Indevidas: {self.lista_infos_emp[data].QtMarksIndevida}
-- Marcaçãoes Fora do Raio: {self.lista_infos_emp[data].QtMarksForadoRaio}
-- Marcaçãoes Duplicada: {self.lista_infos_emp[data].QtMarksDuplicada}
-- Marcaçãoes Editada: {self.lista_infos_emp[data].QtMarksEditada}
-- Marcaçãoes Mobile: {self.lista_infos_emp[data].QtMarksMobile}
-- Marcaçãoes Automatica: {self.lista_infos_emp[data].QtMarksAutomtica}
-- Marcaçãoes Obra: {self.lista_infos_emp[data].QtMarksObra}
-- Marcaçãoes Acesso: {self.lista_infos_emp[data].QtMarksAcesso}""")
+- Database: {lista_infos_emp[data][0].DatabaseName}
+- Razão Social: {lista_infos_emp[data][0].RazaoSocial}
+- CNPJ/CPF: {lista_infos_emp[data][0].CNPJ_CPF}
+- Usuario: {lista_infos_emp[data][0].Usuario}
+- Quantidade Funcionarios: {lista_infos_emp[data][0].QtdeFuncionarios}
+- Quantidade Empresas: {lista_infos_emp[data][0].QtdeEmpresas}""")
                     self.escrever_no_input(texto_em_tela)
 
         except (Exception or pyodbc.DatabaseError) as error:
-            self.escrever_no_input(f"- Falha ao tentar consultar banco(rotina): {error}")
+            self.escrever_no_input(f"- Falha ao tentar consultar banco: {error}")
             self.escrever_arquivo_log(self.nomes['arquivo_buscar_empresas'],
                                       f"ERRO - Falha ao tentar consultar banco: {error}")
             self.desativar_campos_buscar_empresas(False)
@@ -3300,7 +3259,7 @@ SELECT
         )
         self.widtexto = Text(
             self.app,
-            height=20,
+            height=tamanho,
             wrap="word"
         )
         self.nome_campo_caixa.grid(row=linha_label, column=coluna, sticky="WE", columnspan=2, pady=pady_label, padx=padx_label)
@@ -3868,7 +3827,7 @@ SELECT
         self.combobox_busca_empresa_servidor_version.grid(row=4, column=coluna, columnspan=2, pady=(0, 10), sticky="WE", padx=15)
         self.label_busca_empresa_banco_muro.grid(row=5, column=coluna, sticky="WS", pady=(10, 0), padx=15)
         self.combobox_busca_empresa_banco_muro.grid(row=6, column=coluna, columnspan=2, pady=(0, 10), sticky="WE", padx=15)
-        self.inserir_caixa_texto(7, 8, coluna, "Saida:", (10,0), (0,0), 20)
+        self.inserir_caixa_texto(7, 8, coluna, "Saida:", (10,0), (0,0), 12)
         self.button_busca_empresa_atualizacao_limpar.grid(row=9, column=coluna, padx=15, pady=(10, 0), sticky="WE")
         self.button_busca_empresa_atualizacao_inicio.grid(row=9, column=1, padx=15, pady=(10, 0), sticky="WE")
         self.button_busca_empresa_atualizacao_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
