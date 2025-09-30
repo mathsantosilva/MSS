@@ -5,6 +5,7 @@ import os
 import re
 import sys
 import tkinter as tk
+import tkinter.font as tkfont
 from tkinter import colorchooser
 from tkinter.ttk import *
 from tkinter import *
@@ -30,11 +31,22 @@ END = tk.END
 BooleanVar = tk.BooleanVar
 
 
-GLOBAL_FONTS = {
-    "base": ctk.CTkFont(family="Segoe UI", size=12),
-    "bold": ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
-    "title": ctk.CTkFont(family="Segoe UI", size=14, weight="bold")
+_DEFAULT_FONT_DEFINITIONS = {
+    "base": {"family": "Segoe UI", "size": 12},
+    "bold": {"family": "Segoe UI", "size": 12, "weight": "bold"},
+    "title": {"family": "Segoe UI", "size": 14, "weight": "bold"},
 }
+
+GLOBAL_FONTS = {}
+
+
+def get_global_font(name="base"):
+    if name not in GLOBAL_FONTS:
+        font_config = _DEFAULT_FONT_DEFINITIONS.get(name)
+        if font_config is None:
+            raise KeyError(f"Font '{name}' is not defined.")
+        GLOBAL_FONTS[name] = ctk.CTkFont(**font_config)
+    return GLOBAL_FONTS[name]
 
 
 def adjust_color(color_hex, factor):
@@ -77,7 +89,7 @@ def create_ctk_font(font):
             underline=underline,
             overstrike=overstrike
         )
-    return GLOBAL_FONTS["base"]
+    return get_global_font("base")
 
 
 def convert_dimension(value, multiplier):
@@ -114,7 +126,7 @@ class ModernLabel(ctk.CTkLabel):
         if font:
             kwargs["font"] = create_ctk_font(font)
         else:
-            kwargs["font"] = GLOBAL_FONTS["base"]
+            kwargs["font"] = get_global_font("base")
         super().__init__(master=master, **kwargs)
         if width is not None:
             self.configure(width=convert_dimension(width, 10))
@@ -143,7 +155,7 @@ class ModernButton(ctk.CTkButton):
         if font:
             kwargs["font"] = create_ctk_font(font)
         else:
-            kwargs["font"] = GLOBAL_FONTS["bold"]
+            kwargs["font"] = get_global_font("bold")
         super().__init__(master=master, **kwargs)
         self.modern_role = role
         self._initial_fg_color = bg
@@ -168,7 +180,7 @@ class ModernEntry(ctk.CTkEntry):
         if font:
             kwargs["font"] = create_ctk_font(font)
         else:
-            kwargs["font"] = GLOBAL_FONTS["base"]
+            kwargs["font"] = get_global_font("base")
         super().__init__(master=master, **kwargs)
         if width is not None:
             self.configure(width=convert_dimension(width, 12))
@@ -188,7 +200,7 @@ class ModernTextbox(ctk.CTkTextbox):
         if font:
             kwargs["font"] = create_ctk_font(font)
         else:
-            kwargs["font"] = GLOBAL_FONTS["base"]
+            kwargs["font"] = get_global_font("base")
         super().__init__(master=master, **kwargs)
         if width is not None:
             self.configure(width=convert_dimension(width, 10))
@@ -217,7 +229,7 @@ class ModernCombobox(ctk.CTkComboBox):
         if font:
             kwargs["font"] = create_ctk_font(font)
         else:
-            kwargs["font"] = GLOBAL_FONTS["base"]
+            kwargs["font"] = get_global_font("base")
         super().__init__(master=master, **kwargs)
         if width is not None:
             self.configure(width=convert_dimension(width, 12))
@@ -241,7 +253,7 @@ class ModernCheckbutton(ctk.CTkCheckBox):
         if font:
             kwargs["font"] = create_ctk_font(font)
         else:
-            kwargs["font"] = GLOBAL_FONTS["base"]
+            kwargs["font"] = get_global_font("base")
         super().__init__(master=master, **kwargs)
 
 
@@ -511,11 +523,12 @@ class Aplicativo:
         fonte_base = ctk.CTkFont(family="Segoe UI", size=12)
         fonte_negrito = ctk.CTkFont(family="Segoe UI", size=12, weight="bold")
         fonte_titulo = ctk.CTkFont(family="Segoe UI", size=14, weight="bold")
-        GLOBAL_FONTS = {
+        GLOBAL_FONTS.clear()
+        GLOBAL_FONTS.update({
             "base": fonte_base,
             "bold": fonte_negrito,
             "title": fonte_titulo
-        }
+        })
         self.fontes_modernas = {
             "base": fonte_base,
             "negrito": fonte_negrito,
@@ -3708,7 +3721,7 @@ SELECT
         self.label_config_selecionado = Label(
             destino,
             text=tela,
-            font=GLOBAL_FONTS["bold"],
+            font=get_global_font("bold"),
             bg=cor_fundo,
             fg=self.infos_config_prog["background_color_fonte"]
         )
