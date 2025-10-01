@@ -1300,7 +1300,6 @@ SELECT
     (SELECT COUNT(*) FROM userNewPoint.EMPRESA)   AS QtdeEmpresas;""")
                         teste = cursor.fetchone()
                         lista_infos_emp[f'{data_criacao_db}'].append(teste)
-                        print(f"{data_criacao_db} - {teste}")
 
                     except (Exception or pyodbc.DatabaseError) as error:
                         self.escrever_no_input(
