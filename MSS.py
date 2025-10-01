@@ -44,7 +44,7 @@ def pesquisar_maior_tag(username, repository, tag_atual, criar_popup_mensagem):
     tags = []
     try:
         limit = github.get_rate_limit()
-        if not limit.core.remaining > 0:
+        if limit.core.remaining > 0:
             repo = github.get_repo(f"{username}/{repository}")
             tags_on = repo.get_tags()
             for tag_in in tags_on:
@@ -1041,6 +1041,7 @@ class Aplicativo:
             text=mensagem,
             padx=20,
             pady=20,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_titulos"],
             fg=self.infos_config_prog.get("background_color_fonte", "white"),
             wraplength=600,  # quebra de linha para mensagens grandes
@@ -2160,7 +2161,7 @@ SELECT
                         status_checagem = "Falso"
                     self.escrever_no_input(f"- NIF - {doc} - {status_checagem}")
                 else:
-                    self.escrever_no_input(f"- Documento invalido")
+                    self.escrever_no_input(f"- NIF - {doc} - Documento invalido")
 
             self.combobox.config(state='normal')
             self.entry.config(state='normal')
@@ -2245,7 +2246,7 @@ SELECT
                         status_checagem = "Falso"
                     self.escrever_no_input(f"- CNPJ - {doc} - {status_checagem}")
                 else:
-                    self.escrever_no_input(f"- Documento invalido")
+                    self.escrever_no_input(f"- CNPJ - {doc} - Documento invalido")
             self.combobox.config(state='normal')
             self.entry.config(state='normal')
             self.button_gerador_inicio.config(state='normal')
@@ -2329,7 +2330,7 @@ SELECT
                         status_checagem = "Falso"
                     self.escrever_no_input(f"- CPF - {doc} - {status_checagem}")
                 else:
-                    self.escrever_no_input(f"- Documento invalido")
+                    self.escrever_no_input(f"- CPF - {doc} - Documento invalido")
 
             self.combobox.config(state='normal')
             self.entry.config(state='normal')
@@ -2397,7 +2398,7 @@ SELECT
                         status_checagem = "Falso"
                     self.escrever_no_input(f"- CEI - {doc} - {status_checagem}")
                 else:
-                    self.escrever_no_input(f"- Documento invalido")
+                    self.escrever_no_input(f"- CEI - {doc} - Documento invalido")
 
 
             self.combobox.config(state='normal')
@@ -2465,7 +2466,7 @@ SELECT
                         status_checagem = "Falso"
                     self.escrever_no_input(f"- Pis - {doc} - {status_checagem}")
                 else:
-                    self.escrever_no_input(f"- Documento invalido")
+                    self.escrever_no_input(f"- Pis - {doc} - Documento invalido")
 
 
             self.combobox.config(state='normal')
@@ -3094,6 +3095,7 @@ SELECT
             text="Sair",
             width=15,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.finalizar()
@@ -3141,6 +3143,7 @@ SELECT
 
         self.label_lista_arquivos = Label(
             text="Lista de arquivos:",
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
@@ -3153,6 +3156,7 @@ SELECT
             text="Escolher",
             width=15,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.escolher_config_existente()
@@ -3176,6 +3180,7 @@ SELECT
             name="button_criar",
             width=15,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.criar_config()
@@ -3186,6 +3191,7 @@ SELECT
     def inserir_caixa_seletora(self, linha_label, linha_seletor,  coluna, opcoes, nome_campo):
         self.label = Label(
             text=nome_campo,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
@@ -3202,6 +3208,7 @@ SELECT
 
         self.label = Label(
             text=nome_campo,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
@@ -3223,6 +3230,7 @@ SELECT
         placeholder_color = "gray"
         self.label = Label(
             text=nome_campo,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
@@ -3241,7 +3249,7 @@ SELECT
             app,
             text=nome_tela,
             font=('Arial', 12, 'bold'),
-            bg=self.infos_config_prog["background_color_titulos"],
+            bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
         self.label_inserir_titulos.grid(row=linha, column=coluna, sticky="WE", columnspan=2, pady=(0, padding_baixo))
@@ -3254,12 +3262,13 @@ SELECT
     def inserir_caixa_texto(self, linha_label, linha_texto, coluna, nome, pady_label, padx_label, tamanho):
         self.nome_campo_caixa = Label(
             text=nome,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
         self.widtexto = Text(
             self.app,
-            height=tamanho,
+            height=20,
             wrap="word"
         )
         self.nome_campo_caixa.grid(row=linha_label, column=coluna, sticky="WE", columnspan=2, pady=pady_label, padx=padx_label)
@@ -3278,7 +3287,7 @@ SELECT
         self.label_config_selecionado = Label(
             app,
             text=tela,
-            font=('Arial', 12),
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
@@ -3560,6 +3569,7 @@ SELECT
             text="Ferramentas Banco Muro",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu_ferramentas_bancos()
@@ -3569,6 +3579,7 @@ SELECT
             text="Ferramentas Backup",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu_ferramentas_backup()
@@ -3578,6 +3589,7 @@ SELECT
             text="Ferramentas Redis",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu_ferramentas_redis()
@@ -3587,16 +3599,17 @@ SELECT
             text="Ferramentas Documentos",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu_ferramentas_documentos()
         )
         self.remover_conteudo_linha(10, 2)
         self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
-        self.button_menu_geral_ferramentas_banco.grid(row=4, column=coluna, columnspan=2)
-        self.button_menu_geral_ferramentas_backup.grid(row=5, column=coluna, columnspan=2)
-        self.button_menu_geral_ferramentas_redis.grid(row=6, column=coluna, columnspan=2)
-        self.button_menu_geral_ferramentas_documentos.grid(row=7, column=coluna, columnspan=2)
+        self.button_menu_geral_ferramentas_banco.grid(row=4, column=coluna, columnspan=2, pady=self.paddingy_buttons)
+        self.button_menu_geral_ferramentas_backup.grid(row=5, column=coluna, columnspan=2, pady=self.paddingy_buttons)
+        self.button_menu_geral_ferramentas_redis.grid(row=6, column=coluna, columnspan=2, pady=self.paddingy_buttons)
+        self.button_menu_geral_ferramentas_documentos.grid(row=7, column=coluna, columnspan=2, pady=self.paddingy_buttons)
 
     def tela_menu_ferramentas_bancos(self, app, version, coluna):
         titulo = "FERRAMENTAS DE BANCO MURO"
@@ -3607,6 +3620,7 @@ SELECT
             text="Atualizar registros update",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_manipular_banco_update()
@@ -3616,6 +3630,7 @@ SELECT
             text="Consultar Version's",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_consultar_versions()
@@ -3625,6 +3640,7 @@ SELECT
             text="Replicar version",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_replicar_version()
@@ -3634,6 +3650,7 @@ SELECT
             text="Buscar Empresas",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_listar_empresas()
@@ -3643,16 +3660,17 @@ SELECT
             text="Voltar",
             width=15,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu_geral()
         )
         self.remover_conteudo_linha(10, 2)
         self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
-        self.button_ferramentas_bancos_busca_banco.grid(row=4, column=coluna, columnspan=2)
-        self.button_ferramentas_bancos_buscar_versions.grid(row=5, column=coluna, columnspan=2)
-        self.button_ferramentas_bancos_replicar_version.grid(row=6, column=coluna, columnspan=2)
-        self.button_ferramentas_bancos_buscar_empresas.grid(row=7, column=coluna, columnspan=2)
+        self.button_ferramentas_bancos_busca_banco.grid(row=4, column=coluna, columnspan=2, pady=self.paddingy_buttons)
+        self.button_ferramentas_bancos_buscar_versions.grid(row=5, column=coluna, columnspan=2, pady=self.paddingy_buttons)
+        self.button_ferramentas_bancos_replicar_version.grid(row=6, column=coluna, columnspan=2, pady=self.paddingy_buttons)
+        self.button_ferramentas_bancos_buscar_empresas.grid(row=7, column=coluna, columnspan=2, pady=self.paddingy_buttons)
         self.button_ferramentas_bancos_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def tela_menu_ferramentas_backup(self, app, version, coluna):
@@ -3664,6 +3682,7 @@ SELECT
             text="Download Backup",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_download_backup()
@@ -3673,6 +3692,7 @@ SELECT
             text="Restaurar Backup",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_restaurar_backup()
@@ -3682,14 +3702,15 @@ SELECT
             text="Voltar",
             width=15,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu_geral()
         )
         self.remover_conteudo_linha(10, 2)
         self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
-        self.button_menu_download.grid(row=4, column=coluna, columnspan=2)
-        self.button_menu_restaurar.grid(row=5, column=coluna, columnspan=2)
+        self.button_menu_download.grid(row=4, column=coluna, columnspan=2, pady=self.paddingy_buttons)
+        self.button_menu_restaurar.grid(row=5, column=coluna, columnspan=2, pady=self.paddingy_buttons)
         self.button_menu_ferramentas_backup_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def tela_menu_ferramentas_redis(self, app, version, coluna):
@@ -3701,6 +3722,7 @@ SELECT
             text="Limpar todos os redis",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_redis_todos()
@@ -3710,6 +3732,7 @@ SELECT
             text="Limpar Redis especifico",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_redis_especifico()
@@ -3719,14 +3742,15 @@ SELECT
             text="Voltar",
             width=15,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu_geral()
         )
         self.remover_conteudo_linha(10, 2)
         self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
-        self.button_ferramenta_redis_limpar_todos.grid(row=4, column=coluna, columnspan=2)
-        self.button_ferramenta_redis_limpar_espec.grid(row=5, column=coluna, columnspan=2)
+        self.button_ferramenta_redis_limpar_todos.grid(row=4, column=coluna, columnspan=2, pady=self.paddingy_buttons)
+        self.button_ferramenta_redis_limpar_espec.grid(row=5, column=coluna, columnspan=2, pady=self.paddingy_buttons)
         self.button_ferramenta_redis_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def tela_menu_ferramentas_documentos(self, app, version, coluna):
@@ -3738,6 +3762,7 @@ SELECT
             text="Geradores de documentos",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_geradores()
@@ -3747,6 +3772,7 @@ SELECT
             text="Validadores de documentos",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_validadores()
@@ -3756,14 +3782,15 @@ SELECT
             text="Voltar",
             width=15,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu_geral()
         )
         self.remover_conteudo_linha(10, 2)
         self.inserir_titulos_telas(self.app, titulo, 2, coluna, self.padding_down_titulos)
-        self.button_menu_ferramentas_documentos_geradores.grid(row=4, column=coluna, columnspan=2)
-        self.button_menu_ferramentas_documentos_validadores.grid(row=5, column=coluna, columnspan=2)
+        self.button_menu_ferramentas_documentos_geradores.grid(row=4, column=coluna, columnspan=2, pady=self.paddingy_buttons)
+        self.button_menu_ferramentas_documentos_validadores.grid(row=5, column=coluna, columnspan=2, pady=self.paddingy_buttons)
         self.button_menu_ferramentas_documentos_voltar.grid(row=15, column=1, padx=15, pady=15, columnspan=2, sticky="ES")
 
     def tela_listar_empresas(self, app, version, coluna):
@@ -3774,6 +3801,7 @@ SELECT
 
         self.label_busca_empresa_version_servidor = Label(
             text="Servidor:",
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
@@ -3783,6 +3811,7 @@ SELECT
         )
         self.label_busca_empresa_banco_muro = Label(
             text="Base Muro:",
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
@@ -3795,6 +3824,7 @@ SELECT
             text="Limpar",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.limpar_caixa_texto()
@@ -3804,6 +3834,7 @@ SELECT
             text="Iniciar",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.iniciar_processo_buscar_empresas()
@@ -3813,6 +3844,7 @@ SELECT
             text="Voltar",
             width=15,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu_ferramentas_bancos()
@@ -3841,6 +3873,7 @@ SELECT
 
         self.label_grupo_redis = Label(
             text="Grupo Redis:",
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
@@ -3850,6 +3883,7 @@ SELECT
         )
         self.label_lista_redis = Label(
             text="Redis:",
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
@@ -3862,6 +3896,7 @@ SELECT
             text="Limpar",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.limpar_caixa_texto()
@@ -3871,6 +3906,7 @@ SELECT
             text="Iniciar",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.menu_redis_especifico()
@@ -3880,6 +3916,7 @@ SELECT
             text="Voltar",
             width=15,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu_ferramentas_redis()
@@ -3910,6 +3947,7 @@ SELECT
 
         self.label_redis_grupo = Label(
             text="Grupo Redis:",
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
@@ -3922,6 +3960,7 @@ SELECT
             text="Limpar",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.limpar_caixa_texto()
@@ -3931,6 +3970,7 @@ SELECT
             text="Iniciar",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.menu_redis_todos()
@@ -3940,6 +3980,7 @@ SELECT
             text="Voltar",
             width=15,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu_ferramentas_redis()
@@ -3963,6 +4004,7 @@ SELECT
 
         self.label_restaurar_servidor = Label(
             text="Servidor:",
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
@@ -3976,6 +4018,7 @@ SELECT
             text="Limpar",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.limpar_caixa_texto()
@@ -3985,6 +4028,7 @@ SELECT
             text="Iniciar",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.menu_restaurar_banco()
@@ -3994,6 +4038,7 @@ SELECT
             text="Voltar",
             width=15,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu_ferramentas_backup()
@@ -4019,6 +4064,7 @@ SELECT
 
         self.label_download_servidor = Label(
             text="Servidor:",
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
@@ -4031,6 +4077,7 @@ SELECT
             text="Limpar",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.limpar_caixa_texto()
@@ -4040,6 +4087,7 @@ SELECT
             text="Iniciar",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.menu_download_backup()
@@ -4049,6 +4097,7 @@ SELECT
             text="Voltar",
             width=15,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu_ferramentas_backup()
@@ -4072,6 +4121,7 @@ SELECT
 
         self.label_busca_servidor = Label(
             text="Servidor:",
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
@@ -4084,6 +4134,7 @@ SELECT
             text="Limpar",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.limpar_caixa_texto()
@@ -4093,6 +4144,7 @@ SELECT
             text="Iniciar",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.iniciar_processo_manipula_banco()
@@ -4102,6 +4154,7 @@ SELECT
             text="Voltar",
             width=15,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu_ferramentas_bancos()
@@ -4125,6 +4178,7 @@ SELECT
 
         self.label_consulta_servidor = Label(
             text="Servidor:",
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
@@ -4137,6 +4191,7 @@ SELECT
             text="Limpar",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.limpar_caixa_texto()
@@ -4146,6 +4201,7 @@ SELECT
             text="Iniciar",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.iniciar_processo_consulta()
@@ -4155,6 +4211,7 @@ SELECT
             text="Voltar",
             width=15,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu_ferramentas_bancos()
@@ -4177,6 +4234,7 @@ SELECT
 
         self.label_replicar_servidor = Label(
             text="Servidor:",
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
@@ -4189,6 +4247,7 @@ SELECT
             text="Limpar",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.limpar_caixa_texto()
@@ -4198,6 +4257,7 @@ SELECT
             text="Iniciar",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.iniciar_processo_replicar()
@@ -4207,6 +4267,7 @@ SELECT
             text="Voltar",
             width=15,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu_ferramentas_bancos()
@@ -4231,6 +4292,7 @@ SELECT
 
         self.label_gerador = Label(
             text="Documentos",
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
@@ -4243,6 +4305,8 @@ SELECT
             text='Gerar com mascara',
             onvalue=True,
             offvalue=False,
+            font=("Segoe UI", 9, "bold"),
+            bg=self.infos_config_prog["background_color_fundo"],
             variable=self.valor_checkbox_mascara_num
         )
         self.checkbox_gerar_arquivo = Checkbutton(
@@ -4250,6 +4314,8 @@ SELECT
             text='Gerar valores em arquivo txt',
             onvalue=True,
             offvalue=False,
+            font=("Segoe UI", 9, "bold"),
+            bg=self.infos_config_prog["background_color_fundo"],
             variable=self.valor_checkbox_gerar_arquivo
         )
         self.button_gerador_inicio = Button(
@@ -4257,6 +4323,7 @@ SELECT
             text="Gerar",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.menu_gerador_documentos()
@@ -4266,6 +4333,7 @@ SELECT
             text="Limpar",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.limpar_caixa_texto()
@@ -4275,6 +4343,7 @@ SELECT
             text="Voltar",
             width=15,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu_ferramentas_documentos()
@@ -4305,6 +4374,7 @@ SELECT
             text="Validar",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.menu_validador_documentos()
@@ -4314,6 +4384,7 @@ SELECT
             text="Limpar",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.limpar_caixa_texto()
@@ -4323,6 +4394,7 @@ SELECT
             text="Voltar",
             width=15,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.trocar_tela_menu_ferramentas_documentos()
@@ -4349,6 +4421,7 @@ SELECT
             text="Escolher arquivo Config",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_titulos"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.inserir_campos_arquivo_existente(app, coluna)
@@ -4358,6 +4431,7 @@ SELECT
             text="Novo arquivo Config",
             width=25,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_titulos"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.inserir_campos_arquivo_novo(app, coluna)
@@ -4377,7 +4451,7 @@ SELECT
         self.label_background_fundo = Label(
             app,
             text="Cor do fundo",
-            font=('Arial', 12),
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
@@ -4390,6 +4464,7 @@ SELECT
             text="Cor",
             width=tam_width,
             height=1,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.caixa_selecao_de_cor(self.entry_background_fundo)
@@ -4397,7 +4472,7 @@ SELECT
         self.label_background_titulos = Label(
             app,
             text="Cor dos titulos",
-            font=('Arial', 12),
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
@@ -4410,6 +4485,7 @@ SELECT
             text="Cor",
             width=tam_width,
             height=1,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.caixa_selecao_de_cor(self.entry_background_titulos)
@@ -4417,7 +4493,7 @@ SELECT
         self.label_background_botoes = Label(
             app,
             text="Cor dos Botões",
-            font=('Arial', 12),
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
@@ -4430,6 +4506,7 @@ SELECT
             text="Cor",
             width=tam_width,
             height=1,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.caixa_selecao_de_cor(self.entry_background_botoes)
@@ -4437,7 +4514,7 @@ SELECT
         self.label_background_botoes_navs = Label(
             app,
             text="Cor dos Botões navs",
-            font=('Arial', 12),
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
@@ -4450,6 +4527,7 @@ SELECT
             text="Cor",
             width=tam_width,
             height=1,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.caixa_selecao_de_cor(self.entry_background_botoes_navs)
@@ -4457,7 +4535,7 @@ SELECT
         self.label_background_fonte = Label(
             app,
             text="Cor das fontes",
-            font=('Arial', 12,),
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_fundo"],
             fg=self.infos_config_prog["background_color_fonte"]
         )
@@ -4470,6 +4548,7 @@ SELECT
             text="Cor",
             width=tam_width,
             height=1,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.caixa_selecao_de_cor(self.entry_background_fonte)
@@ -4480,6 +4559,7 @@ SELECT
             name="button_criar",
             width=15,
             height=2,
+            font=("Segoe UI", 10, "bold"),
             bg=self.infos_config_prog["background_color_botoes_navs"],
             fg=self.infos_config_prog["background_color_fonte"],
             command=lambda: self.alterar_background()
@@ -4512,7 +4592,7 @@ SELECT
     def tela(self):
         self.app = Tk()
         self.largura = 450
-        self.altura = 675
+        self.altura = 680
         pos_wid = self.app.winfo_screenwidth()
         pos_hei = self.app.winfo_screenheight()
         self.metade_wid = int((pos_wid / 2) - (self.largura / 2))
@@ -4521,7 +4601,7 @@ SELECT
         self.status_thread = False
         menu = Menu(self.app)
         self.app.config(menu=menu)
-
+        self.paddingy_buttons = 3
         self.peso_linha_um = 0
         self.peso_linha_dois = 1
         self.peso_linha = 1
