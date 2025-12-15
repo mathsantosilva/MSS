@@ -4,3 +4,5 @@
 
 # Ignore Python cache directories
 __pycache__/
+/build/build/
+/build/dist/
