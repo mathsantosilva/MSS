@@ -1,0 +1,4 @@
+-r requirements.txt
+
+PyInstaller==6.11.1
+pytest==8.4.2
