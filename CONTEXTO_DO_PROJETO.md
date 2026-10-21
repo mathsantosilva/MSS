@@ -69,6 +69,14 @@ O produto é orientado a uso interno e trabalha com operações potencialmente d
 9. **Distinguir layout de funcionalidade.** Mensagens simuladas na saída de uma página não equivalem à rotina operacional do legado.
 10. **Atualizar este contexto junto com decisões duradouras.** O arquivo deve refletir o sistema que realmente existe.
 
+### Preferências de colaboração conhecidas
+
+- Manter um contexto universal suficientemente completo para que um novo chat ou agente não precise redescobrir o projeto arquivo por arquivo.
+- Fazer o `AGENTS.md` apontar obrigatoriamente para esta fonte de contexto.
+- Comunicar documentação, estado e decisões em português do Brasil.
+- Separar com clareza fatos confirmados, inferências arquiteturais, trabalho em andamento e pendências.
+- Quando uma entrega estiver pronta para revisão e fizer sentido publicá-la, disponibilizá-la no GitHub por pull request sem misturar mudanças locais ainda não consolidadas.
+
 ## 5. As três gerações de arquitetura presentes
 
 ### 5.1 Monólito legado — referência funcional
@@ -450,7 +458,9 @@ Ponto crítico: muitos arquivos `mss/` aparecem como `AM`. A versão adicionada 
 
 ### Pull requests
 
-Na consulta ao GitHub não havia pull request aberto. Os PRs recentes conhecidos estavam encerrados/mesclados:
+Antes desta entrega, a consulta ao GitHub não encontrou pull request aberto. A documentação deste contexto foi então publicada separadamente no [PR #63 — docs: adicionar contexto universal do projeto MSS](https://github.com/mathsantosilva/MSS/pull/63), aberto contra `dev` e sem incluir a migração local não consolidada.
+
+Os PRs anteriores recentes conhecidos estavam encerrados/mesclados:
 
 - [#58 — Normalize dictionary key quotes in f-strings](https://github.com/mathsantosilva/MSS/pull/58);
 - [#59 — feat: refresh tkinter ui styling](https://github.com/mathsantosilva/MSS/pull/59), depois revertido no histórico;
@@ -625,5 +635,5 @@ Ao atualizar:
 
 O MSS funcional ainda é o monólito Tkinter `BuscaMuro.py` na linha 4.2.0. Há uma migração local grande para PySide6 em `mss/`, com navegação e gerenciamento de configuração bem adiantados, mas as rotinas operacionais principais ainda não foram ligadas aos serviços. A tentativa intermediária `domain/use_cases` está sendo removida. O novo código compila, porém não importa a janela principal por caminhos inconsistentes e não há testes coletáveis. O Git está em estado parcialmente preparado, com muitos arquivos `AM` cujo índice não contém o conteúdo atual. `dev` também diverge significativamente de `master` e `teste`.
 
-O próximo trabalho deve primeiro proteger e tornar reproduzível esse estado, fazer a casca PySide6 iniciar, fixar caminhos/configuração e criar um baseline de testes. Depois, a migração deve avançar fluxo a fluxo, usando o monólito apenas como referência de comportamento até a paridade. No momento deste snapshot não existia PR aberto no GitHub.
+O próximo trabalho deve primeiro proteger e tornar reproduzível esse estado, fazer a casca PySide6 iniciar, fixar caminhos/configuração e criar um baseline de testes. Depois, a migração deve avançar fluxo a fluxo, usando o monólito apenas como referência de comportamento até a paridade. O PR #63 mantém esta documentação isolada para aprovação; a migração de código continua somente no working tree local.
 
