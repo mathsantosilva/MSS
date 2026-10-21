@@ -460,6 +460,8 @@ Alterações da IDE, o protótipo local `tests/teste.py`, configurações reais 
 
 Antes desta entrega, a consulta ao GitHub não encontrou pull request aberto. A documentação deste contexto foi então publicada separadamente no [PR #63 — docs: adicionar contexto universal do projeto MSS](https://github.com/mathsantosilva/MSS/pull/63), aberto contra `dev` e sem incluir a migração local não consolidada.
 
+A entrega integral foi publicada no [PR #64 — feat: consolidar fundação da migração para PySide6](https://github.com/mathsantosilva/MSS/pull/64), também contra `dev`. Esse PR contém o código migrado, a limpeza da arquitetura intermediária, os manifests, os testes e a documentação; por isso, substitui o escopo do PR #63.
+
 Os PRs anteriores recentes conhecidos estavam encerrados/mesclados:
 
 - [#58 — Normalize dictionary key quotes in f-strings](https://github.com/mathsantosilva/MSS/pull/58);
@@ -631,4 +633,4 @@ Ao atualizar:
 
 O MSS funcional ainda é o monólito Tkinter `BuscaMuro.py` na linha 4.2.0. A branch `codex/pyside6-migration` consolida a fundação da migração para PySide6 em `mss/`, com navegação e gerenciamento de configuração bem adiantados, mas as rotinas operacionais principais ainda não foram ligadas aos serviços. A tentativa intermediária `domain/use_cases` foi removida. O novo código compila, inicializa a janela em modo offscreen e possui um baseline de sete testes. `dev` ainda diverge significativamente de `master` e `teste`.
 
-O próximo trabalho deve unificar caminhos/configuração, impedir update bloqueante na inicialização e ampliar o baseline de testes. Depois, a migração deve avançar fluxo a fluxo, usando o monólito como referência de comportamento até a paridade. O PR #63 mantém a entrega documental isolada; a branch de migração reúne o código e esta documentação para uma revisão integral.
+O próximo trabalho deve unificar caminhos/configuração, impedir update bloqueante na inicialização e ampliar o baseline de testes. Depois, a migração deve avançar fluxo a fluxo, usando o monólito como referência de comportamento até a paridade. O PR #64 reúne a branch de migração, os testes e esta documentação para revisão integral e substitui a entrega documental isolada do PR #63.
