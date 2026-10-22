@@ -1,12 +1,30 @@
+# Configurações e dados locais (podem conter credenciais)
 *.json
+/Config/
+/Configs/
+/mss/Configs/
+
+# Saídas de runtime
+/Log/
+/Arquivos/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.pytest-tmp/
+
+# Build e executáveis gerados
+/build/
+/dist/
+*.spec
+/mss/MSS.exe
+
+# Arquivos históricos específicos
 /Log/Log-basemuro.txt
 /Log/Log-manipularbancomuro.txt
 /Log/log-replicarversion.txt
 /Log/Log-Downloadbackup.txt
-/Log/
-/Config/
-/build/
-BuscaMuro.spec
-dist/BuscaMuro.exe
-dist/Log/base_muro.txt
+/dist/BuscaMuro.exe
+/dist/Log/base_muro.txt
 /dist/Config/prog.conf

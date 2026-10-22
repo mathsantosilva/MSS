@@ -1,0 +1,5 @@
+PyGithub==2.4.0
+PySide6==6.11.0
+pyodbc==5.2.0
+redis==5.2.0
+requests==2.32.3

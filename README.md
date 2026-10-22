@@ -88,3 +88,36 @@ background_color_botoes = #F0F0F0
 background_color_botoes_navs = #ADADAD
 background_color_fonte = #000000
 ```
+
+## Migração atual para PySide6
+
+O MSS está sendo migrado gradualmente do monólito Tkinter `BuscaMuro.py` para a aplicação PySide6 em `mss/`.
+
+A nova estrutura separa:
+
+- modelos e constantes em `mss/app/core/`;
+- integrações e regras operacionais em `mss/app/services/`;
+- janela, navegação e páginas em `mss/app/ui/`;
+- tarefas de longa duração em `mss/app/workers/`.
+
+O monólito continua sendo a referência funcional até que cada fluxo novo tenha serviço real, tratamento de erros e testes de paridade. Algumas páginas PySide6 ainda representam somente a interface e não executam a operação correspondente.
+
+Consulte [`CONTEXTO_DO_PROJETO.md`](CONTEXTO_DO_PROJETO.md) para o mapa completo da arquitetura, estado de cada módulo, decisões, riscos e sequência recomendada da migração.
+
+### Execução da aplicação nova
+
+No PowerShell, a partir da raiz do repositório:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+$env:PYTHONPATH = "mss"
+.\.venv\Scripts\python.exe mss\main.py
+```
+
+### Validação de desenvolvimento
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m compileall -q mss tests
+.\.venv\Scripts\python.exe -m pytest -q
+```
